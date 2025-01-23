@@ -1,0 +1,36 @@
+{
+  "grammars": [
+    {
+      "name": "tardi",
+      "camelcase": "Tardi",
+      "scope": "source.tardi",
+      "file-types": [
+        ".tardi"
+      ],
+      "injection-regex": "^tardi$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A tree-sitter for Tardi, a small stack-based language.",
+    "authors": [
+      {
+        "name": "Eric Rochester",
+        "email": "erochest@gmail.com",
+        "url": "http://www.ericrochester.com/"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/erochest/tardi"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true
+  }
+}
