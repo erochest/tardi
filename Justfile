@@ -1,6 +1,9 @@
 
-build:
-    echo "build"
+test:
+    cargo test
 
-test: build
-    echo "test"
+build:
+    cargo build
+
+clean:
+    cargo clean
