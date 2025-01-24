@@ -16,11 +16,12 @@ log = "*"
 
 [dev-dependencies]
 assert_cmd = "*"
-# assert_fs = "*"
+assert_fs = "*"
 # dir-diff = "*"
 # duct = "*"
 # predicates = "*"
 pretty_assertions = "*"
+serde = { version = "1.0.217", features = ["derive"] }
 # rexpect = "*"
-spectral = "*"
+toml = "0.8.19"
 # tempfile = "*"

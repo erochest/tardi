@@ -1,0 +1,14 @@
+[[TestCase]]
+name = "basic test"
+input = """
+1
+.
+"""
+status = 0
+stdout = "1\n"
+
+[[TestCase]]
+name = "error case"
+input = "invalid input"
+status = 1
+stderr = "Error: Invalid input\n"
