@@ -41,6 +41,7 @@ fn test_run() {
         // Run command and capture output
         let output = Command::cargo_bin(env!["CARGO_PKG_NAME"])
             .unwrap()
+            .arg("--print-stack")
             .arg(temp_file.path())
             .output()
             .unwrap();
@@ -57,8 +58,9 @@ fn validate_status(test_case: &TestCase, output: &std::process::Output) {
         assert_eq!(
             output.status.code().unwrap(),
             expected_status,
-            "Test case '{}' status mismatch",
-            test_case.name
+            "Test case '{}' status mismatch. Error message: {}",
+            test_case.name,
+            String::from_utf8_lossy(&output.stderr)
         );
     }
 }

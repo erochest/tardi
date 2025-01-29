@@ -2,10 +2,9 @@
 name = "basic test"
 input = """
 1
-.
 """
 status = 0
-stdout = "1\n"
+stderr = "1\n"
 
 [[TestCase]]
 name = "error case"
