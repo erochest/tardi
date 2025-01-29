@@ -9,6 +9,7 @@ pub type Result<R> = result::Result<R, Error>;
 #[derive(Debug)]
 pub enum Error {
     IoError(io::Error),
+    InvalidOpCode(u8),
 }
 
 use Error::*;
@@ -17,6 +18,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             IoError(ref err) => err.fmt(f),
+            InvalidOpCode(code) => write!(f, "Invalid opcode: {}", code),
         }
     }
 }

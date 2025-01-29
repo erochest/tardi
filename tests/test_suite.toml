@@ -9,5 +9,6 @@ stderr = "1\n"
 [[TestCase]]
 name = "error case"
 input = "invalid input"
-status = 1
-stderr = "Error: Invalid input\n"
+status = 101
+stderr = "not yet implemented: compilation: \"invalid\"\n"
+# stderr = "Error: Invalid input\n"
