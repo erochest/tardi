@@ -10,6 +10,9 @@ pub type Result<R> = result::Result<R, Error>;
 pub enum Error {
     IoError(io::Error),
     InvalidOpCode(u8),
+    InvalidToken(String),
+    InvalidOperands(String, String),
+    StackUnderflow,
 }
 
 use Error::*;
@@ -19,6 +22,9 @@ impl fmt::Display for Error {
         match self {
             IoError(ref err) => err.fmt(f),
             InvalidOpCode(code) => write!(f, "Invalid opcode: {}", code),
+            InvalidToken(token) => write!(f, "Invalid token: {}", token),
+            InvalidOperands(a, b) => write!(f, "Cannot perform operation with {} and {}", a, b),
+            StackUnderflow => write!(f, "Stack underflow"),
         }
     }
 }
