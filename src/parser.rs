@@ -7,6 +7,7 @@ pub enum TokenType {
     Integer(i64),
     Plus,
     Minus,
+    Multiply,
 }
 
 impl TryFrom<&str> for TokenType {
@@ -19,6 +20,8 @@ impl TryFrom<&str> for TokenType {
             Ok(TokenType::Plus)
         } else if word == "-" {
             Ok(TokenType::Minus)
+        } else if word == "*" {
+            Ok(TokenType::Multiply)
         } else {
             Err(Error::InvalidToken(word.to_string()))
         }

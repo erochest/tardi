@@ -2,12 +2,14 @@ use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use env_logger;
 use human_panic::setup_panic;
-use std::ops::{Add, Sub};
-use std::{fmt, result};
 use std::convert::TryFrom;
 
 use tardi::error::{Error, Result};
-use tardi::parser::{Token, TokenType, parse};
+use tardi::parser::parse;
+use tardi::chunk::Chunk;
+use tardi::value::Value;
+use tardi::op_code::OpCode;
+use tardi::compiler::compile;
 
 
 fn main() -> Result<()> {
@@ -46,101 +48,6 @@ struct Cli {
     print_stack: bool,
 }
 
-struct Chunk {
-    constants: Vec<Value>,
-    code: Vec<u8>,
-}
-
-impl Chunk {
-    fn new() -> Self {
-        Self { code: Vec::new(), constants: Vec::new() }
-    }
-
-    fn add_constant(&mut self, value: Value) -> usize {
-        self.constants.push(value);
-        self.constants.len() - 1
-    }
-}
-
-#[derive(Clone, Debug)]
-enum Value {
-    Integer(i64),
-}
-
-impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Value::Integer(n) => write!(f, "{}", n),
-        }
-    }
-}
-
-impl Add for Value {
-    type Output = result::Result<Value, Error>;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
-            // (a, b) => Err(Error::InvalidOperands(a.to_string(), b.to_string())),
-        }
-    }
-}
-
-impl Sub for Value {
-    type Output = result::Result<Value, Error>;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
-        }
-    }
-}
-
-#[repr(u8)]
-enum OpCode {
-    GetConstant = 0,
-    Add,
-    Sub,
-}
-
-impl TryFrom<u8> for OpCode {
-    type Error = Error;
-
-    fn try_from(value: u8) -> result::Result<Self, Self::Error> {
-        match value {
-            0 => Ok(OpCode::GetConstant),
-            1 => Ok(OpCode::Add),
-            2 => Ok(OpCode::Sub),
-            code => Err(Error::InvalidOpCode(code)),
-        }
-    }
-}
-
-fn compile(tokens: Vec<Token>) -> Chunk {
-    let mut chunk = Chunk::new();
-    let mut current = 0;
-    
-    while current < tokens.len() {
-        let token = &tokens[current];
-        match token.token_type {
-            TokenType::Integer(number) => {
-                let constant = chunk.add_constant(Value::Integer(number));
-                chunk.code.push(OpCode::GetConstant as u8);
-                chunk.code.push(constant as u8);
-            },
-            TokenType::Plus => {
-                chunk.code.push(OpCode::Add as u8);
-            },
-            TokenType::Minus => {
-                chunk.code.push(OpCode::Sub as u8);
-            },
-        }
-        current += 1;
-    }
-    
-    chunk
-}
-
 struct VM {
     stack: Vec<Value>,
 }
@@ -174,6 +81,11 @@ impl VM {
                     let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     self.stack.push((a - b)?);
+                },
+                OpCode::Mult => {
+                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push((a * b)?);
                 },
             }
             
