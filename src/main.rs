@@ -2,11 +2,13 @@ use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use env_logger;
 use human_panic::setup_panic;
-use std::ops::Add;
+use std::ops::{Add, Sub};
 use std::{fmt, result};
 use std::convert::TryFrom;
 
 use tardi::error::{Error, Result};
+use tardi::parser::{Token, TokenType, parse};
+
 
 fn main() -> Result<()> {
     setup_panic!();
@@ -42,49 +44,6 @@ struct Cli {
     /// Print the stack after execution
     #[arg(long)]
     print_stack: bool,
-}
-
-enum TokenType {
-    Integer(i64),
-    Plus,
-}
-
-struct Token {
-    token_type: TokenType,
-    line_no: usize,
-    column: usize,
-    length: usize,
-}
-
-impl TryFrom<&str> for TokenType {
-    type Error = Error;
-
-    fn try_from(word: &str) -> result::Result<Self, Self::Error> {
-        if let Ok(number) = word.parse::<i64>() {
-            Ok(TokenType::Integer(number))
-        } else if word == "+" {
-            Ok(TokenType::Plus)
-        } else {
-            Err(Error::InvalidToken(word.to_string()))
-        }
-    }
-}
-
-fn parse(input: &str) -> Vec<Result<Token>> {
-    input.split_whitespace()
-        .enumerate()
-        .map(|(i, word)| {
-            let token_type = TokenType::try_from(word)
-                .map_err(|e| Error::InvalidToken(word.to_string()))?;
-            
-            Ok(Token {
-                token_type,
-                line_no: 1,
-                column: i,
-                length: word.len(),
-            })
-        })
-        .collect()
 }
 
 struct Chunk {
@@ -127,10 +86,21 @@ impl Add for Value {
     }
 }
 
+impl Sub for Value {
+    type Output = result::Result<Value, Error>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
+        }
+    }
+}
+
 #[repr(u8)]
 enum OpCode {
     GetConstant = 0,
     Add,
+    Sub,
 }
 
 impl TryFrom<u8> for OpCode {
@@ -140,6 +110,7 @@ impl TryFrom<u8> for OpCode {
         match value {
             0 => Ok(OpCode::GetConstant),
             1 => Ok(OpCode::Add),
+            2 => Ok(OpCode::Sub),
             code => Err(Error::InvalidOpCode(code)),
         }
     }
@@ -159,6 +130,9 @@ fn compile(tokens: Vec<Token>) -> Chunk {
             },
             TokenType::Plus => {
                 chunk.code.push(OpCode::Add as u8);
+            },
+            TokenType::Minus => {
+                chunk.code.push(OpCode::Sub as u8);
             },
         }
         current += 1;
@@ -195,6 +169,11 @@ impl VM {
                     let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     self.stack.push((a + b)?);
+                },
+                OpCode::Sub => {
+                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push((a - b)?);
                 },
             }
             
