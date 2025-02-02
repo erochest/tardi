@@ -9,6 +9,7 @@ pub enum TokenType {
     Minus,
     Multiply,
     Division,
+    Division,
 }
 
 impl TryFrom<&str> for TokenType {
@@ -23,6 +24,8 @@ impl TryFrom<&str> for TokenType {
             Ok(TokenType::Minus)
         } else if word == "*" {
             Ok(TokenType::Multiply)
+        } else if word == "/" {
+            Ok(TokenType::Division)
         } else {
             Err(Error::InvalidToken(word.to_string()))
         }
