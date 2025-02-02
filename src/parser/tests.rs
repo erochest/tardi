@@ -26,7 +26,7 @@ fn test_parse_divide() {
     let expected = vec![
         TokenType::Integer(10),
         TokenType::Integer(3),
-        TokenType::Divide
+        TokenType::Division
     ];
     test_parse_token_types(input, expected);
 }
