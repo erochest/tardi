@@ -9,6 +9,7 @@ pub enum OpCode {
     Add,
     Sub,
     Mult,
+    Div,
 }
 
 impl TryFrom<u8> for OpCode {
