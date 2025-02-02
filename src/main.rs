@@ -4,12 +4,10 @@ use env_logger;
 use human_panic::setup_panic;
 use std::convert::TryFrom;
 
+use tardi::compiler::compile;
 use tardi::error::{Error, Result};
 use tardi::parser::parse;
-use tardi::chunk::Chunk;
-use tardi::value::Value;
-use tardi::op_code::OpCode;
-use tardi::compiler::compile;
+use tardi::vm::VM;
 
 
 fn main() -> Result<()> {
@@ -43,61 +41,7 @@ struct Cli {
     /// The Tardi script file to execute
     script_file: std::path::PathBuf,
 
-    /// Print the stack after execution
+    /// Print the stack after execution 
     #[arg(long)]
     print_stack: bool,
-}
-
-struct VM {
-    stack: Vec<Value>,
-}
-
-impl VM {
-    fn new() -> Self {
-        VM {
-            stack: Vec::new(),
-        }
-    }
-
-    fn execute(&mut self, chunk: Chunk) -> Result<()> {
-        let mut ip = 0;
-        
-        while ip < chunk.code.len() {
-            let instruction = chunk.code[ip];
-            
-            match OpCode::try_from(instruction)? {
-                OpCode::GetConstant => {
-                    ip += 1;
-                    let constant_idx = chunk.code[ip];
-                    let constant = chunk.constants[constant_idx as usize].clone();
-                    self.stack.push(constant);
-                },
-                OpCode::Add => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push((a + b)?);
-                },
-                OpCode::Sub => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push((a - b)?);
-                },
-                OpCode::Mult => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push((a * b)?);
-                },
-            }
-            
-            ip += 1;
-        }
-
-        Ok(())
-    }
-
-    fn print_stack(&self) {
-        for value in &self.stack {
-            eprintln!("{}", value);
-        }
-    }
 }
