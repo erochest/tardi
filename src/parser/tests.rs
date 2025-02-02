@@ -21,6 +21,17 @@ fn test_parse_integer() {
 }
 
 #[test]
+fn test_parse_divide() {
+    let input = "10 3 /";
+    let expected = vec![
+        TokenType::Integer(10),
+        TokenType::Integer(3),
+        TokenType::Divide
+    ];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
 fn test_parse_plus() {
     let input = "10 3 +";
     let expected = vec![
