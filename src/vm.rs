@@ -45,6 +45,11 @@ impl VM {
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     self.stack.push((a * b)?);
                 },
+                OpCode::Div => {
+                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(a.checked_div(b)?);
+                },
             }
             
             ip += 1;

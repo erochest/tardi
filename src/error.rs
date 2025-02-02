@@ -13,6 +13,7 @@ pub enum Error {
     InvalidToken(String),
     InvalidOperands(String, String),
     StackUnderflow,
+    DivideByZero,
 }
 
 use Error::*;
@@ -25,6 +26,7 @@ impl fmt::Display for Error {
             InvalidToken(token) => write!(f, "Invalid token: {}", token),
             InvalidOperands(a, b) => write!(f, "Cannot perform operation with {} and {}", a, b),
             StackUnderflow => write!(f, "Stack underflow"),
+            DivideByZero => write!(f, "Divide by zero"),
         }
     }
 }

@@ -13,6 +13,19 @@ impl fmt::Display for Value {
             Value::Integer(n) => write!(f, "{}", n),
         }
     }
+
+    pub fn checked_div(self, other: Value) -> Result<Value> {
+        match (self, other) {
+            (Value::Integer(a), Value::Integer(b)) => {
+                if b == 0 {
+                    Err(Error::DivideByZero)
+                } else {
+                    Ok(Value::Integer(a / b))
+                }
+            },
+            (a, b) => Err(Error::InvalidOperands(a.to_string(), b.to_string())),
+        }
+    }
 }
 
 impl Add for Value {
