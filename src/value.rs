@@ -13,8 +13,10 @@ impl fmt::Display for Value {
             Value::Integer(n) => write!(f, "{}", n),
         }
     }
+}
 
-    pub fn checked_div(self, other: Value) -> Result<Value> {
+impl Value {
+    fn checked_div(self, other: Value) -> Result<Value> {
         match (self, other) {
             (Value::Integer(a), Value::Integer(b)) => {
                 if b == 0 {
