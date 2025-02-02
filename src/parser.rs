@@ -9,7 +9,6 @@ pub enum TokenType {
     Minus,
     Multiply,
     Division,
-    Division,
 }
 
 impl TryFrom<&str> for TokenType {
