@@ -16,7 +16,7 @@ impl fmt::Display for Value {
 }
 
 impl Value {
-    fn checked_div(self, other: Value) -> Result<Value> {
+    pub fn checked_div(self, other: Value) -> Result<Value> {
         match (self, other) {
             (Value::Integer(a), Value::Integer(b)) => {
                 if b == 0 {
@@ -24,8 +24,7 @@ impl Value {
                 } else {
                     Ok(Value::Integer(a / b))
                 }
-            },
-            (a, b) => Err(Error::InvalidOperands(a.to_string(), b.to_string())),
+            }
         }
     }
 }
@@ -36,7 +35,6 @@ impl Add for Value {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
-            (a, b) => Err(Error::InvalidOperands(a.to_string(), b.to_string())),
         }
     }
 }
@@ -47,7 +45,6 @@ impl Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
-            (a, b) => Err(Error::InvalidOperands(a.to_string(), b.to_string())),
         }
     }
 }
@@ -58,7 +55,6 @@ impl Mul for Value {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
-            (a, b) => Err(Error::InvalidOperands(a.to_string(), b.to_string())),
         }
     }
 }
