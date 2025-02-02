@@ -12,6 +12,11 @@ fn test_compile(input: &str, expected: Vec<u8>) {
 }
 
 #[test]
+fn test_compile_simple_expression_with_div() {
+    test_compile("10 3 /", vec![0, 0, 0, 1, OpCode::Div as u8]);
+}
+
+#[test]
 fn test_compile_simple_expression() {
     test_compile("10 3", vec![0, 0, 0, 1]);
 }
