@@ -1,0 +1,5 @@
+lint-cmd: cargo clippy -p tardi --no-deps --fix
+test-cmd: cargo nextest run -p tardi --lib
+auto-test: true
+read:
+  - CONVENTIONS.md
