@@ -21,6 +21,7 @@ impl TryFrom<u8> for OpCode {
             1 => Ok(OpCode::Add),
             2 => Ok(OpCode::Sub),
             3 => Ok(OpCode::Mult),
+            4 => Ok(OpCode::Div),
             code => Err(Error::InvalidOpCode(code)),
         }
     }
@@ -36,6 +37,7 @@ mod tests {
         assert_eq!(OpCode::try_from(1).unwrap(), OpCode::Add);
         assert_eq!(OpCode::try_from(2).unwrap(), OpCode::Sub);
         assert_eq!(OpCode::try_from(3).unwrap(), OpCode::Mult);
+        assert_eq!(OpCode::try_from(4).unwrap(), OpCode::Div);
         assert!(matches!(OpCode::try_from(177), Err(Error::InvalidOpCode(177))));
     }
 }
