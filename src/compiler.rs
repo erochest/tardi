@@ -24,7 +24,9 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
             TokenType::Multiply => {
                 chunk.code.push(OpCode::Mult as u8);
             },
-            TokenType::Division => todo!("division"),
+            TokenType::Division => {
+                chunk.code.push(OpCode::Div as u8);
+            },
         }
         current += 1;
     }
