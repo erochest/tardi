@@ -27,5 +27,27 @@ pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
 }
 
 pub fn run_repl(print_stack: bool) -> Result<()> {
-    todo!()
+    let mut vm = VM::new();
+
+    loop {
+        print!("> ");
+        std::io::stdout().flush()?;
+
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line)?;
+
+        if line.trim() == "/quit" {
+            break;
+        }
+
+        let tokens = parse(&line).into_iter().collect::<Result<Vec<_>>>()?;
+        let chunk = compile(tokens);
+        vm.execute(chunk)?;
+
+        if print_stack {
+            vm.print_stack();
+        }
+    }
+
+    Ok(())
 }
