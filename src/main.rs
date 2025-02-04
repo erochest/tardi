@@ -4,26 +4,8 @@ use env_logger;
 use human_panic::setup_panic;
 use std::convert::TryFrom;
 
-use tardi::compiler::compile;
-use tardi::error::{Error, Result};
-use tardi::parser::parse;
-use tardi::vm::VM;
-
-
-fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
-    let script_text = std::fs::read_to_string(file_path)?;
-
-    let tokens = parse(&script_text).into_iter().collect::<Result<Vec<_>>>()?;
-    let chunk = compile(tokens);
-    let mut vm = VM::new();
-    vm.execute(chunk)?;
-
-    if print_stack {
-        vm.print_stack();
-    }
-
-    Ok(())
-}
+use tardi::run_file;
+use tardi::error::Result;
 
 fn main() -> Result<()> {
     setup_panic!();
