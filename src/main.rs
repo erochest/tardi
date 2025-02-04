@@ -14,7 +14,11 @@ fn main() -> Result<()> {
         .filter_level(args.verbose.log_level_filter())
         .init();
 
-    run_file(&args.script_file, args.print_stack)?;
+    if let Some(script_file) = args.script_file {
+        run_file(&script_file, args.print_stack)?;
+    } else {
+        run_repl(args.print_stack)?;
+    }
 
     Ok(())
 }
@@ -25,8 +29,8 @@ struct Cli {
     #[command(flatten)]
     verbose: Verbosity,
 
-    /// The Tardi script file to execute
-    script_file: std::path::PathBuf,
+    /// The Tardi script file to execute. If not provided, runs the REPL.
+    script_file: Option<std::path::PathBuf>,
 
     /// Print the stack after execution 
     #[arg(long)]
