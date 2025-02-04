@@ -4,7 +4,7 @@ use env_logger;
 use human_panic::setup_panic;
 use std::convert::TryFrom;
 
-use tardi::run_file;
+use tardi::{run_file, run_repl};
 use tardi::error::Result;
 
 fn main() -> Result<()> {

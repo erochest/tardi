@@ -29,6 +29,7 @@ pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
 }
 
 pub fn run_repl(print_stack: bool) -> Result<()> {
+    // TODO: print banner
     let mut vm = VM::new();
 
     loop {
@@ -43,6 +44,8 @@ pub fn run_repl(print_stack: bool) -> Result<()> {
         }
 
         let tokens = parse(&line).into_iter().collect::<Result<Vec<_>>>()?;
+        // TODO: this may not have any memory between lines of input
+        // of functions defined, etc. fix this.
         let chunk = compile(tokens);
         vm.execute(chunk)?;
 
