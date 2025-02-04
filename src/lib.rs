@@ -25,3 +25,7 @@ pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
 
     Ok(())
 }
+
+pub fn run_repl(print_stack: bool) -> Result<()> {
+    todo!()
+}
