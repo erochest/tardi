@@ -10,6 +10,21 @@ use tardi::parser::parse;
 use tardi::vm::VM;
 
 
+fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
+    let script_text = std::fs::read_to_string(file_path)?;
+
+    let tokens = parse(&script_text).into_iter().collect::<Result<Vec<_>>>()?;
+    let chunk = compile(tokens);
+    let mut vm = VM::new();
+    vm.execute(chunk)?;
+
+    if print_stack {
+        vm.print_stack();
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     setup_panic!();
     let args = Cli::parse();
@@ -17,17 +32,7 @@ fn main() -> Result<()> {
         .filter_level(args.verbose.log_level_filter())
         .init();
 
-    let script_path = &args.script_file;
-    let script_text = std::fs::read_to_string(script_path)?;
-
-    let tokens = parse(&script_text).into_iter().collect::<Result<Vec<_>>>()?;
-    let chunk = compile(tokens);
-    let mut vm = VM::new();
-    vm.execute(chunk)?;
-
-    if args.print_stack {
-        vm.print_stack();
-    }
+    run_file(&args.script_file, args.print_stack)?;
 
     Ok(())
 }
