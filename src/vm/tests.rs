@@ -2,7 +2,6 @@ use pretty_assertions::assert_eq;
 
 use super::*;
 
-use crate::chunk::Chunk;
 use crate::compiler::compile;
 use crate::parser::parse;
 use crate::value::Value;

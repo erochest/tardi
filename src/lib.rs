@@ -9,6 +9,8 @@ pub mod vm;
 use crate::compiler::compile;
 use crate::error::Result;
 use crate::parser::parse;
+use std::io::Write;
+
 use crate::vm::VM;
 
 pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
