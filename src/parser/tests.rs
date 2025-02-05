@@ -66,8 +66,7 @@ fn test_parse_multiply() {
 
 #[test]
 fn test_parse_empty_string() {
-    // AI! instead of the input being an empty string, make the input be an empty string token.
-    let input = "";
-    let expected: Vec<TokenType> = vec![TokenType::String(String::new())];
+    let input = "\"\"";
+    let expected = vec![TokenType::String(String::new())];
     test_parse_token_types(input, expected);
 }
