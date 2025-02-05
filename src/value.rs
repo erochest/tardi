@@ -28,9 +28,9 @@ impl Value {
                 }
             },
             (Value::String(_), Value::String(_)) => {
-                Err(Error::InvalidOperands(self, other))
+                Err(Error::InvalidOperands(self.to_string(), other.to_string()))
             },
-            _ => Err(Error::InvalidOperands(self, other)),
+            _ => Err(Error::InvalidOperands(self.to_string(), other.to_string())),
         }
     }
 }
@@ -42,7 +42,7 @@ impl Add for Value {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
-            _ => Err(Error::InvalidOperands(self, rhs)),
+            _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }
 }
