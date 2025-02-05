@@ -63,3 +63,8 @@ fn test_parse_multiply() {
     ];
     test_parse_token_types(input, expected);
 }
+
+#[test]
+fn test_parse_empty_string() {
+    // AI! Fill this in.
+}
