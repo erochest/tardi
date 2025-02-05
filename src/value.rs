@@ -19,7 +19,7 @@ impl fmt::Display for Value {
 
 impl Value {
     pub fn checked_div(self, other: Value) -> Result<Value> {
-        match (self, other) {
+        match (self.clone(), other.clone()) {
             (Value::Integer(a), Value::Integer(b)) => {
                 if b == 0 {
                     Err(Error::DivideByZero)
@@ -39,7 +39,7 @@ impl Add for Value {
     type Output = Result<Value>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
+        match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
@@ -53,7 +53,7 @@ impl Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
-            _ => Err(Error::InvalidOperands(self, rhs)),
+            _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }
 }
