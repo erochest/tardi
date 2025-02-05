@@ -15,6 +15,10 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
                 chunk.code.push(OpCode::GetConstant as u8);
                 chunk.code.push(constant as u8);
             },
+            TokenType::String(string) => {
+                // TODO: Implement strings 
+                unimplemented!("Strings are not yet implemented");
+            },
             TokenType::Plus => {
                 chunk.code.push(OpCode::Add as u8);
             },
