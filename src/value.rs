@@ -5,12 +5,14 @@ use crate::error::{Error, Result};
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Integer(i64),
+    String(String),
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Integer(n) => write!(f, "{}", n),
+            Value::String(s) => write!(f, "\"{}\"", s),
         }
     }
 }

@@ -9,15 +9,16 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
     
     while current < tokens.len() {
         let token = &tokens[current];
-        match token.token_type {
+        match &token.token_type {
             TokenType::Integer(number) => {
                 let constant = chunk.add_constant(Value::Integer(number));
                 chunk.code.push(OpCode::GetConstant as u8);
                 chunk.code.push(constant as u8);
             },
             TokenType::String(string) => {
-                // TODO: Implement strings 
-                unimplemented!("Strings are not yet implemented");
+                let constant = chunk.add_constant(Value::String(string.clone()));
+                chunk.code.push(OpCode::GetConstant as u8);
+                chunk.code.push(constant as u8);
             },
             TokenType::Plus => {
                 chunk.code.push(OpCode::Add as u8);
