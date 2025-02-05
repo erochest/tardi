@@ -26,7 +26,11 @@ impl Value {
                 } else {
                     Ok(Value::Integer(a / b))
                 }
-            }
+            },
+            (Value::String(_), Value::String(_)) => {
+                Err(Error::InvalidOperands(self, other))
+            },
+            _ => Err(Error::InvalidOperands(self, other)),
         }
     }
 }
@@ -37,6 +41,8 @@ impl Add for Value {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
+            (Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
+            _ => Err(Error::InvalidOperands(self, rhs)),
         }
     }
 }
@@ -47,6 +53,7 @@ impl Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
+            _ => Err(Error::InvalidOperands(self, rhs)),
         }
     }
 }
@@ -57,6 +64,7 @@ impl Mul for Value {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
+            _ => Err(Error::InvalidOperands(self, rhs)),
         }
     }
 }

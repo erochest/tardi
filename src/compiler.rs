@@ -11,7 +11,7 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
         let token = &tokens[current];
         match &token.token_type {
             TokenType::Integer(number) => {
-                let constant = chunk.add_constant(Value::Integer(number));
+                let constant = chunk.add_constant(Value::Integer(*number));
                 chunk.code.push(OpCode::GetConstant as u8);
                 chunk.code.push(constant as u8);
             },
