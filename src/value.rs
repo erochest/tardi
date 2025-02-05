@@ -51,7 +51,7 @@ impl Sub for Value {
     type Output = Result<Value>;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
+        match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
@@ -64,7 +64,7 @@ impl Mul for Value {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
-            _ => Err(Error::InvalidOperands(self, rhs)),
+            _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }
 }
