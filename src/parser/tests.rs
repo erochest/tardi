@@ -66,5 +66,7 @@ fn test_parse_multiply() {
 
 #[test]
 fn test_parse_empty_string() {
-    // AI! Fill this in.
+    let input = "";
+    let expected: Vec<TokenType> = vec![];
+    test_parse_token_types(input, expected);
 }
