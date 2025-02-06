@@ -6,7 +6,10 @@ use crate::parser::parse;
 use super::*;
 
 fn test_compile(input: &str, expected: Vec<u8>) {
-    let tokens = parse(input).into_iter().collect::<Result<Vec<_>>>().unwrap();
+    let tokens = parse(input)
+        .into_iter()
+        .collect::<Result<Vec<_>>>()
+        .unwrap();
     let chunk = compile(tokens);
     assert_eq!(chunk.code, expected);
 }
@@ -38,5 +41,5 @@ fn test_compile_simple_expression_with_mult() {
 
 #[test]
 fn test_compile_string() {
-    test_compile("\"hello\"", vec![0, 0, OpCode::GetConstant as u8, 0]);
+    test_compile("\"hello\"", vec![OpCode::GetConstant as u8, 0]);
 }
