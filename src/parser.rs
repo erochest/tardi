@@ -5,6 +5,7 @@ use crate::error::{Error, Result};
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     Integer(i64),
+    String(String),
     Plus,
     Minus,
     Multiply,
@@ -25,6 +26,8 @@ impl TryFrom<&str> for TokenType {
             Ok(TokenType::Multiply)
         } else if word == "/" {
             Ok(TokenType::Division)
+        } else if word.starts_with("\"") {
+            Ok(TokenType::String(String::new()))
         } else {
             Err(Error::InvalidToken(word.to_string()))
         }
@@ -40,11 +43,12 @@ pub struct Token {
 }
 
 pub fn parse(input: &str) -> Vec<Result<Token>> {
-    input.split_whitespace()
+    input
+        .split_whitespace()
         .enumerate()
         .map(|(i, word)| {
             let token_type = TokenType::try_from(word)?;
-            
+
             Ok(Token {
                 token_type,
                 line_no: 1,
@@ -53,7 +57,7 @@ pub fn parse(input: &str) -> Vec<Result<Token>> {
             })
         })
         .collect()
-} 
+}
 
 #[cfg(test)]
 mod tests;
