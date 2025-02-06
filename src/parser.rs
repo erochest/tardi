@@ -27,7 +27,7 @@ impl TryFrom<&str> for TokenType {
         } else if word == "/" {
             Ok(TokenType::Division)
         } else if word.starts_with("\"") {
-            Ok(TokenType::String(String::new()))
+            Ok(TokenType::String(word[1..].to_string()))
         } else {
             Err(Error::InvalidToken(word.to_string()))
         }
