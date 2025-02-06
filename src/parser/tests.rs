@@ -26,7 +26,7 @@ fn test_parse_divide() {
     let expected = vec![
         TokenType::Integer(10),
         TokenType::Integer(3),
-        TokenType::Division
+        TokenType::Division,
     ];
     test_parse_token_types(input, expected);
 }
@@ -37,7 +37,7 @@ fn test_parse_plus() {
     let expected = vec![
         TokenType::Integer(10),
         TokenType::Integer(3),
-        TokenType::Plus
+        TokenType::Plus,
     ];
     test_parse_token_types(input, expected);
 }
@@ -48,7 +48,7 @@ fn test_parse_minus() {
     let expected = vec![
         TokenType::Integer(10),
         TokenType::Integer(3),
-        TokenType::Minus
+        TokenType::Minus,
     ];
     test_parse_token_types(input, expected);
 }
@@ -59,14 +59,17 @@ fn test_parse_multiply() {
     let expected = vec![
         TokenType::Integer(10),
         TokenType::Integer(3),
-        TokenType::Multiply
+        TokenType::Multiply,
     ];
     test_parse_token_types(input, expected);
 }
 
 #[test]
-fn test_parse_empty_string() {
+fn test_parse_string_empty() {
     let input = "\"\"";
     let expected = vec![TokenType::String(String::new())];
     test_parse_token_types(input, expected);
 }
+
+#[test]
+fn test_parse_string_single_word() {}
