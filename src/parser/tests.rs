@@ -72,4 +72,8 @@ fn test_parse_string_empty() {
 }
 
 #[test]
-fn test_parse_string_single_word() {}
+fn test_parse_string_single_word() {
+    let input = "\"hello\"";
+    let expected = vec![TokenType::String("hello".to_string())];
+    test_parse_token_types(input, expected);
+}
