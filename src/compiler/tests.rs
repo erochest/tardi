@@ -35,3 +35,8 @@ fn test_compile_simple_expression_with_sub() {
 fn test_compile_simple_expression_with_mult() {
     test_compile("10 3 *", vec![0, 0, 0, 1, OpCode::Mult as u8]);
 }
+
+#[test]
+fn test_compile_string() {
+    test_compile("\"hello\"", vec![0, 0, OpCode::GetConstant as u8, 0]);
+}
