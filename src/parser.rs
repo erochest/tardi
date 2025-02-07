@@ -42,22 +42,62 @@ pub struct Token {
     pub length: usize,
 }
 
-pub fn parse(input: &str) -> Vec<Result<Token>> {
-    input
-        .split_whitespace()
-        .enumerate()
-        .map(|(i, word)| {
-            let token_type = TokenType::try_from(word)?;
+pub fn parse(input: &str) -> Result<Vec<Token>> {
+    let mut tokens = Vec::new();
+    let mut index = 0;
 
-            Ok(Token {
-                token_type,
-                line_no: 1,
-                column: i,
-                length: word.len(),
-            })
-        })
-        .collect()
+    while index < input.len() {
+        let start = index;
+        while index < input.len() && !input[index..].starts_with(char::is_whitespace) {
+            index += 1;
+        }
+
+        let word = &input[start..index];
+        let token_type = TokenType::try_from(word)?;
+
+        tokens.push(Token {
+            token_type,
+            line_no: 1,
+            column: start,
+            length: word.len(),
+        });
+
+        while index < input.len() && input[index..].starts_with(char::is_whitespace) {
+            index += 1;
+        }
+    }
+
+    Ok(tokens)
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse() {
+        let input = "1 + 2";
+        let expected = vec![
+            Token {
+                token_type: TokenType::Integer(1),
+                line_no: 1,
+                column: 0,
+                length: 1,
+            },
+            Token {
+                token_type: TokenType::Plus,
+                line_no: 1,
+                column: 2,
+                length: 1,
+            },
+            Token {
+                token_type: TokenType::Integer(2),
+                line_no: 1,
+                column: 4,
+                length: 1,
+            },
+        ];
+
+        assert_eq!(parse(input).unwrap(), expected);
+    }
+}
