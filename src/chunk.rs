@@ -1,5 +1,6 @@
 use crate::value::Value;
 
+#[derive(Debug, Default)]
 pub struct Chunk {
     pub constants: Vec<Value>,
     pub code: Vec<u8>,
@@ -17,7 +18,7 @@ impl Chunk {
         self.constants.push(value);
         self.constants.len() - 1
     }
-} 
+}
 
 #[cfg(test)]
 mod tests {
@@ -33,3 +34,4 @@ mod tests {
         assert_eq!(chunk.constants[0], constant);
     }
 }
+
