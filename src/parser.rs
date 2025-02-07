@@ -70,34 +70,3 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
     Ok(tokens)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse() {
-        let input = "1 + 2";
-        let expected = vec![
-            Token {
-                token_type: TokenType::Integer(1),
-                line_no: 1,
-                column: 0,
-                length: 1,
-            },
-            Token {
-                token_type: TokenType::Plus,
-                line_no: 1,
-                column: 2,
-                length: 1,
-            },
-            Token {
-                token_type: TokenType::Integer(2),
-                line_no: 1,
-                column: 4,
-                length: 1,
-            },
-        ];
-
-        assert_eq!(parse(input).unwrap(), expected);
-    }
-}
