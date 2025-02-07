@@ -16,7 +16,7 @@ use crate::vm::VM;
 pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
     let script_text = std::fs::read_to_string(file_path)?;
 
-    let tokens = parse(&script_text).into_iter().collect::<Result<Vec<_>>>()?;
+    let tokens = parse(&script_text)?;
     let chunk = compile(tokens);
     let mut vm = VM::new();
     vm.execute(chunk)?;
@@ -43,7 +43,7 @@ pub fn run_repl(print_stack: bool) -> Result<()> {
             break;
         }
 
-        let tokens = parse(&line).into_iter().collect::<Result<Vec<_>>>()?;
+        let tokens = parse(&line)?;
         // TODO: this may not have any memory between lines of input
         // of functions defined, etc. fix this.
         let chunk = compile(tokens);
