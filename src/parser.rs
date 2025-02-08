@@ -93,11 +93,18 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
     let mut offset = 1;
     let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
     while start + offset < input.len() && input[start + offset] != '"' {
-        let current_char = input[start + offset];
-        if current_char == '\\' && start + offset + 1 < input.len() {
+        let char_to_push = if input[start + offset] == '\\' && start + offset + 1 < input.len() {
             offset += 1;
-        }
-        word.push(input[start + offset]);
+            match input[start + offset] {
+                'n' => '\n',
+                't' => '\t',
+                'r' => '\r',
+                c => c,
+            }
+        } else {
+            input[start + offset]
+        };
+        word.push(char_to_push);
         offset += 1;
     }
     let end = start + offset + 1;
