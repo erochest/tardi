@@ -48,9 +48,8 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
 
     while index < input.len() {
         let start = index;
-        while index < input.len() && !input[index..].starts_with(char::is_whitespace) {
-            index += 1;
-        }
+        let end = read_token(&input[start..]);
+        index = start + end;
 
         let word = &input[start..index];
         let token_type = TokenType::try_from(word)?;
@@ -62,11 +61,25 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
             length: word.len(),
         });
 
-        while index < input.len() && input[index..].starts_with(char::is_whitespace) {
-            index += 1;
-        }
+        index += skip_whitespace(&input[index..]);
     }
 
     Ok(tokens)
+}
+
+fn read_token(input: &str) -> usize {
+    let mut end = 0;
+    while end < input.len() && !input[end..].starts_with(char::is_whitespace) {
+        end += 1;
+    }
+    end
+}
+
+fn skip_whitespace(input: &str) -> usize {
+    let mut offset = 0;
+    while offset < input.len() && input[offset..].starts_with(char::is_whitespace) {
+        offset += 1;
+    }
+    offset
 }
 
