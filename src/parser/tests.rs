@@ -20,6 +20,13 @@ fn test_parse_skips_whitespace() {
 }
 
 #[test]
+fn test_parse_string_multiple_words() {
+    let input = "\"hello world\"";
+    let expected = vec![TokenType::String("hello world".to_string())];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
 fn test_parse_integer() {
     let input = "10 3";
     let expected = vec![TokenType::Integer(10), TokenType::Integer(3)];
