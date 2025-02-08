@@ -19,6 +19,8 @@ jobs:
       uses: actions/checkout@v4
     - name: Install just
       uses: taiki-e/install-action@just
+    - name: Install cargo-nextest
+      uses: taiki-e/install-action@nextest
     - name: Build
       run: just build
     - name: Run tests
