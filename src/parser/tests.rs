@@ -20,6 +20,13 @@ fn test_parse_skips_whitespace() {
 }
 
 #[test]
+fn test_parse_string_with_escaped_quotes() {
+    let input = "\"the alien said, \\\"greetings, earthling.\\\"\"";
+    let expected = vec![TokenType::String("the alien said, \"greetings, earthling.\"".to_string())];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
 fn test_parse_string_multiple_words() {
     let input = "\"hello world\"";
     let expected = vec![TokenType::String("hello world".to_string())];

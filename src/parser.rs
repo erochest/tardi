@@ -89,12 +89,17 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
 fn read_string(input: &[char], index: usize) -> (usize, Token) {
     let start = index;
     let mut offset = 1;
+    let mut word = String::new();
     while start + offset < input.len() && input[start + offset] != '"' {
+        let current_char = input[start + offset];
+        word.push(current_char);
+        if current_char == '\\' && start + offset + 1 < input.len() {
+            offset += 1;
+            word.push(input[start + offset]);
+        }
         offset += 1;
     }
     let end = start + offset + 1;
-
-    let word: String = input[start + 1..end - 1].iter().collect();
     let token_type = TokenType::String(word);
 
     let token = Token {
