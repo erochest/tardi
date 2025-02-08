@@ -63,8 +63,11 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
 
 fn next_word(input: &[char], index: usize) -> (usize, Token) {
     let start = index;
-    let end = read_token(&input[start..]);
-    let new_index = start + end;
+    let mut offset = 0;
+    while start + offset < input.len() && !input[start + offset].is_whitespace() {
+        offset += 1;
+    }
+    let new_index = start + offset;
 
     let word: String = input[start..new_index].iter().collect();
     let token_type = TokenType::try_from(&word[..]).unwrap();
