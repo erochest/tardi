@@ -86,10 +86,12 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
     (end, token)
 }
 
+const STRING_INITIALIZATION_CAPACITY: usize = 8;
+
 fn read_string(input: &[char], index: usize) -> (usize, Token) {
     let start = index;
     let mut offset = 1;
-    let mut word = String::new();
+    let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
     while start + offset < input.len() && input[start + offset] != '"' {
         let current_char = input[start + offset];
         if current_char == '\\' && start + offset + 1 < input.len() {
