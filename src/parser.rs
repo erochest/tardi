@@ -67,19 +67,19 @@ fn next_word(input: &[char], index: usize) -> (usize, Token) {
     while start + offset < input.len() && !input[start + offset].is_whitespace() {
         offset += 1;
     }
-    let new_index = start + offset;
+    let end = start + offset;
 
-    let word: String = input[start..new_index].iter().collect();
+    let word: String = input[start..end].iter().collect();
     let token_type = TokenType::try_from(&word[..]).unwrap();
 
     let token = Token {
         token_type,
         line_no: 1,
         column: start,
-        length: word.len(),
+        length: offset,
     };
 
-    (new_index, token)
+    (end, token)
 }
 
 fn skip_whitespace(input: &[char]) -> usize {
