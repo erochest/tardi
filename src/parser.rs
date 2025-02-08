@@ -57,7 +57,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
             index = new_index;
             tokens.push(token);
         } else {
-            let (new_index, token) = next_word(&input, index);
+            let (new_index, token) = read_word(&input, index);
             index = new_index;
             tokens.push(token);
         }
@@ -65,7 +65,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
     Ok(tokens)
 }
 
-fn next_word(input: &[char], index: usize) -> (usize, Token) {
+fn read_word(input: &[char], index: usize) -> (usize, Token) {
     let start = index;
     let mut offset = 0;
     while start + offset < input.len() && !input[start + offset].is_whitespace() {
@@ -94,7 +94,7 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
     }
     let end = start + offset + 1;
 
-    let word: String = input[start+1..end-1].iter().collect();
+    let word: String = input[start + 1..end - 1].iter().collect();
     let token_type = TokenType::String(word);
 
     let token = Token {
