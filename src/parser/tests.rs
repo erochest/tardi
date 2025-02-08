@@ -1,16 +1,22 @@
+use std::iter::Iterator;
+
 use pretty_assertions::assert_eq;
 
 use super::*;
 
 fn test_parse_token_types(input: &str, expected: Vec<TokenType>) {
-    let result = parse(input)
-        .into_iter()
-        .map(|t| t.map(|t| t.token_type))
-        .collect::<Result<Vec<_>>>();
+    let result = parse(input).map(|t| t.into_iter().map(|t| t.token_type).collect::<Vec<_>>());
 
     assert!(result.is_ok());
     let result = result.unwrap();
     assert_eq!(result, expected);
+}
+
+#[test]
+fn test_parse_skips_whitespace() {
+    let input = "\n1\n";
+    let expected = vec![TokenType::Integer(1)];
+    test_parse_token_types(input, expected);
 }
 
 #[test]
