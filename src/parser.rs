@@ -92,11 +92,10 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
     let mut word = String::new();
     while start + offset < input.len() && input[start + offset] != '"' {
         let current_char = input[start + offset];
-        word.push(current_char);
         if current_char == '\\' && start + offset + 1 < input.len() {
             offset += 1;
-            word.push(input[start + offset]);
         }
+        word.push(input[start + offset]);
         offset += 1;
     }
     let end = start + offset + 1;
