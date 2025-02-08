@@ -2,6 +2,8 @@ use std::convert::TryFrom;
 
 use crate::error::{Error, Result};
 
+const STRING_INITIALIZATION_CAPACITY: usize = 8;
+
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     Integer(i64),
@@ -85,8 +87,6 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
 
     (end, token)
 }
-
-const STRING_INITIALIZATION_CAPACITY: usize = 8;
 
 fn read_string(input: &[char], index: usize) -> (usize, Token) {
     let start = index;
