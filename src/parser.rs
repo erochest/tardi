@@ -39,8 +39,6 @@ impl TryFrom<&str> for TokenType {
             } else {
                 Err(Error::InvalidToken(word.to_string()))
             }
-        } else if let Ok(number) = word.parse::<i64>() {
-            Ok(TokenType::Integer(number))
         } else if word == "+" {
             Ok(TokenType::Plus)
         } else if word == "-" {
@@ -49,6 +47,8 @@ impl TryFrom<&str> for TokenType {
             Ok(TokenType::Multiply)
         } else if word == "/" {
             Ok(TokenType::Division)
+        } else if let Ok(number) = word.parse::<i64>() {
+            Ok(TokenType::Integer(number))
         } else if word.starts_with("\"") {
             Ok(TokenType::String(word.trim_matches('"').to_string()))
         } else {
