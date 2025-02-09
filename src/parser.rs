@@ -92,50 +92,22 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
     (end, token)
 }
 
-fn read_long_string(input: &[char], index: usize) -> Result<(usize, Token)> {
+fn read_string_until(
+    input: &[char], 
+    index: usize, 
+    terminator: &[char],
+    allow_escapes: bool,
+) -> Result<(usize, String)> {
     let start = index;
-    let mut offset = 3;
+    let mut offset = terminator.len();
     let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
 
-    while start + offset + 2 < input.len() {
-        if input[start + offset..start + offset + 3] == ['"', '"', '"'] {
+    while start + offset < input.len() {
+        if input[start + offset..].starts_with(terminator) {
             break;
         }
 
-        let char_to_push = if input[start + offset] == '\\' && start + offset + 1 < input.len() {
-            offset += 1;
-            match input[start + offset] {
-                'n' => '\n',
-                't' => '\t',
-                'r' => '\r',
-                c => c,
-            }
-        } else {
-            input[start + offset]
-        };
-        word.push(char_to_push);
-        offset += 1;
-    }
-
-    let end = start + offset + 3;
-    let token_type = TokenType::String(word);
-
-    let token = Token {
-        token_type,
-        line_no: 1,
-        column: start,
-        length: offset + 3,
-    };
-
-    Ok((end, token))
-}
-
-fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
-    let start = index;
-    let mut offset = 1;
-    let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
-    while start + offset < input.len() && input[start + offset] != '"' {
-        let char_to_push = if input[start + offset] == '\\' && start + offset + 1 < input.len() {
+        let char_to_push = if allow_escapes && input[start + offset] == '\\' && start + offset + 1 < input.len() {
             offset += 1;
             match input[start + offset] {
                 'n' => '\n',
@@ -155,14 +127,33 @@ fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
         word.push(char_to_push);
         offset += 1;
     }
-    let end = start + offset + 1;
+
+    Ok((start + offset + terminator.len(), word))
+}
+
+fn read_long_string(input: &[char], index: usize) -> Result<(usize, Token)> {
+    let (end, word) = read_string_until(input, index, &['"', '"', '"'], false)?;
     let token_type = TokenType::String(word);
 
     let token = Token {
         token_type,
         line_no: 1,
-        column: start,
-        length: offset + 1,
+        column: index,
+        length: end - index,
+    };
+
+    Ok((end, token))
+}
+
+fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
+    let (end, word) = read_string_until(input, index, &['"'], true)?;
+    let token_type = TokenType::String(word);
+
+    let token = Token {
+        token_type,
+        line_no: 1,
+        column: index,
+        length: end - index,
     };
 
     Ok((end, token))
