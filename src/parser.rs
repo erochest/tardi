@@ -55,8 +55,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
         if current.is_whitespace() {
             index += skip_whitespace(&input[index..]);
         } else if current == '"' {
-            // AI! propagate the error here with `?`
-            let (new_index, token) = read_string(&input, index);
+            let (new_index, token) = read_string(&input, index)?;
             index = new_index;
             tokens.push(token);
         } else {
@@ -89,8 +88,7 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
     (end, token)
 }
 
-// AI! Make this return `Result<(usize, Token)>`
-fn read_string(input: &[char], index: usize) -> (usize, Token) {
+fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
     let start = index;
     let mut offset = 1;
     let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
@@ -102,9 +100,8 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
                 't' => '\t',
                 'r' => '\r',
                 'u' => {
-                    // AI! propagate the error that could happen here
-                    let (unicode_offset, unicode_char) =
-                        parse_unicode(&input[start + offset + 1..]);
+                    let (unicode_offset, unicode_char) = 
+                        parse_unicode(&input[start + offset + 1..])?;
                     offset += unicode_offset;
                     unicode_char
                 }
@@ -129,23 +126,34 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
     (end, token)
 }
 
-// AI! Make this return a `Result<(usize, char)>` if the text has any of these error conditions:
-// - the next character is not '{'
-// - any of the characters following it are not valid hexadecimal digits
-// - the input ends without a '}'
-fn parse_unicode(input: &[char]) -> (usize, char) {
+fn parse_unicode(input: &[char]) -> Result<(usize, char)> {
+    if input.is_empty() || input[0] != '{' {
+        return Err(Error::InvalidUnicodeChar);
+    }
     let mut hex_offset = 1; // Skip the opening '{'
     let mut hex_str = String::new();
 
-    while input[hex_offset] != '}' {
+    while hex_offset < input.len() {
+        if input[hex_offset] == '}' {
+            break;
+        }
+        if !input[hex_offset].is_ascii_hexdigit() {
+            return Err(Error::InvalidUnicodeChar);
+        }
         hex_str.push(input[hex_offset]);
         hex_offset += 1;
     }
 
-    let hex_value = u32::from_str_radix(&hex_str, 16).unwrap();
-    let unicode_char = char::from_u32(hex_value).unwrap();
+    if hex_offset == input.len() {
+        return Err(Error::InvalidUnicodeChar);
+    }
 
-    (hex_offset + 1, unicode_char) // Include the closing '}'
+    let hex_value = u32::from_str_radix(&hex_str, 16)
+        .map_err(|_| Error::InvalidUnicodeChar)?;
+    let unicode_char = char::from_u32(hex_value)
+        .ok_or(Error::InvalidUnicodeChar)?;
+
+    Ok((hex_offset + 1, unicode_char)) // Include the closing '}'
 }
 
 fn skip_whitespace(input: &[char]) -> usize {
