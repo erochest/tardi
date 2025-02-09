@@ -165,4 +165,30 @@ fn test_parse_binary() {
     test_parse_token_types(input, expected);
 }
 
-// TODO: add tests for negative integers in base 2, 8, 10, and 16. AI!
+#[test]
+fn test_parse_negative_decimal() {
+    let input = "-10 -3";
+    let expected = vec![TokenType::Integer(-10), TokenType::Integer(-3)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_negative_hexadecimal() {
+    let input = "-0x1A -0XFF";
+    let expected = vec![TokenType::Integer(-26), TokenType::Integer(-255)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_negative_octal() {
+    let input = "-0o123 -0O77";
+    let expected = vec![TokenType::Integer(-83), TokenType::Integer(-63)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_negative_binary() {
+    let input = "-0b1010 -0B1111";
+    let expected = vec![TokenType::Integer(-10), TokenType::Integer(-15)];
+    test_parse_token_types(input, expected);
+}
