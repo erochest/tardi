@@ -116,5 +116,7 @@ fn test_parse_string_with_emoji() {
     test_parse_token_types(input, expected);
 }
 
-// TODO: error parsing a '\\u' not followed by the '{xxx}'
+// AI! add a test function for parsing a '\\u' not followed by the '{xxx}'
+// the error should be Error::InvalidUnicodeChar.
+
 // TODO: multiline strings
