@@ -109,7 +109,12 @@ fn test_parse_string_multiple_words() {
     test_parse_token_types(input, expected);
 }
 
-// AI! add a test for emoji: `"\"hello! \\u{1f642}\""`.
+#[test]
+fn test_parse_string_with_emoji() {
+    let input = "\"hello! \\u{1f642}\"";
+    let expected = vec![TokenType::String("hello! 🙂".to_string())];
+    test_parse_token_types(input, expected);
+}
 
 // TODO: error parsing a '\\u' not followed by the '{xxx}'
 // TODO: multiline strings
