@@ -18,40 +18,77 @@ pub enum TokenType {
     Division,
 }
 
-impl TryFrom<&str> for TokenType {
-    type Error = Error;
-
-    fn try_from(word: &str) -> Result<Self> {
-        let (number_word, multiplier) = if word.starts_with('-') {
+impl TokenType {
+    fn parse_multiplier(word: &str) -> (&str, i64) {
+        if word.starts_with('-') {
             (&word[1..], -1)
         } else if word.starts_with('+') {
             (&word[1..], 1)
         } else {
             (word, 1)
-        };
+        }
+    }
 
-        if number_word.starts_with("0x") || number_word.starts_with("0X") {
-            let hex = number_word
-                .trim_start_matches("0x")
-                .trim_start_matches("0X");
-            if let Ok(number) = i64::from_str_radix(hex, 16) {
-                return Ok(TokenType::Integer(number * multiplier));
+    fn parse_rational(multiplier: i64, number_word: &str) -> Option<TokenType> {
+        if let Some((left, denominator)) = number_word.split_once('/') {
+            if let Ok(denominator) = denominator.parse::<i64>() {
+                let signum = if denominator < 0 { -1 } else { 1 };
+
+                let (whole_number, numerator) = if let Some((whole, numer)) = left.split_once('+') {
+                    (
+                        whole.parse::<i64>().unwrap_or(0),
+                        numer.parse::<i64>().unwrap_or(0),
+                    )
+                } else if let Some((whole, numer)) = left.split_once('-') {
+                    (
+                        whole.parse::<i64>().unwrap_or(0),
+                        -1 * numer.parse::<i64>().unwrap_or(0),
+                    )
+                } else {
+                    (0, left.parse::<i64>().unwrap_or(0))
+                };
+
+                let (numerator, denominator) = if whole_number == 0 {
+                    (signum * multiplier * numerator, denominator.abs())
+                } else {
+                    (
+                        signum * multiplier * whole_number * denominator + numerator,
+                        denominator.abs(),
+                    )
+                };
+
+                return Some(TokenType::Rational(numerator, denominator));
             }
-        } else if number_word.starts_with("0o") || number_word.starts_with("0O") {
-            let oct = number_word
-                .trim_start_matches("0o")
-                .trim_start_matches("0O");
-            if let Ok(number) = i64::from_str_radix(oct, 8) {
-                return Ok(TokenType::Integer(number * multiplier));
+        }
+
+        None
+    }
+
+    fn parse_with_radix(
+        multiplier: i64,
+        number_word: &str,
+        prefix1: &str,
+        prefix2: &str,
+        radix: u32,
+    ) -> Option<TokenType> {
+        if number_word.starts_with(prefix1) || number_word.starts_with(prefix2) {
+            let int_str = number_word
+                .trim_start_matches(prefix1)
+                .trim_start_matches(prefix2);
+            if let Ok(number) = i64::from_str_radix(int_str, radix) {
+                return Some(TokenType::Integer(multiplier * number));
             }
-        } else if number_word.starts_with("0b") || number_word.starts_with("0B") {
-            let bin = number_word
-                .trim_start_matches("0b")
-                .trim_start_matches("0B");
-            if let Ok(number) = i64::from_str_radix(bin, 2) {
-                return Ok(TokenType::Integer(number * multiplier));
-            }
-        } else if word == "+" {
+        }
+        None
+    }
+}
+
+impl TryFrom<&str> for TokenType {
+    type Error = Error;
+
+    fn try_from(word: &str) -> Result<Self> {
+        // Simple words
+        if word == "+" {
             return Ok(TokenType::Plus);
         } else if word == "-" {
             return Ok(TokenType::Minus);
@@ -59,47 +96,40 @@ impl TryFrom<&str> for TokenType {
             return Ok(TokenType::Multiply);
         } else if word == "/" {
             return Ok(TokenType::Division);
-        } else if number_word.starts_with(|c| char::is_digit(c, 10)) && number_word.contains('/') {
-            if let Some((left, denominator)) = number_word.split_once('/') {
-                if let Ok(denominator) = denominator.parse::<i64>() {
-                    let signum = if denominator < 0 { -1 } else { 1 };
-                    let (whole_number, numerator) =
-                        if let Some((whole, numer)) = left.split_once('+') {
-                            (
-                                whole.parse::<i64>().unwrap_or(0),
-                                numer.parse::<i64>().unwrap_or(0),
-                            )
-                        } else if let Some((whole, numer)) = left.split_once('-') {
-                            (
-                                whole.parse::<i64>().unwrap_or(0),
-                                -1 * numer.parse::<i64>().unwrap_or(0),
-                            )
-                        } else {
-                            (0, left.parse::<i64>().unwrap_or(0))
-                        };
-                    let (numerator, denominator) = if whole_number == 0 {
-                        (signum * multiplier * numerator, denominator.abs())
-                    } else {
-                        (
-                            signum * multiplier * whole_number * denominator + numerator,
-                            denominator.abs(),
-                        )
-                    };
+        }
 
-                    return Ok(TokenType::Rational(numerator, denominator));
-                }
+        // non-base-10 numbers and rationals
+        let (number_word, multiplier) = TokenType::parse_multiplier(word);
+
+        if let Some(hex) = TokenType::parse_with_radix(multiplier, number_word, "0x", "0X", 16) {
+            return Ok(hex);
+        } else if let Some(oct) =
+            TokenType::parse_with_radix(multiplier, number_word, "0o", "0O", 8)
+        {
+            return Ok(oct);
+        } else if let Some(bin) =
+            TokenType::parse_with_radix(multiplier, number_word, "0b", "0B", 2)
+        {
+            return Ok(bin);
+        } else if number_word.starts_with(|c| char::is_digit(c, 10)) && number_word.contains('/') {
+            if let Some(rational) = TokenType::parse_rational(multiplier, number_word) {
+                return Ok(rational);
             }
         }
 
+        // Things Rust can parse.
         if let Ok(number) = number_word.parse::<i64>() {
-            Ok(TokenType::Integer(number * multiplier))
+            return Ok(TokenType::Integer(number * multiplier));
         } else if let Ok(number) = number_word.parse::<f64>() {
-            Ok(TokenType::Float(number * multiplier as f64))
-        } else if word.starts_with("\"") {
-            Ok(TokenType::String(word.trim_matches('"').to_string()))
-        } else {
-            Err(Error::InvalidToken(word.to_string()))
+            return Ok(TokenType::Float(number * multiplier as f64));
         }
+
+        // Strings
+        if word.starts_with("\"") {
+            return Ok(TokenType::String(word.trim_matches('"').to_string()));
+        }
+
+        Err(Error::InvalidToken(word.to_string()))
     }
 }
 
