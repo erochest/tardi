@@ -192,3 +192,11 @@ fn test_parse_negative_binary() {
     let expected = vec![TokenType::Integer(-10), TokenType::Integer(-15)];
     test_parse_token_types(input, expected);
 }
+
+// AI! Add tests for floating-point numbers. These are recognized:
+// - numbers with a trailing dot: "1.""
+// - numbers with a dot and digits: "1.23"
+// - integers with scientific notation: "1e7"
+// - dotted with scientific notation: "1.23e12"
+// - signed scientific notation: "1e-7" and "1.23e-12" and "1e+7" "1.23e+12"
+// - scientific notation with a capital E: "1E7"
