@@ -10,7 +10,7 @@ const STRING_INITIALIZATION_CAPACITY: usize = 8;
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     Integer(i64),
-    // AI! Add `Float()`
+    Float(f64),
     String(String),
     Plus,
     Minus,
