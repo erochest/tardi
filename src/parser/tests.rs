@@ -132,11 +132,18 @@ fn test_parse_multiline_string() {
         with \"quotes\" and \t tabs
         and \n newlines
     \"\"\"";
-    let expected = vec![TokenType::String("
+    let expected = vec![TokenType::String(
+        "
         This is a
         multiline string
         with \"quotes\" and \t tabs
         and \n newlines
-    ".to_string())];
+    "
+        .to_string(),
+    )];
     test_parse_token_types(input, expected);
 }
+
+// TODO: Add tests for hexadecimal numbers. They start with 0x or 0X. AI!
+// TODO: Add tests for octal numbers. They start with 0o or 0O
+// TODO: Add tests for binary  numbers. They start with 0b or 0B
