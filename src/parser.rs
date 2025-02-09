@@ -20,6 +20,9 @@ impl TryFrom<&str> for TokenType {
     fn try_from(word: &str) -> Result<Self> {
         if let Ok(number) = word.parse::<i64>() {
             Ok(TokenType::Integer(number))
+        // To work with hexadecimal numbers, before this check if it begins with "0x" or "0X". AI!
+        // To work with octal numbers, before this check if it begins with "0o" or "0O"
+        // To work with binary numbers, before this check if it begins with "0b" or "0B"
         } else if word == "+" {
             Ok(TokenType::Plus)
         } else if word == "-" {
