@@ -164,3 +164,5 @@ fn test_parse_binary() {
     let expected = vec![TokenType::Integer(10), TokenType::Integer(15)];
     test_parse_token_types(input, expected);
 }
+
+// TODO: add tests for negative integers in base 2, 8, 10, and 16. AI!
