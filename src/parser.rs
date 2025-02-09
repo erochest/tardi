@@ -33,47 +33,45 @@ impl TryFrom<&str> for TokenType {
                 .trim_start_matches("0x")
                 .trim_start_matches("0X");
             if let Ok(number) = i64::from_str_radix(hex, 16) {
-                Ok(TokenType::Integer(number * multiplier))
-            } else {
-                Err(Error::InvalidToken(word.to_string()))
+                return Ok(TokenType::Integer(number * multiplier));
             }
         } else if number_word.starts_with("0o") || number_word.starts_with("0O") {
             let oct = number_word
                 .trim_start_matches("0o")
                 .trim_start_matches("0O");
             if let Ok(number) = i64::from_str_radix(oct, 8) {
-                Ok(TokenType::Integer(number * multiplier))
-            } else {
-                Err(Error::InvalidToken(word.to_string()))
+                return Ok(TokenType::Integer(number * multiplier));
             }
         } else if number_word.starts_with("0b") || number_word.starts_with("0B") {
             let bin = number_word
                 .trim_start_matches("0b")
                 .trim_start_matches("0B");
             if let Ok(number) = i64::from_str_radix(bin, 2) {
-                Ok(TokenType::Integer(number * multiplier))
-            } else {
-                Err(Error::InvalidToken(word.to_string()))
+                return Ok(TokenType::Integer(number * multiplier));
             }
         } else if word == "+" {
-            Ok(TokenType::Plus)
+            return Ok(TokenType::Plus);
         } else if word == "-" {
-            Ok(TokenType::Minus)
+            return Ok(TokenType::Minus);
         } else if word == "*" {
-            Ok(TokenType::Multiply)
+            return Ok(TokenType::Multiply);
         } else if word == "/" {
-            Ok(TokenType::Division)
-        } else if number_word.contains('/') {
+            return Ok(TokenType::Division);
+        } else if number_word.starts_with(|c| char::is_digit(c, 10)) && number_word.contains('/') {
+            // AI! Let's swap this out to parse it like this:
+            // - first, split on '/', the second side is the denominator. convert this to `u64`
+            // - second, split the first side of the previous split on either '+' or '-'. if that can be done, the first part is the whole number and the second part is the numerator. if it can't be split on these characters, it's just the numerator, and the whole number defaults to 0
+            // - convert the whole number and the numerator to i64's.
+            // - calculate the final numerator with this equation: whole_number * denaminator + numerator
             if let Some((numerator, denominator)) = number_word.split_once('/') {
-                if let (Ok(numerator), Ok(denominator)) = (numerator.parse::<i64>(), denominator.parse::<u64>()) {
-                    Ok(TokenType::Rational(numerator * multiplier, denominator))
-                } else {
-                    Err(Error::InvalidToken(word.to_string()))
+                if let (Ok(numerator), Ok(denominator)) =
+                    (numerator.parse::<i64>(), denominator.parse::<u64>())
+                {
+                    return Ok(TokenType::Rational(numerator * multiplier, denominator));
                 }
-            } else {
-                Err(Error::InvalidToken(word.to_string()))
             }
-        } else if let Ok(number) = number_word.parse::<i64>() {
+        };
+        if let Ok(number) = number_word.parse::<i64>() {
             Ok(TokenType::Integer(number * multiplier))
         } else if let Ok(number) = number_word.parse::<f64>() {
             Ok(TokenType::Float(number * multiplier as f64))
