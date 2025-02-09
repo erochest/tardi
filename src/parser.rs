@@ -99,6 +99,8 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
                 'n' => '\n',
                 't' => '\t',
                 'r' => '\r',
+                // AI!: if the next character is 'u', call `parse_unicode`.
+                // return the unicode character with that codepoint and incnease the offset
                 c => c,
             }
         } else {
@@ -118,6 +120,11 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
     };
 
     (end, token)
+}
+
+fn parse_unicode(input: &[char]) -> (usize, char) {
+    // AI! this parses `{xxx}`, where _xxx_ is a hexadecimal number. return offset to the end of this and the unicode character
+    todo!("parse_unicode")
 }
 
 fn skip_whitespace(input: &[char]) -> usize {
