@@ -59,7 +59,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
             index = new_index;
             tokens.push(token);
         } else {
-            let Ok((new_index, token)) = read_word(&input, index);
+            let (new_index, token) = read_word(&input, index);
             index = new_index;
             tokens.push(token);
         }
@@ -67,7 +67,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
     Ok(tokens)
 }
 
-fn read_word(input: &[char], index: usize) -> Result<(usize, Token)> {
+fn read_word(input: &[char], index: usize) -> (usize, Token) {
     let start = index;
     let mut offset = 0;
     while start + offset < input.len() && !input[start + offset].is_whitespace() {
@@ -85,7 +85,7 @@ fn read_word(input: &[char], index: usize) -> Result<(usize, Token)> {
         length: offset,
     };
 
-    Ok((end, token))
+    (end, token)
 }
 
 fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
@@ -100,7 +100,7 @@ fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
                 't' => '\t',
                 'r' => '\r',
                 'u' => {
-                    let (unicode_offset, unicode_char) = 
+                    let (unicode_offset, unicode_char) =
                         parse_unicode(&input[start + offset + 1..])?;
                     offset += unicode_offset;
                     unicode_char
@@ -148,10 +148,8 @@ fn parse_unicode(input: &[char]) -> Result<(usize, char)> {
         return Err(Error::InvalidUnicodeChar);
     }
 
-    let hex_value = u32::from_str_radix(&hex_str, 16)
-        .map_err(|_| Error::InvalidUnicodeChar)?;
-    let unicode_char = char::from_u32(hex_value)
-        .ok_or(Error::InvalidUnicodeChar)?;
+    let hex_value = u32::from_str_radix(&hex_str, 16).map_err(|_| Error::InvalidUnicodeChar)?;
+    let unicode_char = char::from_u32(hex_value).ok_or(Error::InvalidUnicodeChar)?;
 
     Ok((hex_offset + 1, unicode_char)) // Include the closing '}'
 }

@@ -121,7 +121,7 @@ fn test_parse_invalid_unicode_escape() {
     let input = "\"invalid unicode \\u!\"";
     let result = parse(input);
     assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), Error::InvalidUnicodeChar);
+    assert!(matches!(result.unwrap_err(), Error::InvalidUnicodeChar))
 }
 
 // TODO: multiline strings
