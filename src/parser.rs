@@ -55,7 +55,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
         if current.is_whitespace() {
             index += skip_whitespace(&input[index..]);
         } else if current == '"' {
-            let (new_index, token) = if input[index..].starts_with("\"\"\"") {
+            let (new_index, token) = if input[index..].starts_with("\"\"\"".chars().collect::<Vec<_>>().as_slice()) {
                 read_long_string(&input, index)?
             } else {
                 read_string(&input, index)?
