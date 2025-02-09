@@ -193,10 +193,54 @@ fn test_parse_negative_binary() {
     test_parse_token_types(input, expected);
 }
 
-// AI! Add tests for floating-point numbers. These are recognized:
-// - numbers with a trailing dot: "1.""
-// - numbers with a dot and digits: "1.23"
-// - integers with scientific notation: "1e7"
+#[test]
+fn test_parse_float_trailing_dot() {
+    let input = "1.";
+    let expected = vec![TokenType::Float(1.0)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_float_with_digits() {
+    let input = "1.23";
+    let expected = vec![TokenType::Float(1.23)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_float_scientific_notation() {
+    let input = "1e7";
+    let expected = vec![TokenType::Float(1e7)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_float_scientific_notation_with_dot() {
+    let input = "1.23e12";
+    let expected = vec![TokenType::Float(1.23e12)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_float_scientific_notation_negative_exponent() {
+    let input = "1e-7 1.23e-12";
+    let expected = vec![TokenType::Float(1e-7), TokenType::Float(1.23e-12)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_float_scientific_notation_positive_exponent() {
+    let input = "1e+7 1.23e+12";
+    let expected = vec![TokenType::Float(1e7), TokenType::Float(1.23e12)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_float_scientific_notation_capital_e() {
+    let input = "1E7";
+    let expected = vec![TokenType::Float(1e7)];
+    test_parse_token_types(input, expected);
+}
 // - dotted with scientific notation: "1.23e12"
 // - signed scientific notation: "1e-7" and "1.23e-12" and "1e+7" "1.23e+12"
 // - scientific notation with a capital E: "1E7"
