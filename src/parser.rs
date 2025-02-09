@@ -62,9 +62,10 @@ impl TryFrom<&str> for TokenType {
             Ok(TokenType::Multiply)
         } else if word == "/" {
             Ok(TokenType::Division)
+        } else if let Ok(number) = number_word.parse::<f64>() {
+            Ok(TokenType::Float(number * multiplier as f64))
         } else if let Ok(number) = number_word.parse::<i64>() {
             Ok(TokenType::Integer(number * multiplier))
-        // AI! Add parsing for `TokenType::Float`
         } else if word.starts_with("\"") {
             Ok(TokenType::String(word.trim_matches('"').to_string()))
         } else {
