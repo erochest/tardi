@@ -14,6 +14,7 @@ pub enum Error {
     InvalidOperands(String, String),
     StackUnderflow,
     DivideByZero,
+    InvalidUnicodeChar,
 }
 
 use Error::*;
