@@ -67,7 +67,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
     Ok(tokens)
 }
 
-fn read_word(input: &[char], index: usize) -> (usize, Token) {
+fn read_word(input: &[char], index: usize) -> Result<(usize, Token)> {
     let start = index;
     let mut offset = 0;
     while start + offset < input.len() && !input[start + offset].is_whitespace() {
