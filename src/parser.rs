@@ -58,15 +58,17 @@ impl TryFrom<&str> for TokenType {
         } else if word == "/" {
             return Ok(TokenType::Division);
         } else if number_word.starts_with(|c| char::is_digit(c, 10)) && number_word.contains('/') {
-            // AI! Let's swap this out to parse it like this:
-            // - first, split on '/', the second side is the denominator. convert this to `u64`
-            // - second, split the first side of the previous split on either '+' or '-'. if that can be done, the first part is the whole number and the second part is the numerator. if it can't be split on these characters, it's just the numerator, and the whole number defaults to 0
-            // - convert the whole number and the numerator to i64's.
-            // - calculate the final numerator with this equation: whole_number * denaminator + numerator
-            if let Some((numerator, denominator)) = number_word.split_once('/') {
-                if let (Ok(numerator), Ok(denominator)) =
-                    (numerator.parse::<i64>(), denominator.parse::<u64>())
-                {
+            if let Some((left, denominator)) = number_word.split_once('/') {
+                if let Ok(denominator) = denominator.parse::<u64>() {
+                    let (whole_number, numerator) = if let Some((whole, numer)) = left.split_once(&['+', '-'][..]) {
+                        (whole.parse::<i64>().unwrap_or(0), numer.parse::<i64>().unwrap_or(0))
+                    } else {
+                        (0, left.parse::<i64>().unwrap_or(0))
+                    };
+                    let final_numerator = whole_number * denominator as i64 + numerator;
+                    return Ok(TokenType::Rational(final_numerator * multiplier, denominator));
+                }
+            }
                     return Ok(TokenType::Rational(numerator * multiplier, denominator));
                 }
             }
