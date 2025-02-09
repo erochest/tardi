@@ -242,7 +242,37 @@ fn test_parse_float_scientific_notation_capital_e() {
     test_parse_token_types(input, expected);
 }
 
-// AI! Next let's write tests to parse rational numbers, please. We'll support these formats:
-// - simple: "1/3"
-// - mixed numbers: "1+1/3" and "1-1/3"
-// - signed: "+1/3", "-1/3", "1/-3", "1/+3", "+1+1/3", "-1+1/3"
+#[test]
+fn test_parse_rational_simple() {
+    let input = "1/3";
+    let expected = vec![TokenType::Rational(1, 3)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_rational_mixed_positive() {
+    let input = "1+1/3";
+    let expected = vec![TokenType::Rational(4, 3)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_rational_mixed_negative() {
+    let input = "1-1/3";
+    let expected = vec![TokenType::Rational(2, 3)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_rational_signed() {
+    let input = "+1/3 -1/3 1/-3 1/+3 +1+1/3 -1+1/3";
+    let expected = vec![
+        TokenType::Rational(1, 3),
+        TokenType::Rational(-1, 3),
+        TokenType::Rational(-1, 3),
+        TokenType::Rational(1, 3),
+        TokenType::Rational(4, 3),
+        TokenType::Rational(-2, 3),
+    ];
+    test_parse_token_types(input, expected);
+}
