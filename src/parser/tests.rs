@@ -241,6 +241,3 @@ fn test_parse_float_scientific_notation_capital_e() {
     let expected = vec![TokenType::Float(1e7)];
     test_parse_token_types(input, expected);
 }
-// - dotted with scientific notation: "1.23e12"
-// - signed scientific notation: "1e-7" and "1.23e-12" and "1e+7" "1.23e+12"
-// - scientific notation with a capital E: "1E7"
