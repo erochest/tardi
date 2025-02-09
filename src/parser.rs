@@ -4,9 +4,13 @@ use crate::error::{Error, Result};
 
 const STRING_INITIALIZATION_CAPACITY: usize = 8;
 
+// TODO: '+' prefix to numbers
+// TODO: '_' in long integer numbers?
+
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     Integer(i64),
+    // AI! Add `Float()`
     String(String),
     Plus,
     Minus,
