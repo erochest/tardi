@@ -4,14 +4,13 @@ use crate::error::{Error, Result};
 
 const STRING_INITIALIZATION_CAPACITY: usize = 8;
 
-// TODO: '+' prefix to numbers
 // TODO: '_' in long integer numbers?
 
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     Integer(i64),
     Float(f64),
-    Rational(i64, u64),
+    Rational(i64, i64),
     String(String),
     Plus,
     Minus,
@@ -25,9 +24,12 @@ impl TryFrom<&str> for TokenType {
     fn try_from(word: &str) -> Result<Self> {
         let (number_word, multiplier) = if word.starts_with('-') {
             (&word[1..], -1)
+        } else if word.starts_with('+') {
+            (&word[1..], 1)
         } else {
             (word, 1)
         };
+
         if number_word.starts_with("0x") || number_word.starts_with("0X") {
             let hex = number_word
                 .trim_start_matches("0x")
@@ -59,17 +61,37 @@ impl TryFrom<&str> for TokenType {
             return Ok(TokenType::Division);
         } else if number_word.starts_with(|c| char::is_digit(c, 10)) && number_word.contains('/') {
             if let Some((left, denominator)) = number_word.split_once('/') {
-                if let Ok(denominator) = denominator.parse::<u64>() {
-                    let (whole_number, numerator) = if let Some((whole, numer)) = left.split_once(&['+', '-'][..]) {
-                        (whole.parse::<i64>().unwrap_or(0), numer.parse::<i64>().unwrap_or(0))
+                if let Ok(denominator) = denominator.parse::<i64>() {
+                    let signum = if denominator < 0 { -1 } else { 1 };
+                    let (whole_number, numerator) =
+                        if let Some((whole, numer)) = left.split_once('+') {
+                            (
+                                whole.parse::<i64>().unwrap_or(0),
+                                numer.parse::<i64>().unwrap_or(0),
+                            )
+                        } else if let Some((whole, numer)) = left.split_once('-') {
+                            (
+                                whole.parse::<i64>().unwrap_or(0),
+                                -1 * numer.parse::<i64>().unwrap_or(0),
+                            )
+                        } else {
+                            (0, left.parse::<i64>().unwrap_or(0))
+                        };
+                    let (numerator, denominator) = if whole_number == 0 {
+                        (signum * multiplier * numerator, denominator.abs())
                     } else {
-                        (0, left.parse::<i64>().unwrap_or(0))
+                        (
+                            signum * multiplier * whole_number * denominator + numerator,
+                            denominator.abs(),
+                        )
                     };
-                    let final_numerator = whole_number * denominator as i64 + numerator;
-                    return Ok(TokenType::Rational(final_numerator * multiplier, denominator));
+
+                    return Ok(TokenType::Rational(numerator, denominator));
                 }
             }
-        } else if let Ok(number) = number_word.parse::<i64>() {
+        }
+
+        if let Ok(number) = number_word.parse::<i64>() {
             Ok(TokenType::Integer(number * multiplier))
         } else if let Ok(number) = number_word.parse::<f64>() {
             Ok(TokenType::Float(number * multiplier as f64))

@@ -267,11 +267,9 @@ fn test_parse_rational_mixed_negative() {
 fn test_parse_rational_signed() {
     let input = "+1/3 -1/3 1/-3 1/+3 +1+1/3 -1+1/3";
     let expected = vec![
-        TokenType::Plus,
         TokenType::Rational(1, 3),
         TokenType::Rational(-1, 3),
         TokenType::Rational(-1, 3),
-        TokenType::Division,
         TokenType::Rational(1, 3),
         TokenType::Rational(4, 3),
         TokenType::Rational(-2, 3),
