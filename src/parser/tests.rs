@@ -116,7 +116,12 @@ fn test_parse_string_with_emoji() {
     test_parse_token_types(input, expected);
 }
 
-// AI! add a test function for parsing a '\\u' not followed by the '{xxx}'
-// the error should be Error::InvalidUnicodeChar.
+#[test]
+fn test_parse_invalid_unicode_escape() {
+    let input = "\"invalid unicode \\u!\"";
+    let result = parse(input);
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), Error::InvalidUnicodeChar);
+}
 
 // TODO: multiline strings

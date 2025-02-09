@@ -59,7 +59,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
             index = new_index;
             tokens.push(token);
         } else {
-            let (new_index, token) = read_word(&input, index);
+            let Ok((new_index, token)) = read_word(&input, index);
             index = new_index;
             tokens.push(token);
         }
@@ -123,7 +123,7 @@ fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
         length: offset + 1,
     };
 
-    (end, token)
+    Ok((end, token))
 }
 
 fn parse_unicode(input: &[char]) -> Result<(usize, char)> {
