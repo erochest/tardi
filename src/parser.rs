@@ -18,11 +18,29 @@ impl TryFrom<&str> for TokenType {
     type Error = Error;
 
     fn try_from(word: &str) -> Result<Self> {
-        if let Ok(number) = word.parse::<i64>() {
+        if word.starts_with("0x") || word.starts_with("0X") {
+            let hex = word.trim_start_matches("0x").trim_start_matches("0X");
+            if let Ok(number) = i64::from_str_radix(hex, 16) {
+                Ok(TokenType::Integer(number))
+            } else {
+                Err(Error::InvalidToken(word.to_string()))
+            }
+        } else if word.starts_with("0o") || word.starts_with("0O") {
+            let oct = word.trim_start_matches("0o").trim_start_matches("0O");
+            if let Ok(number) = i64::from_str_radix(oct, 8) {
+                Ok(TokenType::Integer(number))
+            } else {
+                Err(Error::InvalidToken(word.to_string()))
+            }
+        } else if word.starts_with("0b") || word.starts_with("0B") {
+            let bin = word.trim_start_matches("0b").trim_start_matches("0B");
+            if let Ok(number) = i64::from_str_radix(bin, 2) {
+                Ok(TokenType::Integer(number))
+            } else {
+                Err(Error::InvalidToken(word.to_string()))
+            }
+        } else if let Ok(number) = word.parse::<i64>() {
             Ok(TokenType::Integer(number))
-        // To work with hexadecimal numbers, before this check if it begins with "0x" or "0X". AI!
-        // To work with octal numbers, before this check if it begins with "0o" or "0O"
-        // To work with binary numbers, before this check if it begins with "0b" or "0B"
         } else if word == "+" {
             Ok(TokenType::Plus)
         } else if word == "-" {
