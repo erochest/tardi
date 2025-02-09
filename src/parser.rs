@@ -11,7 +11,7 @@ const STRING_INITIALIZATION_CAPACITY: usize = 8;
 pub enum TokenType {
     Integer(i64),
     Float(f64),
-    // AI! Add `Rational(i64, u64)`
+    Rational(i64, u64),
     String(String),
     Plus,
     Minus,
@@ -63,9 +63,16 @@ impl TryFrom<&str> for TokenType {
             Ok(TokenType::Multiply)
         } else if word == "/" {
             Ok(TokenType::Division)
-        // AI! fill in the todo!(...) expressions here to parse rationals
-        } else if todo!("number_word starts with a digit and contains a '/'") {
-            todo!("parse rational")
+        } else if number_word.contains('/') {
+            if let Some((numerator, denominator)) = number_word.split_once('/') {
+                if let (Ok(numerator), Ok(denominator)) = (numerator.parse::<i64>(), denominator.parse::<u64>()) {
+                    Ok(TokenType::Rational(numerator * multiplier, denominator))
+                } else {
+                    Err(Error::InvalidToken(word.to_string()))
+                }
+            } else {
+                Err(Error::InvalidToken(word.to_string()))
+            }
         } else if let Ok(number) = number_word.parse::<i64>() {
             Ok(TokenType::Integer(number * multiplier))
         } else if let Ok(number) = number_word.parse::<f64>() {
