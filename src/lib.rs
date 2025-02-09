@@ -30,6 +30,7 @@ pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
 
 pub fn run_repl(print_stack: bool) -> Result<()> {
     // TODO: print banner
+    // TODO: catch errors
     let mut vm = VM::new();
 
     loop {

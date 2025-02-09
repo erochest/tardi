@@ -92,11 +92,7 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
     (end, token)
 }
 
-fn read_string_until(
-    input: &[char],
-    index: usize,
-    terminator: &[char],
-) -> Result<(usize, String)> {
+fn read_string_until(input: &[char], index: usize, terminator: &[char]) -> Result<(usize, String)> {
     let start = index;
     let mut offset = terminator.len();
     let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
@@ -110,7 +106,7 @@ fn read_string_until(
             offset += 1;
             match input[start + offset] {
                 'n' => '\n',
-                't' => '\t', 
+                't' => '\t',
                 'r' => '\r',
                 'u' => {
                     let (unicode_offset, unicode_char) =
