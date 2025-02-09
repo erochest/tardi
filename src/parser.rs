@@ -55,7 +55,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
         if current.is_whitespace() {
             index += skip_whitespace(&input[index..]);
         } else if current == '"' {
-            let (new_index, token) = if input[index..].starts_with("\"\"\"".chars().collect::<Vec<_>>().as_slice()) {
+            let (new_index, token) = if input[index..].starts_with(&['"', '"', '"']) {
                 read_long_string(&input, index)?
             } else {
                 read_string(&input, index)?
@@ -96,12 +96,12 @@ fn read_long_string(input: &[char], index: usize) -> Result<(usize, Token)> {
     let start = index;
     let mut offset = 3;
     let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
-    
+
     while start + offset + 2 < input.len() {
         if input[start + offset..start + offset + 3] == ['"', '"', '"'] {
             break;
         }
-        
+
         let char_to_push = if input[start + offset] == '\\' && start + offset + 1 < input.len() {
             offset += 1;
             match input[start + offset] {
@@ -116,7 +116,7 @@ fn read_long_string(input: &[char], index: usize) -> Result<(usize, Token)> {
         word.push(char_to_push);
         offset += 1;
     }
-    
+
     let end = start + offset + 3;
     let token_type = TokenType::String(word);
 
