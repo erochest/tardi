@@ -99,8 +99,11 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
                 'n' => '\n',
                 't' => '\t',
                 'r' => '\r',
-                // AI!: if the next character is 'u', call `parse_unicode`.
-                // return the unicode character with that codepoint and incnease the offset
+                'u' => {
+                    let (unicode_offset, unicode_char) = parse_unicode(&input[start + offset + 1..]);
+                    offset += unicode_offset;
+                    unicode_char
+                }
                 c => c,
             }
         } else {
@@ -123,8 +126,18 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
 }
 
 fn parse_unicode(input: &[char]) -> (usize, char) {
-    // AI! this parses `{xxx}`, where _xxx_ is a hexadecimal number. return offset to the end of this and the unicode character
-    todo!("parse_unicode")
+    let mut hex_offset = 1; // Skip the opening '{'
+    let mut hex_str = String::new();
+    
+    while input[hex_offset] != '}' {
+        hex_str.push(input[hex_offset]);
+        hex_offset += 1;
+    }
+
+    let hex_value = u32::from_str_radix(&hex_str, 16).unwrap();
+    let unicode_char = char::from_u32(hex_value).unwrap();
+
+    (hex_offset + 1, unicode_char) // Include the closing '}'
 }
 
 fn skip_whitespace(input: &[char]) -> usize {
