@@ -124,4 +124,19 @@ fn test_parse_invalid_unicode_escape() {
     assert!(matches!(result.unwrap_err(), Error::InvalidUnicodeChar))
 }
 
-// TODO: multiline strings
+#[test]
+fn test_parse_multiline_string() {
+    let input = "\"\"\"
+        This is a
+        multiline string
+        with \"quotes\" and \t tabs
+        and \n newlines
+    \"\"\"";
+    let expected = vec![TokenType::String("
+        This is a
+        multiline string
+        with \"quotes\" and \t tabs
+        and \n newlines
+    ".to_string())];
+    test_parse_token_types(input, expected);
+}
