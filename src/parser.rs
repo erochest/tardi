@@ -93,10 +93,9 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
 }
 
 fn read_string_until(
-    input: &[char], 
-    index: usize, 
+    input: &[char],
+    index: usize,
     terminator: &[char],
-    allow_escapes: bool,
 ) -> Result<(usize, String)> {
     let start = index;
     let mut offset = terminator.len();
@@ -107,11 +106,11 @@ fn read_string_until(
             break;
         }
 
-        let char_to_push = if allow_escapes && input[start + offset] == '\\' && start + offset + 1 < input.len() {
+        let char_to_push = if input[start + offset] == '\\' && start + offset + 1 < input.len() {
             offset += 1;
             match input[start + offset] {
                 'n' => '\n',
-                't' => '\t',
+                't' => '\t', 
                 'r' => '\r',
                 'u' => {
                     let (unicode_offset, unicode_char) =
@@ -132,7 +131,7 @@ fn read_string_until(
 }
 
 fn read_long_string(input: &[char], index: usize) -> Result<(usize, Token)> {
-    let (end, word) = read_string_until(input, index, &['"', '"', '"'], false)?;
+    let (end, word) = read_string_until(input, index, &['"', '"', '"'])?;
     let token_type = TokenType::String(word);
 
     let token = Token {
@@ -146,7 +145,7 @@ fn read_long_string(input: &[char], index: usize) -> Result<(usize, Token)> {
 }
 
 fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
-    let (end, word) = read_string_until(input, index, &['"'], true)?;
+    let (end, word) = read_string_until(input, index, &['"'])?;
     let token_type = TokenType::String(word);
 
     let token = Token {
