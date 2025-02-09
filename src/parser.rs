@@ -55,6 +55,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
         if current.is_whitespace() {
             index += skip_whitespace(&input[index..]);
         } else if current == '"' {
+            // AI! propagate the error here with `?`
             let (new_index, token) = read_string(&input, index);
             index = new_index;
             tokens.push(token);
@@ -88,6 +89,7 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
     (end, token)
 }
 
+// AI! Make this return `Result<(usize, Token)>`
 fn read_string(input: &[char], index: usize) -> (usize, Token) {
     let start = index;
     let mut offset = 1;
@@ -100,7 +102,9 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
                 't' => '\t',
                 'r' => '\r',
                 'u' => {
-                    let (unicode_offset, unicode_char) = parse_unicode(&input[start + offset + 1..]);
+                    // AI! propagate the error that could happen here
+                    let (unicode_offset, unicode_char) =
+                        parse_unicode(&input[start + offset + 1..]);
                     offset += unicode_offset;
                     unicode_char
                 }
@@ -125,10 +129,14 @@ fn read_string(input: &[char], index: usize) -> (usize, Token) {
     (end, token)
 }
 
+// AI! Make this return a `Result<(usize, char)>` if the text has any of these error conditions:
+// - the next character is not '{'
+// - any of the characters following it are not valid hexadecimal digits
+// - the input ends without a '}'
 fn parse_unicode(input: &[char]) -> (usize, char) {
     let mut hex_offset = 1; // Skip the opening '{'
     let mut hex_str = String::new();
-    
+
     while input[hex_offset] != '}' {
         hex_str.push(input[hex_offset]);
         hex_offset += 1;
