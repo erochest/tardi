@@ -18,27 +18,33 @@ impl TryFrom<&str> for TokenType {
     type Error = Error;
 
     fn try_from(word: &str) -> Result<Self> {
-        let (word, multiplier) = if word.starts_with('-') {
+        let (number_word, multiplier) = if word.starts_with('-') {
             (&word[1..], -1)
         } else {
             (word, 1)
         };
-        if word.starts_with("0x") || word.starts_with("0X") {
-            let hex = word.trim_start_matches("0x").trim_start_matches("0X");
+        if number_word.starts_with("0x") || number_word.starts_with("0X") {
+            let hex = number_word
+                .trim_start_matches("0x")
+                .trim_start_matches("0X");
             if let Ok(number) = i64::from_str_radix(hex, 16) {
                 Ok(TokenType::Integer(number * multiplier))
             } else {
                 Err(Error::InvalidToken(word.to_string()))
             }
-        } else if word.starts_with("0o") || word.starts_with("0O") {
-            let oct = word.trim_start_matches("0o").trim_start_matches("0O");
+        } else if number_word.starts_with("0o") || number_word.starts_with("0O") {
+            let oct = number_word
+                .trim_start_matches("0o")
+                .trim_start_matches("0O");
             if let Ok(number) = i64::from_str_radix(oct, 8) {
                 Ok(TokenType::Integer(number * multiplier))
             } else {
                 Err(Error::InvalidToken(word.to_string()))
             }
-        } else if word.starts_with("0b") || word.starts_with("0B") {
-            let bin = word.trim_start_matches("0b").trim_start_matches("0B");
+        } else if number_word.starts_with("0b") || number_word.starts_with("0B") {
+            let bin = number_word
+                .trim_start_matches("0b")
+                .trim_start_matches("0B");
             if let Ok(number) = i64::from_str_radix(bin, 2) {
                 Ok(TokenType::Integer(number * multiplier))
             } else {
@@ -52,7 +58,7 @@ impl TryFrom<&str> for TokenType {
             Ok(TokenType::Multiply)
         } else if word == "/" {
             Ok(TokenType::Division)
-        } else if let Ok(number) = word.parse::<i64>() {
+        } else if let Ok(number) = number_word.parse::<i64>() {
             Ok(TokenType::Integer(number * multiplier))
         } else if word.starts_with("\"") {
             Ok(TokenType::String(word.trim_matches('"').to_string()))
