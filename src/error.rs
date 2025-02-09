@@ -28,6 +28,7 @@ impl fmt::Display for Error {
             InvalidOperands(a, b) => write!(f, "Cannot perform operation with {} and {}", a, b),
             StackUnderflow => write!(f, "Stack underflow"),
             DivideByZero => write!(f, "Divide by zero"),
+            InvalidUnicodeChar => write!(f, "Invalid Unicode character"),
         }
     }
 }

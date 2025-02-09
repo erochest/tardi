@@ -85,7 +85,7 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
         length: offset,
     };
 
-    (end, token)
+    Ok((end, token))
 }
 
 fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
