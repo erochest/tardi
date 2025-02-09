@@ -241,3 +241,8 @@ fn test_parse_float_scientific_notation_capital_e() {
     let expected = vec![TokenType::Float(1e7)];
     test_parse_token_types(input, expected);
 }
+
+// AI! Next let's write tests to parse rational numbers, please. We'll support these formats:
+// - simple: "1/3"
+// - mixed numbers: "1+1/3" and "1-1/3"
+// - signed: "+1/3", "-1/3", "1/-3", "1/+3", "+1+1/3", "-1+1/3"
