@@ -18,6 +18,10 @@ impl TryFrom<&str> for TokenType {
     type Error = Error;
 
     fn try_from(word: &str) -> Result<Self> {
+        // AI! check for a beginning '-' and set a multiplier of -1 if it's there.
+        // otherwise, use a multiplier of 1.
+        // Then below everywhere you create a `TokenType::Integer`, multiply the
+        // argument by the multiplier.
         if word.starts_with("0x") || word.starts_with("0X") {
             let hex = word.trim_start_matches("0x").trim_start_matches("0X");
             if let Ok(number) = i64::from_str_radix(hex, 16) {
