@@ -69,11 +69,7 @@ impl TryFrom<&str> for TokenType {
                     return Ok(TokenType::Rational(final_numerator * multiplier, denominator));
                 }
             }
-                    return Ok(TokenType::Rational(numerator * multiplier, denominator));
-                }
-            }
-        };
-        if let Ok(number) = number_word.parse::<i64>() {
+        } else if let Ok(number) = number_word.parse::<i64>() {
             Ok(TokenType::Integer(number * multiplier))
         } else if let Ok(number) = number_word.parse::<f64>() {
             Ok(TokenType::Float(number * multiplier as f64))
