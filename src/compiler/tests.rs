@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::f64::consts::PI;
 
 use pretty_assertions::assert_eq;
 
@@ -67,5 +67,5 @@ fn test_compile_string() {
 
 #[test]
 fn test_compile_float() {
-    test_compile(vec![(3.1415).into()], vec![OpCode::GetConstant as u8, 0]);
+    test_compile(vec![PI.into()], vec![OpCode::GetConstant as u8, 0]);
 }

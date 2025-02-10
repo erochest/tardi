@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, str::FromStr};
+use std::str::FromStr;
 
 use crate::error::{Error, Result};
 
@@ -20,10 +20,10 @@ pub enum TokenType {
 
 impl TokenType {
     fn parse_multiplier(word: &str) -> (&str, i64) {
-        if word.starts_with('-') {
-            (&word[1..], -1)
-        } else if word.starts_with('+') {
-            (&word[1..], 1)
+        if let Some(stripped) = word.strip_prefix('-') {
+            (stripped, -1)
+        } else if let Some(stripped) = word.strip_prefix('+') {
+            (stripped, 1)
         } else {
             (word, 1)
         }
@@ -42,7 +42,7 @@ impl TokenType {
                 } else if let Some((whole, numer)) = left.split_once('-') {
                     (
                         whole.parse::<i64>().unwrap_or(0),
-                        -1 * numer.parse::<i64>().unwrap_or(0),
+                        -numer.parse::<i64>().unwrap_or(0),
                     )
                 } else {
                     (0, left.parse::<i64>().unwrap_or(0))

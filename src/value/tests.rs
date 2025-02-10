@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, f64::consts::PI};
 
 use super::*;
 
@@ -33,8 +33,8 @@ fn test_from_i64() {
 
 #[test]
 fn test_from_f64() {
-    let result = Value::from(3.14_f64);
-    assert_eq!(result, Value::Float(3.14));
+    let result = Value::from(PI);
+    assert_eq!(result, Value::Float(PI));
 }
 
 #[test]

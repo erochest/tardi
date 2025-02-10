@@ -2,7 +2,6 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 use assert_cmd::prelude::*;
-use predicates::prelude::*;
 
 #[ignore = "fixing this test"]
 #[test]

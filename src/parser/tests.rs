@@ -1,4 +1,4 @@
-use std::iter::Iterator;
+use std::{f64::consts::PI, iter::Iterator};
 
 use pretty_assertions::assert_eq;
 
@@ -279,7 +279,7 @@ fn test_parse_rational_signed() {
 
 #[test]
 fn test_from_f64() {
-    assert_eq!(TokenType::from(3.1415), TokenType::Float(3.1415));
+    assert_eq!(TokenType::from(PI), TokenType::Float(PI));
 }
 
 #[test]
