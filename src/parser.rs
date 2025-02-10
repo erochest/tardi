@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, str::FromStr};
 
 use crate::error::{Error, Result};
 
@@ -83,11 +83,10 @@ impl TokenType {
     }
 }
 
-// TODO: The way I'm using this, it should probably be FromString.
-impl TryFrom<&str> for TokenType {
-    type Error = Error;
+impl FromStr for TokenType {
+    type Err = Error;
 
-    fn try_from(word: &str) -> Result<Self> {
+    fn from_str(word: &str) -> Result<Self> {
         // Simple words
         if word == "+" {
             return Ok(TokenType::Plus);
@@ -196,7 +195,7 @@ fn read_word(input: &[char], index: usize) -> (usize, Token) {
     let end = start + offset;
 
     let word: String = input[start..end].iter().collect();
-    let token_type = TokenType::try_from(&word[..]).unwrap();
+    let token_type = word[..].parse().unwrap();
 
     let token = Token {
         token_type,
