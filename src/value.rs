@@ -37,6 +37,8 @@ impl From<String> for Value {
     }
 }
 
+// TODO: impl From<TokenType> for Value
+
 impl Value {
     pub fn checked_div(self, other: Value) -> Result<Value> {
         match (self.clone(), other.clone()) {

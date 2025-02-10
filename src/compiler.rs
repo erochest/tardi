@@ -11,6 +11,8 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
         let token = &tokens[current];
         match &token.token_type {
             TokenType::Integer(number) => {
+                // TODO: refactor into chunk.push_opcode(OpCode, argument)
+                // TODO: refactor for From<TokenType> for Value
                 let constant = chunk.add_constant(Value::Integer(*number));
                 chunk.code.push(OpCode::GetConstant as u8);
                 chunk.code.push(constant as u8);
