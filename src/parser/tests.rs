@@ -281,3 +281,16 @@ fn test_parse_rational_signed() {
 fn test_from_f64() {
     assert_eq!(TokenType::from(3.1415), TokenType::Float(3.1415));
 }
+
+#[test]
+fn test_from_i64() {
+    assert_eq!(TokenType::from(42), TokenType::Integer(42));
+}
+
+#[test]
+fn test_from_string() {
+    assert_eq!(
+        TokenType::from("greetings".to_string()),
+        TokenType::String("greetings".to_string())
+    );
+}

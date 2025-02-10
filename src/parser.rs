@@ -134,11 +134,21 @@ impl TryFrom<&str> for TokenType {
     }
 }
 
-// TODO: impl From<i64> for TokenType
-// TODO: impl From<String> for TokenType
+impl From<i64> for TokenType {
+    fn from(value: i64) -> Self {
+        TokenType::Integer(value)
+    }
+}
+
 impl From<f64> for TokenType {
     fn from(value: f64) -> Self {
         TokenType::Float(value)
+    }
+}
+
+impl From<String> for TokenType {
+    fn from(value: String) -> Self {
+        TokenType::String(value)
     }
 }
 
