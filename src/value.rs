@@ -19,6 +19,8 @@ impl fmt::Display for Value {
     }
 }
 
+// AI! Implement TryFrom<i64>, TryFrom<f64>, and TryFrom<String>
+
 impl Value {
     pub fn checked_div(self, other: Value) -> Result<Value> {
         match (self.clone(), other.clone()) {
