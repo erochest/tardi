@@ -83,3 +83,11 @@ fn test_compile_string() {
         vec![OpCode::GetConstant as u8, 0],
     );
 }
+
+#[test]
+fn test_compile_float() {
+    test_compile(
+        vec![3.1415.try_into().unwrap()],
+        vec![OpCode::GetConstant as u8, 0],
+    );
+}

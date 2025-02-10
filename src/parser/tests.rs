@@ -276,3 +276,8 @@ fn test_parse_rational_signed() {
     ];
     test_parse_token_types(input, expected);
 }
+
+#[test]
+fn test_from_f64() {
+    assert_eq!(TokenType::from(3.1415), TokenType::Float(3.1415));
+}

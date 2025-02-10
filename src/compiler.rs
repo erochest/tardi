@@ -15,7 +15,11 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
                 chunk.code.push(OpCode::GetConstant as u8);
                 chunk.code.push(constant as u8);
             }
-            TokenType::Float(_) => todo!("compile TokenType::Float"),
+            TokenType::Float(number) => {
+                let constant = chunk.add_constant(Value::Float(*number));
+                chunk.code.push(OpCode::GetConstant as u8);
+                chunk.code.push(constant as u8);
+            }
             TokenType::Rational(_, _) => todo!("compile TokenType::Rational"),
             TokenType::String(string) => {
                 let constant = chunk.add_constant(Value::String(string.clone()));

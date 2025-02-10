@@ -83,6 +83,7 @@ impl TokenType {
     }
 }
 
+// TODO: The way I'm using this, it should probably be FromString.
 impl TryFrom<&str> for TokenType {
     type Error = Error;
 
@@ -130,6 +131,12 @@ impl TryFrom<&str> for TokenType {
         }
 
         Err(Error::InvalidToken(word.to_string()))
+    }
+}
+
+impl From<f64> for TokenType {
+    fn from(value: f64) -> Self {
+        TokenType::Float(value)
     }
 }
 

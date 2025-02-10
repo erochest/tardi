@@ -1,6 +1,5 @@
 use crate::error::{Error, Result};
 use std::fmt;
-use std::convert::TryFrom;
 use std::ops::{Add, Mul, Sub};
 
 #[derive(Clone, Debug, PartialEq)]
