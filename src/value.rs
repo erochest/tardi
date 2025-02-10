@@ -96,5 +96,24 @@ mod tests {
         assert_eq!(result.unwrap(), Value::Integer(2));
     }
 
-    // AI! Create tests for implementations of Value for TryFrom<i64>, TryFrom<f64>, and TryFrom<String>
+    #[test]
+    fn test_try_from_i64() {
+        let result = Value::try_from(42_i64);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Value::Integer(42));
+    }
+
+    #[test]
+    fn test_try_from_f64() {
+        let result = Value::try_from(3.14_f64);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Value::Float(3.14));
+    }
+
+    #[test]
+    fn test_try_from_string() {
+        let result = Value::try_from("hello".to_string());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Value::String("hello".to_string()));
+    }
 }
