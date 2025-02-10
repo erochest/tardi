@@ -11,22 +11,17 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
         let token = &tokens[current];
         match &token.token_type {
             TokenType::Integer(number) => {
-                // TODO: refactor into chunk.push_opcode(OpCode, argument)
-                // TODO: refactor for From<TokenType> for Value
                 let constant = chunk.add_constant(Value::Integer(*number));
-                chunk.code.push(OpCode::GetConstant as u8);
-                chunk.code.push(constant as u8);
+                chunk.push_op_code(OpCode::GetConstant, constant as u8);
             }
             TokenType::Float(number) => {
                 let constant = chunk.add_constant(Value::Float(*number));
-                chunk.code.push(OpCode::GetConstant as u8);
-                chunk.code.push(constant as u8);
+                chunk.push_op_code(OpCode::GetConstant, constant as u8);
             }
             TokenType::Rational(_, _) => todo!("compile TokenType::Rational"),
             TokenType::String(string) => {
                 let constant = chunk.add_constant(Value::String(string.clone()));
-                chunk.code.push(OpCode::GetConstant as u8);
-                chunk.code.push(constant as u8);
+                chunk.push_op_code(OpCode::GetConstant, constant as u8);
             }
             TokenType::Plus => {
                 chunk.code.push(OpCode::Add as u8);
