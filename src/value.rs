@@ -1,10 +1,11 @@
+use crate::error::{Error, Result};
 use std::fmt;
 use std::ops::{Add, Mul, Sub};
-use crate::error::{Error, Result};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Integer(i64),
+    Float(f64),
     String(String),
 }
 
@@ -12,6 +13,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Integer(n) => write!(f, "{}", n),
+            Value::Float(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "\"{}\"", s),
         }
     }
@@ -26,10 +28,10 @@ impl Value {
                 } else {
                     Ok(Value::Integer(a / b))
                 }
-            },
+            }
             (Value::String(_), Value::String(_)) => {
                 Err(Error::InvalidOperands(self.to_string(), other.to_string()))
-            },
+            }
             _ => Err(Error::InvalidOperands(self.to_string(), other.to_string())),
         }
     }
@@ -93,4 +95,6 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Value::Integer(2));
     }
+
+    // AI! Create tests for implementations of Value for TryFrom<i64>, TryFrom<f64>, and TryFrom<String>
 }
