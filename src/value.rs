@@ -1,6 +1,8 @@
 use crate::error::{Error, Result};
-use std::fmt;
+use crate::parser::TokenType;
+use std::convert::TryFrom;
 use std::ops::{Add, Mul, Sub};
+use std::{fmt, result};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -37,7 +39,18 @@ impl From<String> for Value {
     }
 }
 
-// TODO: impl From<TokenType> for Value
+impl TryFrom<TokenType> for Value {
+    type Error = Error;
+
+    fn try_from(value: TokenType) -> result::Result<Self, Self::Error> {
+        match value {
+            TokenType::Integer(number) => Ok(Value::Integer(number)),
+            TokenType::Float(number) => Ok(Value::Float(number)),
+            TokenType::String(string) => Ok(Value::String(string)),
+            _ => Err(Error::TokenTypeNotValue(value)),
+        }
+    }
+}
 
 impl Value {
     pub fn checked_div(self, other: Value) -> Result<Value> {

@@ -15,9 +15,12 @@ pub enum Error {
     StackUnderflow,
     DivideByZero,
     InvalidUnicodeChar,
+    TokenTypeNotValue(TokenType),
 }
 
 use Error::*;
+
+use crate::parser::TokenType;
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -29,6 +32,9 @@ impl fmt::Display for Error {
             StackUnderflow => write!(f, "Stack underflow"),
             DivideByZero => write!(f, "Divide by zero"),
             InvalidUnicodeChar => write!(f, "Invalid Unicode character"),
+            TokenTypeNotValue(ref token_type) => {
+                write!(f, "TokenType {:?} has no value", token_type)
+            }
         }
     }
 }
