@@ -27,6 +27,7 @@ impl VM {
                     let constant = chunk.constants[constant_idx as usize].clone();
                     self.stack.push(constant);
                 }
+                // TODO: all numeric types need to support these
                 OpCode::Add => {
                     let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
