@@ -1,5 +1,6 @@
 use crate::error::{Error, Result};
 use std::fmt;
+use std::convert::TryFrom;
 use std::ops::{Add, Mul, Sub};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,7 +20,29 @@ impl fmt::Display for Value {
     }
 }
 
-// AI! Implement TryFrom<i64>, TryFrom<f64>, and TryFrom<String>
+impl TryFrom<i64> for Value {
+    type Error = Error;
+
+    fn try_from(value: i64) -> Result<Self> {
+        Ok(Value::Integer(value))
+    }
+}
+
+impl TryFrom<f64> for Value {
+    type Error = Error;
+
+    fn try_from(value: f64) -> Result<Self> {
+        Ok(Value::Float(value))
+    }
+}
+
+impl TryFrom<String> for Value {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        Ok(Value::String(value))
+    }
+}
 
 impl Value {
     pub fn checked_div(self, other: Value) -> Result<Value> {
