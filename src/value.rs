@@ -20,27 +20,21 @@ impl fmt::Display for Value {
     }
 }
 
-impl TryFrom<i64> for Value {
-    type Error = Error;
-
-    fn try_from(value: i64) -> Result<Self> {
-        Ok(Value::Integer(value))
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Value::Integer(value)
     }
 }
 
-impl TryFrom<f64> for Value {
-    type Error = Error;
-
-    fn try_from(value: f64) -> Result<Self> {
-        Ok(Value::Float(value))
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Float(value)
     }
 }
 
-impl TryFrom<String> for Value {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self> {
-        Ok(Value::String(value))
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::String(value)
     }
 }
 
@@ -122,23 +116,20 @@ mod tests {
     }
 
     #[test]
-    fn test_try_from_i64() {
-        let result = Value::try_from(42_i64);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Value::Integer(42));
+    fn test_from_i64() {
+        let result = Value::from(42_i64);
+        assert_eq!(result, Value::Integer(42));
     }
 
     #[test]
-    fn test_try_from_f64() {
-        let result = Value::try_from(3.14_f64);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Value::Float(3.14));
+    fn test_from_f64() {
+        let result = Value::from(3.14_f64);
+        assert_eq!(result, Value::Float(3.14));
     }
 
     #[test]
-    fn test_try_from_string() {
-        let result = Value::try_from("hello".to_string());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Value::String("hello".to_string()));
+    fn test_from_string() {
+        let result = Value::from("hello".to_string());
+        assert_eq!(result, Value::String("hello".to_string()));
     }
 }
