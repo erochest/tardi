@@ -63,6 +63,13 @@ impl Value {
                     Ok(Value::Integer(a / b))
                 }
             }
+            (Value::Float(a), Value::Float(b)) => {
+                if b == 0.0 {
+                    Err(Error::DivideByZero)
+                } else {
+                    Ok(Value::Float(a / b))
+                }
+            }
             _ => Err(Error::InvalidOperands(self.to_string(), other.to_string())),
         }
     }
@@ -76,12 +83,15 @@ impl Div for Value {
     }
 }
 
+// TODO: long integers
+// TODO: checked math
 impl Add for Value {
     type Output = Result<Value>;
 
     fn add(self, rhs: Self) -> Self::Output {
         match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
@@ -94,6 +104,7 @@ impl Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a - b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }
@@ -105,6 +116,7 @@ impl Mul for Value {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a * b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }

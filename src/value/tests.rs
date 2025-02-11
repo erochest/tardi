@@ -54,6 +54,41 @@ fn test_div_integer() {
 }
 
 #[test]
+fn test_add_float() {
+    let result = Value::from(13.5) + 0.75.into();
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 14.25.into());
+}
+
+#[test]
+fn test_sub_float() {
+    let result = Value::from(13.5) - 0.75.into();
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 12.75.into());
+}
+
+#[test]
+fn test_sub_mul() {
+    let result = Value::from(13.5) * 2.0.into();
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 27.0.into());
+}
+
+#[test]
+fn test_sub_div_happy_path() {
+    let result = Value::from(13.5) / 2.0.into();
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), 6.75.into());
+}
+
+#[test]
+fn test_sub_div_by_zero() {
+    let result = Value::from(13.5) / 0.0.into();
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), Error::DivideByZero));
+}
+
+#[test]
 fn test_from_i64() {
     let result = Value::from(42_i64);
     assert_eq!(result, Value::Integer(42));
