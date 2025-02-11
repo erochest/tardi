@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
 use crate::parser::TokenType;
 use std::convert::TryFrom;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 use std::{fmt, result};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -52,6 +52,7 @@ impl TryFrom<TokenType> for Value {
     }
 }
 
+// TODO: revisit the clones from here on out
 impl Value {
     pub fn checked_div(self, other: Value) -> Result<Value> {
         match (self.clone(), other.clone()) {
@@ -62,11 +63,16 @@ impl Value {
                     Ok(Value::Integer(a / b))
                 }
             }
-            (Value::String(_), Value::String(_)) => {
-                Err(Error::InvalidOperands(self.to_string(), other.to_string()))
-            }
             _ => Err(Error::InvalidOperands(self.to_string(), other.to_string())),
         }
+    }
+}
+
+impl Div for Value {
+    type Output = Result<Value>;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        self.checked_div(rhs)
     }
 }
 
