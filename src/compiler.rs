@@ -1,3 +1,5 @@
+use num::Rational64;
+
 use crate::chunk::Chunk;
 use crate::op_code::OpCode;
 use crate::parser::{Token, TokenType};
@@ -19,7 +21,7 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
                 chunk.push_op_code(OpCode::GetConstant, constant as u8);
             }
             TokenType::Rational(num, denom) => {
-                let constant = chunk.add_constant(Value::Rational(*num, *denom));
+                let constant = chunk.add_constant(Value::Rational(Rational64::new(*num, *denom)));
                 chunk.push_op_code(OpCode::GetConstant, constant as u8);
             }
             TokenType::String(string) => {

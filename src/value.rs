@@ -4,11 +4,13 @@ use std::convert::TryFrom;
 use std::ops::{Add, Div, Mul, Sub};
 use std::{fmt, result};
 
-#[derive(Clone, Debug, PartialEq)]
+use num::Rational64;
+
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Value {
     Integer(i64),
     Float(f64),
-    Rational(i64, i64),
+    Rational(Rational64),
     String(String),
 }
 
@@ -17,7 +19,7 @@ impl fmt::Display for Value {
         match self {
             Value::Integer(n) => write!(f, "{}", n),
             Value::Float(n) => write!(f, "{}", n),
-            Value::Rational(n, d) => write!(f, "{}/{}", n, d),
+            Value::Rational(r) => write!(f, "{}/{}", r.numer(), r.denom()),
             Value::String(s) => write!(f, "\"{}\"", s),
         }
     }
@@ -48,7 +50,7 @@ impl TryFrom<TokenType> for Value {
         match value {
             TokenType::Integer(number) => Ok(Value::Integer(number)),
             TokenType::Float(number) => Ok(Value::Float(number)),
-            TokenType::Rational(num, denom) => Ok(Value::Rational(num, denom)),
+            TokenType::Rational(num, denom) => Ok(Value::Rational(Rational64::new(num, denom))),
             TokenType::String(string) => Ok(Value::String(string)),
             _ => Err(Error::TokenTypeNotValue(value)),
         }
@@ -73,6 +75,13 @@ impl Value {
                     Ok(Value::Float(a / b))
                 }
             }
+            (Value::Rational(a), Value::Rational(b)) => {
+                if *b.numer() == 0 {
+                    Err(Error::DivideByZero)
+                } else {
+                    Ok(Value::Rational(a.div(b)))
+                }
+            }
             _ => Err(Error::InvalidOperands(self.to_string(), other.to_string())),
         }
     }
@@ -95,6 +104,7 @@ impl Add for Value {
         match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
+            (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a + b)),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
@@ -107,6 +117,7 @@ impl Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
+            (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a - b)),
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a - b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
@@ -120,6 +131,7 @@ impl Mul for Value {
         match (self.clone(), rhs.clone()) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a * b)),
+            (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a * b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }

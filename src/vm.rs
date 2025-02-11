@@ -20,6 +20,7 @@ impl VM {
         while ip < chunk.code.len() {
             let instruction = chunk.code[ip];
 
+            // TODO: on errors, need to restore the stack
             match OpCode::try_from(instruction)? {
                 OpCode::GetConstant => {
                     ip += 1;
@@ -27,7 +28,6 @@ impl VM {
                     let constant = chunk.constants[constant_idx as usize].clone();
                     self.stack.push(constant);
                 }
-                // TODO: all numeric types need to support these
                 OpCode::Add => {
                     let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;

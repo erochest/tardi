@@ -4,6 +4,8 @@ use super::*;
 
 use crate::parser::TokenType;
 
+// TODO: may want to break this file up
+
 #[test]
 fn test_add_integer() {
     let result = Value::Integer(1) + Value::Integer(2);
@@ -68,22 +70,71 @@ fn test_sub_float() {
 }
 
 #[test]
-fn test_sub_mul() {
+fn test_mul_float() {
     let result = Value::from(13.5) * 2.0.into();
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 27.0.into());
 }
 
 #[test]
-fn test_sub_div_happy_path() {
+fn test_div_happy_path_float() {
     let result = Value::from(13.5) / 2.0.into();
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 6.75.into());
 }
 
 #[test]
-fn test_sub_div_by_zero() {
+fn test_div_by_zero_float() {
     let result = Value::from(13.5) / 0.0.into();
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), Error::DivideByZero));
+}
+
+#[test]
+fn test_add_rational() {
+    let result = Value::Rational(Rational64::new(1, 3)) + Value::Rational(Rational64::new(1, 3));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Rational(Rational64::new(2, 3)));
+}
+
+#[test]
+fn test_add_rational_different_denominators() {
+    let result = Value::Rational(Rational64::new(1, 5)) + Value::Rational(Rational64::new(1, 3));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Rational(Rational64::new(8, 15)));
+}
+
+#[test]
+fn test_sub_rational() {
+    let result = Value::Rational(Rational64::new(1, 3)) - Value::Rational(Rational64::new(2, 3));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Rational(-Rational64::new(1, 3)));
+}
+
+#[test]
+fn test_sub_rational_different_denominators() {
+    let result = Value::Rational(Rational64::new(1, 3)) - Value::Rational(Rational64::new(1, 5));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Rational(Rational64::new(2, 15)));
+}
+
+#[test]
+fn test_mul_rational() {
+    let result = Value::Rational(Rational64::new(1, 3)) * Value::Rational(Rational64::new(1, 4));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Rational(Rational64::new(1, 12)));
+}
+
+#[test]
+fn test_div_rational() {
+    let result = Value::Rational(Rational64::new(1, 12)) / Value::Rational(Rational64::new(3, 1));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Rational(Rational64::new(1, 36)));
+}
+
+#[test]
+fn test_div_rational_zero_denominator() {
+    let result = Value::Rational(Rational64::new(1, 3)) / Value::Rational(Rational64::new(0, 3));
     assert!(result.is_err());
     assert!(matches!(result.unwrap_err(), Error::DivideByZero));
 }
@@ -124,7 +175,7 @@ fn test_try_from_tokentype_float() {
 fn test_try_from_tokentype_rational() {
     let result = Value::try_from(TokenType::Rational(1, 4));
     assert!(result.is_ok());
-    assert_eq!(result.unwrap(), Value::Rational(1, 4));
+    assert_eq!(result.unwrap(), Value::Rational(Rational64::new(1, 4)));
 }
 
 #[test]
