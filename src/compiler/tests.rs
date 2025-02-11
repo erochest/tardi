@@ -69,3 +69,11 @@ fn test_compile_string() {
 fn test_compile_float() {
     test_compile(vec![PI.into()], vec![OpCode::GetConstant as u8, 0]);
 }
+
+#[test]
+fn test_compile_rational() {
+    test_compile(
+        vec![TokenType::Rational(7, 9)],
+        vec![OpCode::GetConstant as u8, 0],
+    );
+}

@@ -121,6 +121,13 @@ fn test_try_from_tokentype_float() {
 }
 
 #[test]
+fn test_try_from_tokentype_rational() {
+    let result = Value::try_from(TokenType::Rational(1, 4));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Rational(1, 4));
+}
+
+#[test]
 fn test_try_from_tokentype_string() {
     let result = Value::try_from(TokenType::String("hello world".to_string()));
     assert!(result.is_ok());

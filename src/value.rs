@@ -8,6 +8,7 @@ use std::{fmt, result};
 pub enum Value {
     Integer(i64),
     Float(f64),
+    Rational(i64, i64),
     String(String),
 }
 
@@ -16,6 +17,7 @@ impl fmt::Display for Value {
         match self {
             Value::Integer(n) => write!(f, "{}", n),
             Value::Float(n) => write!(f, "{}", n),
+            Value::Rational(n, d) => write!(f, "{}/{}", n, d),
             Value::String(s) => write!(f, "\"{}\"", s),
         }
     }
@@ -46,6 +48,7 @@ impl TryFrom<TokenType> for Value {
         match value {
             TokenType::Integer(number) => Ok(Value::Integer(number)),
             TokenType::Float(number) => Ok(Value::Float(number)),
+            TokenType::Rational(num, denom) => Ok(Value::Rational(num, denom)),
             TokenType::String(string) => Ok(Value::String(string)),
             _ => Err(Error::TokenTypeNotValue(value)),
         }
