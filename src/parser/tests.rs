@@ -7,7 +7,7 @@ use super::*;
 fn test_parse_token_types(input: &str, expected: Vec<TokenType>) {
     let result = parse(input).map(|t| t.into_iter().map(|t| t.token_type).collect::<Vec<_>>());
 
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "result error: {:?}", result);
     let result = result.unwrap();
     assert_eq!(result, expected);
 }
@@ -32,7 +32,7 @@ fn test_parse_divide() {
     let expected = vec![
         TokenType::Integer(10),
         TokenType::Integer(3),
-        TokenType::Division,
+        TokenType::Slash,
     ];
     test_parse_token_types(input, expected);
 }
@@ -65,7 +65,7 @@ fn test_parse_multiply() {
     let expected = vec![
         TokenType::Integer(10),
         TokenType::Integer(3),
-        TokenType::Multiply,
+        TokenType::Star,
     ];
     test_parse_token_types(input, expected);
 }
@@ -126,7 +126,7 @@ fn test_parse_invalid_unicode_escape() {
 
 #[test]
 fn test_parse_multiline_string() {
-    let input = "\"\"\"
+    let input = " \"\"\"
         This is a
         multiline string
         with \"quotes\" and \t tabs
@@ -327,20 +327,18 @@ fn test_read_until() {
         TokenType::String("something with spaces".to_string()),
     ];
 
-    let result = read_until(
-        &input.chars().collect::<Vec<_>>(),
-        0,
-        &TokenType::CloseBrace,
-    );
+    let mut scanner = Scanner::from_string(input);
+    let result = scanner.scan_until(&TokenType::CloseBrace);
     assert!(result.is_ok());
-    let (next_offset, tokens) = result.unwrap();
+    let tokens = result.unwrap();
     let token_types = tokens.into_iter().map(|t| t.token_type).collect::<Vec<_>>();
 
-    assert_eq!(next_offset, input.len() - 4);
+    assert_eq!(scanner.index, input.len() - 3);
     assert_eq!(token_types, expected);
 }
 
 #[test]
+// TODO: This one's broken, and it's because the scanner is trying to build an AST.
 fn test_parse_vector() {
     let input = "4 { 5 6 { 7 8 } } 9";
     let tokens = vec![
@@ -380,4 +378,28 @@ fn test_parse_vector() {
     let expected = vec![TokenType::Integer(4), tokens.into(), 9.into()];
 
     test_parse_token_types(input, expected);
+}
+
+#[test]
+#[ignore = "working out scanner"]
+fn test_function() {
+    let input = ": double ( x -- x ) 2 * ;";
+    let expected_scan = vec![
+        TokenType::Colon,
+        TokenType::Word("double".to_string()),
+        TokenType::OpenParen,
+        TokenType::Word("x".to_string()),
+        TokenType::LongDash,
+        TokenType::Word("x".to_string()),
+        TokenType::CloseParen,
+        TokenType::Integer(2),
+        TokenType::Star,
+        TokenType::Semicolon,
+    ];
+
+    let actual = scan(&input);
+
+    assert!(actual.is_ok());
+    let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
+    assert_eq!(token_types, expected_scan);
 }

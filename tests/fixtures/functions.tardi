@@ -1,0 +1,6 @@
+
+: double ( x -- y ) 2 * ;
+: triple ( x -- y ) 3 * ;
+
+7
+

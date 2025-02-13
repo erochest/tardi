@@ -41,10 +41,10 @@ pub fn compile(tokens: Vec<Token>) -> Result<Chunk> {
             TokenType::Minus => {
                 chunk.code.push(OpCode::Sub as u8);
             }
-            TokenType::Multiply => {
+            TokenType::Star => {
                 chunk.code.push(OpCode::Mult as u8);
             }
-            TokenType::Division => {
+            TokenType::Slash => {
                 chunk.code.push(OpCode::Div as u8);
             }
             TokenType::Equal => chunk.code.push(OpCode::Equal as u8),
@@ -72,6 +72,12 @@ pub fn compile(tokens: Vec<Token>) -> Result<Chunk> {
                 let constant = chunk.add_constant(token.clone().try_into()?);
                 chunk.push_op_code(OpCode::GetConstant, constant as u8);
             }
+            TokenType::Word(_) => todo!(),
+            TokenType::OpenParen => todo!(),
+            TokenType::CloseParen => todo!(),
+            TokenType::Colon => todo!(),
+            TokenType::Semicolon => todo!(),
+            TokenType::LongDash => todo!(),
         }
         current += 1;
     }

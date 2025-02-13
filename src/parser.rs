@@ -14,10 +14,11 @@ pub enum TokenType {
     String(String),
     Vector(Vec<Token>),
     Boolean(bool),
+    Word(String),
     Plus,
     Minus,
-    Multiply,
-    Division,
+    Star,
+    Slash,
     Equal,
     BangEqual,
     Less,
@@ -27,6 +28,11 @@ pub enum TokenType {
     Bang,
     OpenBrace,
     CloseBrace,
+    OpenParen,
+    CloseParen,
+    Colon,
+    Semicolon,
+    LongDash,
 }
 
 impl TokenType {
@@ -103,8 +109,8 @@ impl FromStr for TokenType {
         match word {
             "+" => return Ok(TokenType::Plus),
             "-" => return Ok(TokenType::Minus),
-            "*" => return Ok(TokenType::Multiply),
-            "/" => return Ok(TokenType::Division),
+            "*" => return Ok(TokenType::Star),
+            "/" => return Ok(TokenType::Slash),
             "true" => return Ok(TokenType::Boolean(true)),
             "false" => return Ok(TokenType::Boolean(false)),
             "==" => return Ok(TokenType::Equal),
@@ -178,8 +184,6 @@ impl From<Vec<Token>> for TokenType {
     }
 }
 
-// TODO: These don't seem exactly like tokens now that they contain whole
-// vectors
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
@@ -188,197 +192,245 @@ pub struct Token {
     pub length: usize,
 }
 
-pub fn parse(input: &str) -> Result<Vec<Token>> {
-    let input: Vec<char> = input.chars().collect();
-    let mut tokens = Vec::new();
-    let mut index = 0;
+struct Scanner {
+    input: Vec<char>,
+    index: usize,
+    line_no: usize,
+    column: usize,
+}
 
-    // TODO: This is kinda a lexer. Make it that explicitly
-    while index < input.len() {
-        let (next_index, token) = read_next(&input, index)?;
-        index = next_index;
-        if let Some(token) = token {
-            tokens.push(token);
+impl Scanner {
+    fn from_string(input: &str) -> Self {
+        Scanner::new(input.chars().collect())
+    }
+
+    fn new(input: Vec<char>) -> Self {
+        Scanner {
+            input,
+            index: 0,
+            line_no: 0,
+            column: 0,
         }
     }
+
+    fn is_eof(&self) -> bool {
+        self.index - 1 >= self.input.len()
+    }
+
+    fn current(&self) -> Option<char> {
+        self.input.get(self.index - 1).copied()
+    }
+
+    fn next(&mut self) -> Option<char> {
+        let current = self.input.get(self.index).copied();
+        self.index += 1;
+
+        if let Some(current_char) = current {
+            if current_char == '\n' {
+                self.line_no += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+        }
+
+        current
+    }
+
+    fn next_token(&mut self) -> Result<Option<Token>> {
+        self.skip_whitespace();
+        if let Some(current) = self.current() {
+            match current {
+                '"' => {
+                    if self.input[self.index - 1..].starts_with(&['"', '"', '"']) {
+                        self.next();
+                        self.next();
+                        self.long_string().map(Some)
+                    } else {
+                        self.string().map(Some)
+                    }
+                }
+                '{' => {
+                    let start = self.index;
+                    let line_no = self.line_no;
+                    let column = self.column;
+                    self.next();
+                    let vector = self.scan_until(&TokenType::CloseBrace)?;
+                    let token_type = TokenType::Vector(vector);
+                    let token = Token {
+                        token_type,
+                        line_no,
+                        column,
+                        length: self.index - start,
+                    };
+                    Ok(Some(token))
+                }
+                _ => self.word(),
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn skip_whitespace(&mut self) {
+        while let Some(current) = self.next() {
+            if !current.is_whitespace() {
+                break;
+            }
+        }
+    }
+
+    fn word(&mut self) -> Result<Option<Token>> {
+        let start = self.index - 1;
+        let line_no = self.line_no;
+        let column = self.column;
+
+        while let Some(current) = self.next() {
+            if current.is_whitespace() {
+                break;
+            }
+        }
+
+        let end = self.index - 1;
+        let word: String = self.input[start..end].iter().collect();
+        let token_type = word[..].parse()?;
+
+        let token = Token {
+            token_type,
+            line_no,
+            column,
+            length: end - start,
+        };
+
+        Ok(Some(token))
+    }
+
+    fn long_string(&mut self) -> Result<Token> {
+        // TODO: pull this pattern out
+        let start = self.index;
+        let line_no = self.line_no;
+        let column = self.column;
+        let word = self.string_until(&['"', '"', '"'])?;
+        let token_type = TokenType::String(word);
+        let token = Token {
+            token_type,
+            line_no,
+            column,
+            length: self.index - start,
+        };
+
+        Ok(token)
+    }
+
+    fn string_until(&mut self, terminator: &[char]) -> Result<String> {
+        let start = self.index;
+        let mut offset = terminator.len();
+        let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
+
+        while let Some(current) = self.next() {
+            if self.input[self.index - 1..].starts_with(terminator) {
+                for _ in 0..(terminator.len() - 1) {
+                    self.next();
+                }
+                break;
+            }
+
+            if current == '\\' {
+                if let Some(next) = self.next() {
+                    let char_to_push = match next {
+                        'n' => '\n',
+                        't' => '\t',
+                        'r' => '\r',
+                        'u' => {
+                            let unichar = self.unicode()?;
+                            unichar
+                        }
+                        c => c,
+                    };
+                    word.push(char_to_push);
+                } else {
+                    return Err(Error::EndOfFile(TokenType::String(String::new())));
+                }
+            } else {
+                word.push(current);
+            }
+        }
+
+        Ok(word)
+    }
+
+    fn unicode(&mut self) -> Result<char> {
+        if let Some(bracket) = self.next() {
+            if bracket != '{' {
+                return Err(Error::InvalidUnicodeChar);
+            }
+        } else {
+            return Err(Error::InvalidUnicodeChar);
+        }
+
+        let hex_str = self.string_until(&['}'])?;
+
+        if !hex_str.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(Error::InvalidUnicodeChar);
+        }
+
+        let hex_value = u32::from_str_radix(&hex_str, 16).map_err(|_| Error::InvalidUnicodeChar)?;
+        let unicode_char = char::from_u32(hex_value).ok_or(Error::InvalidUnicodeChar)?;
+
+        Ok(unicode_char)
+    }
+
+    fn string(&mut self) -> Result<Token> {
+        let start = self.index;
+        let line_no = self.line_no;
+        let column = self.column;
+        let word = self.string_until(&['"'])?;
+        let token_type = TokenType::String(word);
+
+        let token = Token {
+            token_type,
+            line_no,
+            column,
+            length: self.index - start,
+        };
+
+        Ok(token)
+    }
+
+    // TODO: make this available to programs for metaprogramming.
+    fn scan_until(&mut self, close: &TokenType) -> Result<Vec<Token>> {
+        let mut tokens = Vec::new();
+
+        while let Some(next) = self.next_token()? {
+            if &next.token_type == close {
+                break;
+            } else {
+                tokens.push(next);
+            }
+        }
+
+        if self.is_eof() {
+            Err(Error::EndOfFile(close.clone()))
+        } else {
+            Ok(tokens)
+        }
+    }
+}
+
+pub fn scan(input: &str) -> Result<Vec<Token>> {
+    let mut scanner = Scanner::from_string(input);
+    let mut tokens = Vec::new();
+
+    while let Some(token) = scanner.next_token()? {
+        tokens.push(token)
+    }
+
     Ok(tokens)
 }
 
-fn read_next(input: &[char], index: usize) -> Result<(usize, Option<Token>)> {
-    let mut next_index = index;
-    let mut current = input[next_index];
-
-    if current.is_whitespace() {
-        next_index += skip_whitespace(&input[index..]);
-    }
-    if next_index >= input.len() {
-        return Ok((next_index, None));
-    }
-    current = input[next_index];
-
-    if current == '"' {
-        let (next_index, token) = if input[next_index..].starts_with(&['"', '"', '"']) {
-            read_long_string(&input, next_index)?
-        } else {
-            read_string(&input, next_index)?
-        };
-
-        Ok((next_index, Some(token)))
-    } else if current == '{' {
-        next_index += 1;
-        let (end_index, token_vec) = read_until(input, next_index, &TokenType::CloseBrace)?;
-        let token_type = TokenType::Vector(token_vec);
-        let token = Token {
-            token_type,
-            line_no: 1,
-            column: 1,
-            length: end_index - next_index,
-        };
-        Ok((end_index, Some(token)))
-    } else {
-        let (next_index, token) = read_word(&input, next_index);
-        Ok((next_index, Some(token)))
-    }
-}
-
-fn read_word(input: &[char], index: usize) -> (usize, Token) {
-    let start = index;
-    let mut offset = 0;
-    while start + offset < input.len() && !input[start + offset].is_whitespace() {
-        offset += 1;
-    }
-    let end = start + offset;
-
-    let word: String = input[start..end].iter().collect();
-    let token_type = word[..].parse().unwrap();
-
-    let token = Token {
-        token_type,
-        line_no: 1,
-        column: start,
-        length: offset,
-    };
-
-    (end, token)
-}
-
-fn read_string_until(input: &[char], index: usize, terminator: &[char]) -> Result<(usize, String)> {
-    let start = index;
-    let mut offset = terminator.len();
-    let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
-
-    while start + offset < input.len() {
-        if input[start + offset..].starts_with(terminator) {
-            break;
-        }
-
-        let char_to_push = if input[start + offset] == '\\' && start + offset + 1 < input.len() {
-            offset += 1;
-            match input[start + offset] {
-                'n' => '\n',
-                't' => '\t',
-                'r' => '\r',
-                'u' => {
-                    let (unicode_offset, unicode_char) =
-                        parse_unicode(&input[start + offset + 1..])?;
-                    offset += unicode_offset;
-                    unicode_char
-                }
-                c => c,
-            }
-        } else {
-            input[start + offset]
-        };
-        word.push(char_to_push);
-        offset += 1;
-    }
-
-    Ok((start + offset + terminator.len(), word))
-}
-
-fn read_long_string(input: &[char], index: usize) -> Result<(usize, Token)> {
-    let (end, word) = read_string_until(input, index, &['"', '"', '"'])?;
-    let token_type = TokenType::String(word);
-
-    let token = Token {
-        token_type,
-        line_no: 1,
-        column: index,
-        length: end - index,
-    };
-
-    Ok((end, token))
-}
-
-fn read_string(input: &[char], index: usize) -> Result<(usize, Token)> {
-    let (end, word) = read_string_until(input, index, &['"'])?;
-    let token_type = TokenType::String(word);
-
-    let token = Token {
-        token_type,
-        line_no: 1,
-        column: index,
-        length: end - index,
-    };
-
-    Ok((end, token))
-}
-
-fn parse_unicode(input: &[char]) -> Result<(usize, char)> {
-    if input.is_empty() || input[0] != '{' {
-        return Err(Error::InvalidUnicodeChar);
-    }
-    let mut hex_offset = 1; // Skip the opening '{'
-    let mut hex_str = String::new();
-
-    while hex_offset < input.len() {
-        if input[hex_offset] == '}' {
-            break;
-        }
-        if !input[hex_offset].is_ascii_hexdigit() {
-            return Err(Error::InvalidUnicodeChar);
-        }
-        hex_str.push(input[hex_offset]);
-        hex_offset += 1;
-    }
-
-    if hex_offset == input.len() {
-        return Err(Error::InvalidUnicodeChar);
-    }
-
-    let hex_value = u32::from_str_radix(&hex_str, 16).map_err(|_| Error::InvalidUnicodeChar)?;
-    let unicode_char = char::from_u32(hex_value).ok_or(Error::InvalidUnicodeChar)?;
-
-    Ok((hex_offset + 1, unicode_char)) // Include the closing '}'
-}
-
-fn skip_whitespace(input: &[char]) -> usize {
-    let mut offset = 0;
-    while offset < input.len() && input[offset].is_whitespace() {
-        offset += 1;
-    }
-    offset
-}
-
-// TODO: make this available to programs for metaprogramming.
-fn read_until(input: &[char], index: usize, close: &TokenType) -> Result<(usize, Vec<Token>)> {
-    let mut next_index = index;
-    let mut tokens = Vec::new();
-
-    while let (i, Some(next)) = read_next(input, next_index)? {
-        next_index = i;
-        if &next.token_type == close {
-            break;
-        } else {
-            tokens.push(next);
-        }
-    }
-
-    if next_index >= input.len() {
-        Err(Error::EndOfFile(close.clone()))
-    } else {
-        Ok((next_index, tokens))
-    }
+pub fn parse(input: &str) -> Result<Vec<Token>> {
+    let tokens = scan(input)?;
+    Ok(tokens)
 }
 
 #[cfg(test)]
