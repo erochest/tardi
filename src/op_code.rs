@@ -10,6 +10,10 @@ pub enum OpCode {
     Sub,
     Mult,
     Div,
+    Not,
+    Equal,
+    Less,
+    Greater,
 }
 
 impl TryFrom<u8> for OpCode {
@@ -22,6 +26,10 @@ impl TryFrom<u8> for OpCode {
             2 => Ok(OpCode::Sub),
             3 => Ok(OpCode::Mult),
             4 => Ok(OpCode::Div),
+            5 => Ok(OpCode::Not),
+            6 => Ok(OpCode::Equal),
+            7 => Ok(OpCode::Less),
+            8 => Ok(OpCode::Greater),
             code => Err(Error::InvalidOpCode(code)),
         }
     }
@@ -38,6 +46,13 @@ mod tests {
         assert_eq!(OpCode::try_from(2).unwrap(), OpCode::Sub);
         assert_eq!(OpCode::try_from(3).unwrap(), OpCode::Mult);
         assert_eq!(OpCode::try_from(4).unwrap(), OpCode::Div);
-        assert!(matches!(OpCode::try_from(177), Err(Error::InvalidOpCode(177))));
+        assert_eq!(OpCode::try_from(5).unwrap(), OpCode::Not);
+        assert_eq!(OpCode::try_from(6).unwrap(), OpCode::Equal);
+        assert_eq!(OpCode::try_from(7).unwrap(), OpCode::Less);
+        assert_eq!(OpCode::try_from(8).unwrap(), OpCode::Greater);
+        assert!(matches!(
+            OpCode::try_from(177),
+            Err(Error::InvalidOpCode(177))
+        ));
     }
 }

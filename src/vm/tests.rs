@@ -49,3 +49,68 @@ fn test_execute_div() {
     chunk.code = vec![0, 0, 0, 1, OpCode::Div as u8];
     test_chunk(chunk, &[Value::Integer(2)]);
 }
+
+#[test]
+fn test_execute_equals() {
+    let mut chunk = Chunk::new();
+    chunk.constants = vec![Value::Integer(4), Value::Integer(3)];
+    chunk.code = vec![
+        0,
+        0,
+        0,
+        0,
+        OpCode::Equal as u8,
+        0,
+        0,
+        0,
+        1,
+        OpCode::Equal as u8,
+    ];
+    test_chunk(chunk, &[Value::Boolean(true), Value::Boolean(false)]);
+}
+
+#[test]
+fn test_execute_not() {
+    let mut chunk = Chunk::new();
+    chunk.constants = vec![Value::Boolean(false), Value::Boolean(true)];
+    chunk.code = vec![0, 0, OpCode::Not as u8, 0, 1, OpCode::Not as u8];
+    test_chunk(chunk, &[Value::Boolean(true), Value::Boolean(false)]);
+}
+
+#[test]
+fn test_execute_less() {
+    let mut chunk = Chunk::new();
+    chunk.constants = vec![Value::Integer(4), Value::Integer(3)];
+    chunk.code = vec![
+        0,
+        0,
+        0,
+        0,
+        OpCode::Less as u8,
+        0,
+        1,
+        0,
+        0,
+        OpCode::Less as u8,
+    ];
+    test_chunk(chunk, &[Value::Boolean(false), Value::Boolean(true)]);
+}
+
+#[test]
+fn test_execute_greater() {
+    let mut chunk = Chunk::new();
+    chunk.constants = vec![Value::Integer(4), Value::Integer(3)];
+    chunk.code = vec![
+        0,
+        0,
+        0,
+        1,
+        OpCode::Greater as u8,
+        0,
+        1,
+        0,
+        0,
+        OpCode::Greater as u8,
+    ];
+    test_chunk(chunk, &[Value::Boolean(true), Value::Boolean(false)]);
+}

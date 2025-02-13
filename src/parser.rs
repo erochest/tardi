@@ -12,10 +12,18 @@ pub enum TokenType {
     Float(f64),
     Rational(i64, i64),
     String(String),
+    Boolean(bool),
     Plus,
     Minus,
     Multiply,
     Division,
+    Equal,
+    BangEqual,
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual,
+    Bang,
 }
 
 impl TokenType {
@@ -88,14 +96,21 @@ impl FromStr for TokenType {
 
     fn from_str(word: &str) -> Result<Self> {
         // Simple words
-        if word == "+" {
-            return Ok(TokenType::Plus);
-        } else if word == "-" {
-            return Ok(TokenType::Minus);
-        } else if word == "*" {
-            return Ok(TokenType::Multiply);
-        } else if word == "/" {
-            return Ok(TokenType::Division);
+        match word {
+            "+" => return Ok(TokenType::Plus),
+            "-" => return Ok(TokenType::Minus),
+            "*" => return Ok(TokenType::Multiply),
+            "/" => return Ok(TokenType::Division),
+            "true" => return Ok(TokenType::Boolean(true)),
+            "false" => return Ok(TokenType::Boolean(false)),
+            "==" => return Ok(TokenType::Equal),
+            "!=" => return Ok(TokenType::BangEqual),
+            "<" => return Ok(TokenType::Less),
+            ">" => return Ok(TokenType::Greater),
+            "<=" => return Ok(TokenType::LessEqual),
+            ">=" => return Ok(TokenType::GreaterEqual),
+            "!" => return Ok(TokenType::Bang),
+            _ => {}
         }
 
         // non-base-10 numbers and rationals
@@ -164,6 +179,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
     let mut tokens = Vec::new();
     let mut index = 0;
 
+    // TODO: This is kinda a lexer. Make it that explicitly
     while index < input.len() {
         let current = input[index];
 

@@ -24,6 +24,10 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
                 let constant = chunk.add_constant(Value::Rational(Rational64::new(*num, *denom)));
                 chunk.push_op_code(OpCode::GetConstant, constant as u8);
             }
+            TokenType::Boolean(b) => {
+                let constant = chunk.add_constant(Value::Boolean(*b));
+                chunk.push_op_code(OpCode::GetConstant, constant as u8);
+            }
             TokenType::String(string) => {
                 let constant = chunk.add_constant(Value::String(string.clone()));
                 chunk.push_op_code(OpCode::GetConstant, constant as u8);
@@ -40,6 +44,22 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
             TokenType::Division => {
                 chunk.code.push(OpCode::Div as u8);
             }
+            TokenType::Equal => chunk.code.push(OpCode::Equal as u8),
+            TokenType::BangEqual => {
+                chunk.code.push(OpCode::Equal as u8);
+                chunk.code.push(OpCode::Not as u8);
+            }
+            TokenType::Less => chunk.code.push(OpCode::Less as u8),
+            TokenType::Greater => chunk.code.push(OpCode::Greater as u8),
+            TokenType::LessEqual => {
+                chunk.code.push(OpCode::Greater as u8);
+                chunk.code.push(OpCode::Not as u8);
+            }
+            TokenType::GreaterEqual => {
+                chunk.code.push(OpCode::Less as u8);
+                chunk.code.push(OpCode::Not as u8);
+            }
+            TokenType::Bang => chunk.code.push(OpCode::Not as u8),
         }
         current += 1;
     }

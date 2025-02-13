@@ -48,6 +48,34 @@ impl VM {
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     self.stack.push(a.checked_div(b)?);
                 }
+                OpCode::Equal => {
+                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(Value::Boolean(a == b));
+                }
+                OpCode::Not => match self.stack.pop() {
+                    Some(Value::Boolean(a)) => {
+                        self.stack.push(Value::Boolean(!a));
+                    }
+                    Some(v) => {
+                        let error_v = v.clone();
+                        self.stack.push(v);
+                        return Err(Error::InvalidValueType(error_v));
+                    }
+                    _ => {
+                        return Err(Error::StackUnderflow);
+                    }
+                },
+                OpCode::Less => {
+                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(Value::Boolean(a < b));
+                }
+                OpCode::Greater => {
+                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(Value::Boolean(a > b));
+                }
             }
 
             ip += 1;

@@ -294,3 +294,25 @@ fn test_from_string() {
         TokenType::String("greetings".to_string())
     );
 }
+
+#[test]
+fn test_parse_booleans() {
+    let input = "true false";
+    let expected = vec![TokenType::Boolean(true), TokenType::Boolean(false)];
+    test_parse_token_types(input, expected);
+}
+
+#[test]
+fn test_parse_boolean_operators() {
+    let input = "== != < > <= >= !";
+    let expected = vec![
+        TokenType::Equal,
+        TokenType::BangEqual,
+        TokenType::Less,
+        TokenType::Greater,
+        TokenType::LessEqual,
+        TokenType::GreaterEqual,
+        TokenType::Bang,
+    ];
+    test_parse_token_types(input, expected);
+}

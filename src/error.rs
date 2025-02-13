@@ -16,11 +16,13 @@ pub enum Error {
     DivideByZero,
     InvalidUnicodeChar,
     TokenTypeNotValue(TokenType),
+    InvalidValueType(Value),
 }
 
 use Error::*;
 
 use crate::parser::TokenType;
+use crate::value::Value;
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -35,6 +37,7 @@ impl fmt::Display for Error {
             TokenTypeNotValue(ref token_type) => {
                 write!(f, "TokenType {:?} has no value", token_type)
             }
+            InvalidValueType(value) => write!(f, "Invalid Value type for operation: {:?}", value),
         }
     }
 }

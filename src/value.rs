@@ -11,6 +11,7 @@ pub enum Value {
     Integer(i64),
     Float(f64),
     Rational(Rational64),
+    Boolean(bool),
     String(String),
 }
 
@@ -21,6 +22,7 @@ impl fmt::Display for Value {
             Value::Float(n) => write!(f, "{}", n),
             Value::Rational(r) => write!(f, "{}/{}", r.numer(), r.denom()),
             Value::String(s) => write!(f, "\"{}\"", s),
+            Value::Boolean(b) => write!(f, "{}", b),
         }
     }
 }

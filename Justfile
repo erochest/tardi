@@ -7,3 +7,7 @@ build:
 
 clean:
     cargo clean
+
+watch:
+    cargo watch -x "nextest run"
+    

@@ -77,3 +77,37 @@ fn test_compile_rational() {
         vec![OpCode::GetConstant as u8, 0],
     );
 }
+
+#[test]
+fn test_compile_boolean() {
+    test_compile(
+        vec![TokenType::Boolean(true)],
+        vec![OpCode::GetConstant as u8, 0],
+    );
+}
+
+#[test]
+fn test_compile_boolean_operators() {
+    let input = vec![
+        TokenType::Equal,
+        TokenType::BangEqual,
+        TokenType::Less,
+        TokenType::LessEqual,
+        TokenType::Greater,
+        TokenType::GreaterEqual,
+        TokenType::Bang,
+    ];
+    let expected = vec![
+        OpCode::Equal as u8,
+        OpCode::Equal as u8,
+        OpCode::Not as u8,
+        OpCode::Less as u8,
+        OpCode::Greater as u8,
+        OpCode::Not as u8,
+        OpCode::Greater as u8,
+        OpCode::Less as u8,
+        OpCode::Not as u8,
+        OpCode::Not as u8,
+    ];
+    test_compile(input, expected);
+}
