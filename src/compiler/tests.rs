@@ -16,7 +16,9 @@ fn test_compile(input: Vec<TokenType>, expected: Vec<u8>) {
             length: 3,
         })
         .collect();
-    let chunk = compile(tokens);
+    let result = compile(tokens);
+    assert!(result.is_ok());
+    let chunk = result.unwrap();
     assert_eq!(chunk.code, expected);
 }
 
@@ -109,5 +111,26 @@ fn test_compile_boolean_operators() {
         OpCode::Not as u8,
         OpCode::Not as u8,
     ];
+    test_compile(input, expected);
+}
+
+#[test]
+fn test_compile_vector() {
+    let contents = vec![
+        Token {
+            token_type: 13.into(),
+            line_no: 1,
+            column: 1,
+            length: 1,
+        },
+        Token {
+            token_type: 42.into(),
+            line_no: 1,
+            column: 1,
+            length: 1,
+        },
+    ];
+    let input = vec![contents.into()];
+    let expected = vec![0, 0];
     test_compile(input, expected);
 }

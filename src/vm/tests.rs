@@ -1,5 +1,7 @@
 use pretty_assertions::assert_eq;
 
+use crate::value::Value;
+
 use super::*;
 
 fn test_chunk(chunk: Chunk, expected: &[Value]) {
@@ -7,8 +9,6 @@ fn test_chunk(chunk: Chunk, expected: &[Value]) {
     vm.execute(chunk).unwrap();
     assert_eq!(vm.stack, expected);
 }
-
-use crate::value::Value;
 
 #[test]
 fn test_execute_get_constant() {

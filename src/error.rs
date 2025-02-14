@@ -17,6 +17,7 @@ pub enum Error {
     InvalidUnicodeChar,
     TokenTypeNotValue(TokenType),
     InvalidValueType(Value),
+    EndOfFile(TokenType),
 }
 
 use Error::*;
@@ -38,6 +39,7 @@ impl fmt::Display for Error {
                 write!(f, "TokenType {:?} has no value", token_type)
             }
             InvalidValueType(value) => write!(f, "Invalid Value type for operation: {:?}", value),
+            EndOfFile(token_type) => write!(f, "End of file. Expecting: {:?}", token_type),
         }
     }
 }

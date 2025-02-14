@@ -184,3 +184,22 @@ fn test_try_from_tokentype_string() {
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), Value::String("hello world".to_string()));
 }
+
+#[test]
+fn test_display_vector() {
+    let value: Value = vec![Value::from(42)].into();
+    assert_eq!("{ 42 }", format!("{}", value));
+}
+
+#[test]
+#[ignore = "value sharing"]
+fn test_add_vectors() {
+    let a: Value = vec![Value::from(2)].into();
+    let b: Value = vec![Value::from(3)].into();
+
+    let c = a + b;
+
+    assert!(c.is_ok());
+    let c = c.unwrap();
+    assert_eq!(Value::from(vec![Value::from(2), Value::from(3)]), c);
+}

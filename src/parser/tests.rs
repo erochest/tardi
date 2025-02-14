@@ -316,3 +316,68 @@ fn test_parse_boolean_operators() {
     ];
     test_parse_token_types(input, expected);
 }
+
+#[test]
+fn test_read_until() {
+    let input = " 1 2 3 \"something with spaces\" } end";
+    let expected = vec![
+        TokenType::Integer(1),
+        TokenType::Integer(2),
+        TokenType::Integer(3),
+        TokenType::String("something with spaces".to_string()),
+    ];
+
+    let result = read_until(
+        &input.chars().collect::<Vec<_>>(),
+        0,
+        &TokenType::CloseBrace,
+    );
+    assert!(result.is_ok());
+    let (next_offset, tokens) = result.unwrap();
+    let token_types = tokens.into_iter().map(|t| t.token_type).collect::<Vec<_>>();
+
+    assert_eq!(next_offset, input.len() - 4);
+    assert_eq!(token_types, expected);
+}
+
+#[test]
+fn test_parse_vector() {
+    let input = "4 { 5 6 { 7 8 } } 9";
+    let tokens = vec![
+        Token {
+            token_type: 7.into(),
+            line_no: 1,
+            column: 10,
+            length: 1,
+        },
+        Token {
+            token_type: 8.into(),
+            line_no: 1,
+            column: 12,
+            length: 1,
+        },
+    ];
+    let tokens = vec![
+        Token {
+            token_type: 5.into(),
+            line_no: 1,
+            column: 4,
+            length: 1,
+        },
+        Token {
+            token_type: 6.into(),
+            line_no: 1,
+            column: 6,
+            length: 1,
+        },
+        Token {
+            token_type: tokens.into(),
+            line_no: 1,
+            column: 1,
+            length: 6,
+        },
+    ];
+    let expected = vec![TokenType::Integer(4), tokens.into(), 9.into()];
+
+    test_parse_token_types(input, expected);
+}

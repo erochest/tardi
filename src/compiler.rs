@@ -1,11 +1,14 @@
+use std::convert::TryInto;
+
 use num::Rational64;
 
 use crate::chunk::Chunk;
+use crate::error::Result;
 use crate::op_code::OpCode;
 use crate::parser::{Token, TokenType};
 use crate::value::Value;
 
-pub fn compile(tokens: Vec<Token>) -> Chunk {
+pub fn compile(tokens: Vec<Token>) -> Result<Chunk> {
     let mut chunk = Chunk::new();
     let mut current = 0;
 
@@ -60,11 +63,20 @@ pub fn compile(tokens: Vec<Token>) -> Chunk {
                 chunk.code.push(OpCode::Not as u8);
             }
             TokenType::Bang => chunk.code.push(OpCode::Not as u8),
+            // TODO: These should probably be a compile time function to
+            // create a vector and a runtime function to get it and
+            // clone it.
+            TokenType::OpenBrace => unimplemented!(),
+            TokenType::CloseBrace => unimplemented!(),
+            TokenType::Vector(_) => {
+                let constant = chunk.add_constant(token.clone().try_into()?);
+                chunk.push_op_code(OpCode::GetConstant, constant as u8);
+            }
         }
         current += 1;
     }
 
-    chunk
+    Ok(chunk)
 }
 
 #[cfg(test)]

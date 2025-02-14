@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use crate::parser::TokenType;
+use crate::parser::{Token, TokenType};
 use std::convert::TryFrom;
 use std::ops::{Add, Div, Mul, Sub};
 use std::{fmt, result};
@@ -13,6 +13,7 @@ pub enum Value {
     Rational(Rational64),
     Boolean(bool),
     String(String),
+    Vector(Vec<Value>),
 }
 
 impl fmt::Display for Value {
@@ -23,6 +24,13 @@ impl fmt::Display for Value {
             Value::Rational(r) => write!(f, "{}/{}", r.numer(), r.denom()),
             Value::String(s) => write!(f, "\"{}\"", s),
             Value::Boolean(b) => write!(f, "{}", b),
+            Value::Vector(values) => {
+                write!(f, "{{ ")?;
+                for item in values {
+                    write!(f, "{} ", item)?;
+                }
+                write!(f, "}}")
+            }
         }
     }
 }
@@ -42,6 +50,39 @@ impl From<f64> for Value {
 impl From<String> for Value {
     fn from(value: String) -> Self {
         Value::String(value)
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Boolean(value)
+    }
+}
+
+impl From<Vec<Value>> for Value {
+    fn from(value: Vec<Value>) -> Self {
+        let values = value.into_iter().map(Value::from).collect::<Vec<_>>();
+        Value::Vector(values)
+    }
+}
+
+impl TryFrom<Token> for Value {
+    type Error = Error;
+
+    fn try_from(token: Token) -> result::Result<Self, Self::Error> {
+        match token.token_type {
+            TokenType::Integer(i) => Ok(Value::Integer(i)),
+            TokenType::Float(f) => Ok(Value::Float(f)),
+            TokenType::Rational(n, d) => Ok(Value::Rational(Rational64::new(n, d))),
+            TokenType::String(s) => Ok(Value::String(s)),
+            TokenType::Vector(vs) => vs
+                .into_iter()
+                .map(Value::try_from)
+                .collect::<Result<Vec<_>>>()
+                .map(Value::Vector),
+            TokenType::Boolean(b) => Ok(Value::Boolean(b)),
+            _ => Err(Error::InvalidToken(format!("{:?}", token))),
+        }
     }
 }
 
@@ -108,6 +149,14 @@ impl Add for Value {
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
             (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a + b)),
             (Value::String(a), Value::String(b)) => Ok(Value::String(a + &b)),
+            (Value::Vector(_a), Value::Vector(_b)) => {
+                // let c = Vec::with_capacity(a.len() + b.len());
+                // TODO: `Vec::append` moves everything from a and b into c.
+                // I probably need to work out sharing and who owns what now.
+                // I probably need to think more clearly about this and have
+                // a plan or a framework.
+                todo!("vector addition (and value sharing)")
+            }
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }

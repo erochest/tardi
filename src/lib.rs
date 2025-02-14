@@ -17,7 +17,7 @@ pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
     let script_text = std::fs::read_to_string(file_path)?;
 
     let tokens = parse(&script_text)?;
-    let chunk = compile(tokens);
+    let chunk = compile(tokens)?;
     let mut vm = VM::new();
     vm.execute(chunk)?;
 
@@ -47,7 +47,7 @@ pub fn run_repl(print_stack: bool) -> Result<()> {
         let tokens = parse(&line)?;
         // TODO: this may not have any memory between lines of input
         // of functions defined, etc. fix this.
-        let chunk = compile(tokens);
+        let chunk = compile(tokens)?;
         vm.execute(chunk)?;
 
         if print_stack {

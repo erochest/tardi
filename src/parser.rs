@@ -6,12 +6,13 @@ const STRING_INITIALIZATION_CAPACITY: usize = 8;
 
 // TODO: '_' in long integer numbers?
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     Integer(i64),
     Float(f64),
     Rational(i64, i64),
     String(String),
+    Vector(Vec<Token>),
     Boolean(bool),
     Plus,
     Minus,
@@ -24,6 +25,8 @@ pub enum TokenType {
     LessEqual,
     GreaterEqual,
     Bang,
+    OpenBrace,
+    CloseBrace,
 }
 
 impl TokenType {
@@ -91,6 +94,7 @@ impl TokenType {
     }
 }
 
+// TODO: The smarter parts of this should probably go in the compiler.
 impl FromStr for TokenType {
     type Err = Error;
 
@@ -110,6 +114,8 @@ impl FromStr for TokenType {
             "<=" => return Ok(TokenType::LessEqual),
             ">=" => return Ok(TokenType::GreaterEqual),
             "!" => return Ok(TokenType::Bang),
+            "{" => return Ok(TokenType::OpenBrace),
+            "}" => return Ok(TokenType::CloseBrace),
             _ => {}
         }
 
@@ -166,7 +172,15 @@ impl From<String> for TokenType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+impl From<Vec<Token>> for TokenType {
+    fn from(value: Vec<Token>) -> Self {
+        TokenType::Vector(value)
+    }
+}
+
+// TODO: These don't seem exactly like tokens now that they contain whole
+// vectors
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub line_no: usize,
@@ -181,25 +195,50 @@ pub fn parse(input: &str) -> Result<Vec<Token>> {
 
     // TODO: This is kinda a lexer. Make it that explicitly
     while index < input.len() {
-        let current = input[index];
-
-        if current.is_whitespace() {
-            index += skip_whitespace(&input[index..]);
-        } else if current == '"' {
-            let (new_index, token) = if input[index..].starts_with(&['"', '"', '"']) {
-                read_long_string(&input, index)?
-            } else {
-                read_string(&input, index)?
-            };
-            index = new_index;
-            tokens.push(token);
-        } else {
-            let (new_index, token) = read_word(&input, index);
-            index = new_index;
+        let (next_index, token) = read_next(&input, index)?;
+        index = next_index;
+        if let Some(token) = token {
             tokens.push(token);
         }
     }
     Ok(tokens)
+}
+
+fn read_next(input: &[char], index: usize) -> Result<(usize, Option<Token>)> {
+    let mut next_index = index;
+    let mut current = input[next_index];
+
+    if current.is_whitespace() {
+        next_index += skip_whitespace(&input[index..]);
+    }
+    if next_index >= input.len() {
+        return Ok((next_index, None));
+    }
+    current = input[next_index];
+
+    if current == '"' {
+        let (next_index, token) = if input[next_index..].starts_with(&['"', '"', '"']) {
+            read_long_string(&input, next_index)?
+        } else {
+            read_string(&input, next_index)?
+        };
+
+        Ok((next_index, Some(token)))
+    } else if current == '{' {
+        next_index += 1;
+        let (end_index, token_vec) = read_until(input, next_index, &TokenType::CloseBrace)?;
+        let token_type = TokenType::Vector(token_vec);
+        let token = Token {
+            token_type,
+            line_no: 1,
+            column: 1,
+            length: end_index - next_index,
+        };
+        Ok((end_index, Some(token)))
+    } else {
+        let (next_index, token) = read_word(&input, next_index);
+        Ok((next_index, Some(token)))
+    }
 }
 
 fn read_word(input: &[char], index: usize) -> (usize, Token) {
@@ -319,6 +358,27 @@ fn skip_whitespace(input: &[char]) -> usize {
         offset += 1;
     }
     offset
+}
+
+// TODO: make this available to programs for metaprogramming.
+fn read_until(input: &[char], index: usize, close: &TokenType) -> Result<(usize, Vec<Token>)> {
+    let mut next_index = index;
+    let mut tokens = Vec::new();
+
+    while let (i, Some(next)) = read_next(input, next_index)? {
+        next_index = i;
+        if &next.token_type == close {
+            break;
+        } else {
+            tokens.push(next);
+        }
+    }
+
+    if next_index >= input.len() {
+        Err(Error::EndOfFile(close.clone()))
+    } else {
+        Ok((next_index, tokens))
+    }
 }
 
 #[cfg(test)]
