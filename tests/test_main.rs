@@ -1,6 +1,6 @@
 use std::fs;
-use std::process::Command;
 use std::path::Path;
+use std::process::Command;
 
 use assert_cmd::prelude::*;
 use pretty_assertions::assert_eq;
@@ -15,15 +15,23 @@ fn test_tardi_file(tardi_file: &Path) -> datatest_stable::Result<()> {
 
     // Validate results
     validate_status(tardi_file, &output);
-    validate_print_output(tardi_file, "stdout", &String::from_utf8_lossy(&output.stdout));
-    validate_print_output(tardi_file, "stderr", &String::from_utf8_lossy(&output.stderr));
+    validate_print_output(
+        tardi_file,
+        "stdout",
+        &String::from_utf8_lossy(&output.stdout),
+    );
+    validate_print_output(
+        tardi_file,
+        "stderr",
+        &String::from_utf8_lossy(&output.stderr),
+    );
 
     Ok(())
 }
 
 fn validate_status(tardi_file: &Path, output: &std::process::Output) {
     let status_file = tardi_file.with_extension("status");
-    
+
     let expected_status = if status_file.exists() {
         fs::read_to_string(status_file)
             .unwrap()
@@ -33,7 +41,7 @@ fn validate_status(tardi_file: &Path, output: &std::process::Output) {
     } else {
         0
     };
-    
+
     assert_eq!(
         output.status.code().unwrap(),
         expected_status,
@@ -43,14 +51,17 @@ fn validate_status(tardi_file: &Path, output: &std::process::Output) {
     );
 }
 
-fn validate_print_output(tardi_file: &Path, extension: &str, expected_output: &str) {
+fn validate_print_output(tardi_file: &Path, extension: &str, actual_output: &str) {
     let output_file = tardi_file.with_extension(extension);
-    
+
     if output_file.exists() {
-        let expected = fs::read_to_string(output_file).unwrap();
+        let mut expected = fs::read_to_string(output_file).unwrap();
+        expected = expected.replace("\r\n", "\n");
+        let actual_output = actual_output.replace("\r\n", "\n");
+
         assert_eq!(
-            expected_output,
-            &expected,
+            actual_output,
+            expected,
             "Test file '{}' {} mismatch",
             tardi_file.display(),
             extension
