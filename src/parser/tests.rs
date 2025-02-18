@@ -375,7 +375,18 @@ fn test_parse_vector() {
             length: 6,
         },
     ];
-    let expected = vec![TokenType::Integer(4), tokens.into(), 9.into()];
+    let expected = vec![
+        TokenType::Integer(4),
+        TokenType::OpenBrace,
+        TokenType::Integer(5),
+        TokenType::Integer(6),
+        TokenType::OpenBrace,
+        TokenType::Integer(7),
+        TokenType::Integer(8),
+        TokenType::CloseBrace,
+        TokenType::CloseBrace,
+        TokenType::Integer(9),
+    ];
 
     test_parse_token_types(input, expected);
 }

@@ -192,11 +192,37 @@ pub struct Token {
     pub length: usize,
 }
 
+#[derive(Debug, Copy, Clone)]
+struct Pos {
+    index: usize,
+    line_no: usize,
+    column: usize,
+}
+
+impl Pos {
+    fn new(index: usize, line_no: usize, column: usize) -> Self {
+        Pos {
+            index,
+            line_no,
+            column,
+        }
+    }
+
+    fn from_scanner(scanner: &Scanner) -> Self {
+        Pos {
+            index: scanner.index - 1,
+            line_no: scanner.line_no,
+            column: scanner.column,
+        }
+    }
+}
+
 struct Scanner {
     input: Vec<char>,
     index: usize,
     line_no: usize,
     column: usize,
+    start: Option<Pos>,
 }
 
 impl Scanner {
@@ -210,11 +236,26 @@ impl Scanner {
             index: 0,
             line_no: 0,
             column: 0,
+            start: None,
         }
     }
 
     fn is_eof(&self) -> bool {
         self.index - 1 >= self.input.len()
+    }
+
+    fn save_start(&mut self) {
+        self.start = Some(Pos::from_scanner(&self))
+    }
+
+    fn token_from_start(&mut self, token_type: TokenType) -> Token {
+        let pos = self.start.take().unwrap();
+        Token {
+            token_type,
+            line_no: pos.line_no,
+            column: pos.column,
+            length: self.index - pos.index - 1,
+        }
     }
 
     fn current(&self) -> Option<char> {
@@ -239,6 +280,8 @@ impl Scanner {
 
     fn next_token(&mut self) -> Result<Option<Token>> {
         self.skip_whitespace();
+        self.save_start();
+
         if let Some(current) = self.current() {
             match current {
                 '"' => {
@@ -249,21 +292,6 @@ impl Scanner {
                     } else {
                         self.string().map(Some)
                     }
-                }
-                '{' => {
-                    let start = self.index;
-                    let line_no = self.line_no;
-                    let column = self.column;
-                    self.next();
-                    let vector = self.scan_until(&TokenType::CloseBrace)?;
-                    let token_type = TokenType::Vector(vector);
-                    let token = Token {
-                        token_type,
-                        line_no,
-                        column,
-                        length: self.index - start,
-                    };
-                    Ok(Some(token))
                 }
                 _ => self.word(),
             }
@@ -281,50 +309,29 @@ impl Scanner {
     }
 
     fn word(&mut self) -> Result<Option<Token>> {
-        let start = self.index - 1;
-        let line_no = self.line_no;
-        let column = self.column;
-
         while let Some(current) = self.next() {
             if current.is_whitespace() {
                 break;
             }
         }
 
+        let start = self.start.map(|pos| pos.index).unwrap_or_default();
         let end = self.index - 1;
         let word: String = self.input[start..end].iter().collect();
         let token_type = word[..].parse()?;
-
-        let token = Token {
-            token_type,
-            line_no,
-            column,
-            length: end - start,
-        };
+        let token = self.token_from_start(token_type);
 
         Ok(Some(token))
     }
 
     fn long_string(&mut self) -> Result<Token> {
-        // TODO: pull this pattern out
-        let start = self.index;
-        let line_no = self.line_no;
-        let column = self.column;
         let word = self.string_until(&['"', '"', '"'])?;
         let token_type = TokenType::String(word);
-        let token = Token {
-            token_type,
-            line_no,
-            column,
-            length: self.index - start,
-        };
-
+        let token = self.token_from_start(token_type);
         Ok(token)
     }
 
     fn string_until(&mut self, terminator: &[char]) -> Result<String> {
-        let start = self.index;
-        let mut offset = terminator.len();
         let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
 
         while let Some(current) = self.next() {
@@ -381,19 +388,9 @@ impl Scanner {
     }
 
     fn string(&mut self) -> Result<Token> {
-        let start = self.index;
-        let line_no = self.line_no;
-        let column = self.column;
         let word = self.string_until(&['"'])?;
         let token_type = TokenType::String(word);
-
-        let token = Token {
-            token_type,
-            line_no,
-            column,
-            length: self.index - start,
-        };
-
+        let token = self.token_from_start(token_type);
         Ok(token)
     }
 
