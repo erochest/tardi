@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use crate::parser::{Token, TokenType};
+use crate::scanner::{Token, TokenType};
 use std::convert::TryFrom;
 use std::ops::{Add, Div, Mul, Sub};
 use std::{fmt, result};

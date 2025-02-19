@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use pretty_assertions::assert_eq;
 
-use crate::parser::{Token, TokenType};
+use crate::scanner::{Token, TokenType};
 
 use super::*;
 

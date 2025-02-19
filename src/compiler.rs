@@ -5,7 +5,7 @@ use num::Rational64;
 use crate::chunk::Chunk;
 use crate::error::Result;
 use crate::op_code::OpCode;
-use crate::parser::{Token, TokenType};
+use crate::scanner::{Token, TokenType};
 use crate::value::Value;
 
 pub fn compile(tokens: Vec<Token>) -> Result<Chunk> {

@@ -4,6 +4,9 @@ use std::fmt;
 use std::io;
 use std::result;
 
+use crate::scanner::TokenType;
+use crate::value::Value;
+
 pub type Result<R> = result::Result<R, Error>;
 
 #[derive(Debug)]
@@ -21,9 +24,6 @@ pub enum Error {
 }
 
 use Error::*;
-
-use crate::parser::TokenType;
-use crate::value::Value;
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

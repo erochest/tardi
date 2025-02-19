@@ -2,7 +2,7 @@ use std::{convert::TryFrom, f64::consts::PI};
 
 use super::*;
 
-use crate::parser::TokenType;
+use crate::scanner::TokenType;
 
 // TODO: may want to break this file up
 
