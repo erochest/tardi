@@ -17,6 +17,13 @@ fn test_compile(input: Vec<TokenType>, expected: Vec<u8>) {
         })
         .collect();
     let result = compile(tokens);
+    assert!(result.is_ok(), "Result: {:?}", result);
+    let chunk = result.unwrap();
+    assert_eq!(chunk.code, expected);
+}
+
+fn test_compile_tokens(input: Vec<Token>, expected: Vec<u8>) {
+    let result = compile(input);
     assert!(result.is_ok());
     let chunk = result.unwrap();
     assert_eq!(chunk.code, expected);
@@ -25,66 +32,72 @@ fn test_compile(input: Vec<TokenType>, expected: Vec<u8>) {
 #[test]
 fn test_compile_simple_expression_with_div() {
     test_compile(
-        vec![10.into(), 3.into(), "/".parse().unwrap()],
-        vec![0, 0, 0, 1, OpCode::Div as u8],
+        vec![10.into(), 3.into(), "/".parse().unwrap(), TokenType::EOF],
+        vec![0, 0, 0, 1, OpCode::Div as u8, OpCode::Return as u8],
     );
 }
 
 #[test]
 fn test_compile_simple_expression() {
-    test_compile(vec![10.into(), 3.into()], vec![0, 0, 0, 1]);
+    test_compile(
+        vec![10.into(), 3.into(), TokenType::EOF],
+        vec![0, 0, 0, 1, OpCode::Return as u8],
+    );
 }
 
 #[test]
 fn test_compile_simple_expression_with_add() {
     test_compile(
-        vec![10.into(), 3.into(), "+".parse().unwrap()],
-        vec![0, 0, 0, 1, OpCode::Add as u8],
+        vec![10.into(), 3.into(), "+".parse().unwrap(), TokenType::EOF],
+        vec![0, 0, 0, 1, OpCode::Add as u8, OpCode::Return as u8],
     );
 }
 
 #[test]
 fn test_compile_simple_expression_with_sub() {
     test_compile(
-        vec![10.into(), 3.into(), "-".parse().unwrap()],
-        vec![0, 0, 0, 1, OpCode::Sub as u8],
+        vec![10.into(), 3.into(), "-".parse().unwrap(), TokenType::EOF],
+        vec![0, 0, 0, 1, OpCode::Sub as u8, OpCode::Return as u8],
     );
 }
 
 #[test]
 fn test_compile_simple_expression_with_mult() {
     test_compile(
-        vec![10.into(), 3.into(), "*".parse().unwrap()],
-        vec![0, 0, 0, 1, OpCode::Mult as u8],
+        vec![10.into(), 3.into(), "*".parse().unwrap(), TokenType::EOF],
+        vec![0, 0, 0, 1, OpCode::Mult as u8, OpCode::Return as u8],
     );
 }
 
 #[test]
 fn test_compile_string() {
     test_compile(
-        vec!["\"hello\"".parse().unwrap()],
-        vec![OpCode::GetConstant as u8, 0],
+        vec!["\"hello\"".parse().unwrap(), TokenType::EOF],
+        vec![OpCode::GetConstant as u8, 0, OpCode::Return as u8],
     );
 }
 
 #[test]
 fn test_compile_float() {
-    test_compile(vec![PI.into()], vec![OpCode::GetConstant as u8, 0]);
+    test_compile(
+        vec![PI.into(), TokenType::EOF],
+        vec![OpCode::GetConstant as u8, 0, OpCode::Return as u8],
+    );
 }
 
 #[test]
 fn test_compile_rational() {
     test_compile(
-        vec![TokenType::Rational(7, 9)],
-        vec![OpCode::GetConstant as u8, 0],
+        vec![TokenType::Rational(7, 9), TokenType::EOF],
+        vec![OpCode::GetConstant as u8, 0, OpCode::Return as u8],
     );
 }
 
 #[test]
 fn test_compile_boolean() {
     test_compile(
-        vec![TokenType::Boolean(true)],
-        vec![OpCode::GetConstant as u8, 0],
+        vec![TokenType::Boolean(true), TokenType::EOF],
+        vec![OpCode::GetConstant as u8, 0, OpCode::Return as u8],
     );
 }
 
@@ -98,6 +111,7 @@ fn test_compile_boolean_operators() {
         TokenType::Greater,
         TokenType::GreaterEqual,
         TokenType::Bang,
+        TokenType::EOF,
     ];
     let expected = vec![
         OpCode::Equal as u8,
@@ -110,27 +124,19 @@ fn test_compile_boolean_operators() {
         OpCode::Less as u8,
         OpCode::Not as u8,
         OpCode::Not as u8,
+        OpCode::Return as u8,
     ];
     test_compile(input, expected);
 }
 
 #[test]
+#[ignore = "implement vector"]
 fn test_compile_vector() {
-    let contents = vec![
-        Token {
-            token_type: 13.into(),
-            line_no: 1,
-            column: 1,
-            length: 1,
-        },
-        Token {
-            token_type: 42.into(),
-            line_no: 1,
-            column: 1,
-            length: 1,
-        },
-    ];
-    let input = vec![contents.into()];
-    let expected = vec![0, 0];
-    test_compile(input, expected);
+    let input = vec!["{", "}"]
+        .into_iter()
+        .map(Token::from_token_type)
+        .collect::<Result<Vec<_>>>()
+        .unwrap();
+    let expected = vec![0, 0, OpCode::Return as u8];
+    test_compile_tokens(input, expected);
 }

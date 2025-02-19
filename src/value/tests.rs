@@ -186,6 +186,13 @@ fn test_try_from_tokentype_string() {
 }
 
 #[test]
+fn test_try_from_tokentype_boolean() {
+    let result = Value::try_from(TokenType::Boolean(false));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Value::Boolean(false));
+}
+
+#[test]
 fn test_display_vector() {
     let value: Value = vec![Value::from(42)].into();
     assert_eq!("{ 42 }", format!("{}", value));

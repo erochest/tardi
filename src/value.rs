@@ -75,11 +75,6 @@ impl TryFrom<Token> for Value {
             TokenType::Float(f) => Ok(Value::Float(f)),
             TokenType::Rational(n, d) => Ok(Value::Rational(Rational64::new(n, d))),
             TokenType::String(s) => Ok(Value::String(s)),
-            TokenType::Vector(vs) => vs
-                .into_iter()
-                .map(Value::try_from)
-                .collect::<Result<Vec<_>>>()
-                .map(Value::Vector),
             TokenType::Boolean(b) => Ok(Value::Boolean(b)),
             _ => Err(Error::InvalidToken(format!("{:?}", token))),
         }
@@ -95,6 +90,7 @@ impl TryFrom<TokenType> for Value {
             TokenType::Float(number) => Ok(Value::Float(number)),
             TokenType::Rational(num, denom) => Ok(Value::Rational(Rational64::new(num, denom))),
             TokenType::String(string) => Ok(Value::String(string)),
+            TokenType::Boolean(b) => Ok(Value::Boolean(b)),
             _ => Err(Error::TokenTypeNotValue(value)),
         }
     }

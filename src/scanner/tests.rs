@@ -338,43 +338,8 @@ fn test_read_until() {
 }
 
 #[test]
-// TODO: This one's broken, and it's because the scanner is trying to build an AST.
 fn test_scan_vector() {
     let input = "4 { 5 6 { 7 8 } } 9";
-    let tokens = vec![
-        Token {
-            token_type: 7.into(),
-            line_no: 1,
-            column: 10,
-            length: 1,
-        },
-        Token {
-            token_type: 8.into(),
-            line_no: 1,
-            column: 12,
-            length: 1,
-        },
-    ];
-    let tokens = vec![
-        Token {
-            token_type: 5.into(),
-            line_no: 1,
-            column: 4,
-            length: 1,
-        },
-        Token {
-            token_type: 6.into(),
-            line_no: 1,
-            column: 6,
-            length: 1,
-        },
-        Token {
-            token_type: tokens.into(),
-            line_no: 1,
-            column: 1,
-            length: 6,
-        },
-    ];
     let expected = vec![
         TokenType::Integer(4),
         TokenType::OpenBrace,
@@ -413,4 +378,17 @@ fn test_function() {
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
     assert_eq!(token_types, expected_scan);
+}
+
+#[test]
+fn test_end_of_file() {
+    let input = "3 4 + 7 *";
+    let expected = vec![
+        TokenType::Integer(3),
+        TokenType::Integer(4),
+        TokenType::Plus,
+        TokenType::Integer(7),
+        TokenType::Star,
+        TokenType::EOF,
+    ];
 }

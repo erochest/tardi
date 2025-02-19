@@ -11,7 +11,6 @@ pub enum TokenType {
     Float(f64),
     Rational(i64, i64),
     String(String),
-    Vector(Vec<Token>),
     Boolean(bool),
     Word(String),
     Plus,
@@ -32,6 +31,7 @@ pub enum TokenType {
     Colon,
     Semicolon,
     LongDash,
+    EOF,
 }
 
 impl TokenType {
@@ -177,18 +177,27 @@ impl From<String> for TokenType {
     }
 }
 
-impl From<Vec<Token>> for TokenType {
-    fn from(value: Vec<Token>) -> Self {
-        TokenType::Vector(value)
-    }
-}
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub line_no: usize,
     pub column: usize,
     pub length: usize,
+}
+
+impl Token {
+    pub fn new(token_type: TokenType, line_no: usize, column: usize, length: usize) -> Self {
+        Self {
+            token_type,
+            line_no,
+            column,
+            length,
+        }
+    }
+
+    pub fn from_token_type(input: &str) -> Result<Self> {
+        Ok(Token::new(input.parse()?, 0, 0, 0))
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -420,6 +429,8 @@ pub fn scan(input: &str) -> Result<Vec<Token>> {
     while let Some(token) = scanner.next_token()? {
         tokens.push(token)
     }
+
+    // TODO: do i need to append an EOF token here?
 
     Ok(tokens)
 }

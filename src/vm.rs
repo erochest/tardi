@@ -76,6 +76,7 @@ impl VM {
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     self.stack.push(Value::Boolean(a > b));
                 }
+                OpCode::Return => break,
             }
 
             ip += 1;
