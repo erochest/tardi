@@ -306,7 +306,7 @@ fn test_scan_booleans() {
 fn test_scan_boolean_operators() {
     let input = "== != < > <= >= !";
     let expected = vec![
-        TokenType::Equal,
+        TokenType::EqualEqual,
         TokenType::BangEqual,
         TokenType::Less,
         TokenType::Greater,

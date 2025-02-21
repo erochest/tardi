@@ -3,120 +3,57 @@ use std::convert::TryFrom;
 use crate::chunk::Chunk;
 use crate::error::{Error, Result};
 use crate::op_code::OpCode;
-use crate::scanner::{Token, TokenType};
+use crate::scanner::{Scanner, Token, TokenType};
 use crate::value::Value;
 
 // TODO: This should probably take tokens: Vec<Result<ScanError, Token>>
-pub fn compile(tokens: Vec<Token>) -> Result<Chunk> {
-    let mut compiler = Compiler::new(tokens);
+pub fn compile(input: &str) -> Result<Chunk> {
+    let scanner = Scanner::from_string(input);
+    let mut compiler = Compiler::new(scanner);
 
     compiler.source_file()?;
 
     Ok(compiler.chunk)
-
-    // while current < tokens.len() {
-    //     let token = &tokens[current];
-    //     match &token.token_type {
-    //         TokenType::Integer(number) => {
-    //             let constant = chunk.add_constant(Value::Integer(*number));
-    //             chunk.push_op_code(OpCode::GetConstant, constant as u8);
-    //         }
-    //         TokenType::Float(number) => {
-    //             let constant = chunk.add_constant(Value::Float(*number));
-    //             chunk.push_op_code(OpCode::GetConstant, constant as u8);
-    //         }
-    //         TokenType::Rational(num, denom) => {
-    //             let constant = chunk.add_constant(Value::Rational(Rational64::new(*num, *denom)));
-    //             chunk.push_op_code(OpCode::GetConstant, constant as u8);
-    //         }
-    //         TokenType::Boolean(b) => {
-    //             let constant = chunk.add_constant(Value::Boolean(*b));
-    //             chunk.push_op_code(OpCode::GetConstant, constant as u8);
-    //         }
-    //         TokenType::String(string) => {
-    //             let constant = chunk.add_constant(Value::String(string.clone()));
-    //             chunk.push_op_code(OpCode::GetConstant, constant as u8);
-    //         }
-    //         TokenType::Plus => {
-    //             chunk.code.push(OpCode::Add as u8);
-    //         }
-    //         TokenType::Minus => {
-    //             chunk.code.push(OpCode::Sub as u8);
-    //         }
-    //         TokenType::Star => {
-    //             chunk.code.push(OpCode::Mult as u8);
-    //         }
-    //         TokenType::Slash => {
-    //             chunk.code.push(OpCode::Div as u8);
-    //         }
-    //         TokenType::Equal => chunk.code.push(OpCode::Equal as u8),
-    //         TokenType::BangEqual => {
-    //             chunk.code.push(OpCode::Equal as u8);
-    //             chunk.code.push(OpCode::Not as u8);
-    //         }
-    //         TokenType::Less => chunk.code.push(OpCode::Less as u8),
-    //         TokenType::Greater => chunk.code.push(OpCode::Greater as u8),
-    //         TokenType::LessEqual => {
-    //             chunk.code.push(OpCode::Greater as u8);
-    //             chunk.code.push(OpCode::Not as u8);
-    //         }
-    //         TokenType::GreaterEqual => {
-    //             chunk.code.push(OpCode::Less as u8);
-    //             chunk.code.push(OpCode::Not as u8);
-    //         }
-    //         TokenType::Bang => chunk.code.push(OpCode::Not as u8),
-    //         // TODO: These should probably be a compile time function to
-    //         // create a vector and a runtime function to get it and
-    //         // clone it.
-    //         TokenType::OpenBrace => unimplemented!(),
-    //         TokenType::CloseBrace => unimplemented!(),
-    //         TokenType::Word(_) => todo!(),
-    //         TokenType::OpenParen => todo!(),
-    //         TokenType::CloseParen => todo!(),
-    //         TokenType::Colon => todo!(),
-    //         TokenType::Semicolon => todo!(),
-    //         TokenType::LongDash => todo!(),
-    //     }
-    //     current += 1;
-    // }
-
-    // Ok(chunk)
 }
 
 #[derive(Debug)]
 struct Compiler {
-    index: usize,
+    scanner: Scanner,
     previous: Option<Token>,
     current: Option<Token>,
-    tokens: Vec<Token>,
     chunk: Chunk,
     had_error: bool,
     panic_mode: bool,
 }
 
 impl Compiler {
-    fn new(tokens: Vec<Token>) -> Self {
+    fn new(scanner: Scanner) -> Self {
         Self {
-            index: 0,
+            scanner,
             previous: None,
             current: None,
-            tokens,
             chunk: Chunk::new(),
             had_error: false,
             panic_mode: false,
         }
     }
 
+    /// Scan the next token, skipping over any error tokens.
+    ///
+    /// At the end of this,
+    /// - self.current is the new token
+    /// - self.previous is the token that was previously current
     fn advance(&mut self) {
         self.previous = self.current.take();
 
         loop {
-            // TODO: remove this clone
-            self.current = Some(self.tokens[self.index].clone());
-            self.index += 1;
-            break;
-
-            // TODO: report on errors and skip over them
+            match self.scanner.next() {
+                Ok(current) => {
+                    self.current = current;
+                    break;
+                }
+                Err(err) => todo!("error handling: {:?}", err),
+            }
         }
     }
 
@@ -124,10 +61,15 @@ impl Compiler {
         self.push_return();
     }
 
+    fn at_end(&self) -> bool {
+        self.current.is_none()
+    }
+
     fn source_file(&mut self) -> Result<()> {
-        while self.index < self.tokens.len() {
-            self.advance();
+        self.advance();
+        while !self.at_end() {
             self.declaration()?;
+            self.advance();
         }
 
         self.end();
@@ -140,6 +82,8 @@ impl Compiler {
 
     fn expression(&mut self) -> Result<()> {
         let current = self.current.as_ref().unwrap();
+        // TODO: this is too much. you shouldn't be able to define a function here.
+        // TODO: how to use `literal` here? and then the rest of it?
         match current.token_type {
             TokenType::Integer(_)
             | TokenType::Float(_)
@@ -155,7 +99,7 @@ impl Compiler {
             TokenType::Minus => self.push_op_code(OpCode::Sub),
             TokenType::Star => self.push_op_code(OpCode::Mult),
             TokenType::Slash => self.push_op_code(OpCode::Div),
-            TokenType::Equal => self.push_op_code(OpCode::Equal),
+            TokenType::EqualEqual => self.push_op_code(OpCode::Equal),
             TokenType::BangEqual => {
                 self.push_op_code(OpCode::Equal);
                 self.push_op_code(OpCode::Not);
@@ -171,8 +115,10 @@ impl Compiler {
                 self.push_op_code(OpCode::Not);
             }
             TokenType::Bang => self.push_op_code(OpCode::Not),
-            TokenType::OpenBrace => self.vector()?,
-            TokenType::CloseBrace => todo!(),
+            TokenType::OpenBrace => {
+                self.vector(true)?;
+            }
+            TokenType::CloseBrace => unimplemented!(),
             TokenType::OpenParen => todo!(),
             TokenType::CloseParen => todo!(),
             TokenType::Colon => self.function()?,
@@ -188,34 +134,86 @@ impl Compiler {
         todo!("function")
     }
 
-    fn vector(&mut self) -> Result<()> {
-        todo!("vector")
+    fn literal(&mut self, with_stack_ops: bool) -> Result<u8> {
+        let current = self.current.as_ref().unwrap();
+        match current.token_type {
+            TokenType::Integer(_)
+            | TokenType::Float(_)
+            | TokenType::Rational(_, _)
+            | TokenType::String(_)
+            | TokenType::Boolean(_) => {
+                // TODO: de-clone
+                let value = Value::try_from(current.token_type.clone())?;
+                let index = self.add_constant(value)?;
+                if with_stack_ops {
+                    self.push_op_code_arg(OpCode::GetConstant, index);
+                }
+                Ok(index)
+            }
+            TokenType::OpenBrace => self.vector(with_stack_ops),
+            _ => return Err(Error::PrecedenceError),
+        }
+    }
+
+    fn vector(&mut self, with_stack_ops: bool) -> Result<u8> {
+        let mut vector = Vec::new();
+
+        self.advance();
+        while !self.at_end()
+            && self
+                .current
+                .as_ref()
+                .map(|t| t.token_type != TokenType::CloseBrace)
+                .unwrap_or(false)
+        {
+            let index = self.literal(false)?;
+            let value = self.chunk.constants[index as usize].clone();
+            vector.push(value);
+
+            self.advance();
+        }
+
+        let vector = Value::Vector(vector);
+        let index = self.add_constant(vector)?;
+        if with_stack_ops {
+            self.push_op_code_arg(OpCode::GetConstant, index);
+        }
+
+        Ok(index)
     }
 
     // WRITING BYTECODE
 
+    /// This pushes a byet onto the chunk's code block.
     fn push_byte(&mut self, byte: u8) {
         self.chunk.code.push(byte);
     }
 
+    /// This pushes an op code onto the chunk's code black.
     fn push_op_code(&mut self, op_code: OpCode) {
-        self.chunk.code.push(op_code as u8);
+        self.push_byte(op_code as u8);
     }
 
+    /// This pushes an op code and it's argument onte the chunk's code block.
     fn push_op_code_arg(&mut self, op_code: OpCode, arg: u8) {
-        self.chunk.code.push(op_code as u8);
-        self.chunk.code.push(arg);
+        self.push_op_code(op_code);
+        self.push_byte(arg);
     }
 
+    /// This allocates a constant and emits the op code to push it onto the stack.
     fn push_constant(&mut self, constant: Value) -> Result<()> {
+        let index = self.add_constant(constant)?;
+        self.push_op_code_arg(OpCode::GetConstant, index);
+        Ok(())
+    }
+
+    /// This allocates a constant and returns its index in the constant table.
+    fn add_constant(&mut self, constant: Value) -> Result<u8> {
         if self.chunk.constants.len() >= u8::MAX as usize {
             return Err(Error::TooManyConstants);
         }
-
         let index = self.chunk.add_constant(constant);
-        self.push_op_code_arg(OpCode::GetConstant, index as u8);
-
-        Ok(())
+        Ok(index as u8)
     }
 
     fn push_return(&mut self) {
@@ -248,6 +246,12 @@ impl Compiler {
 
         self.had_error = true;
     }
+
+    // ACCESS UTILITIES
+
+    fn get_current_token_type(&self) -> Option<&TokenType> {
+        self.current.as_ref().map(|t| &t.token_type)
+    }
 }
 
 macro_rules! consume {
@@ -262,7 +266,7 @@ macro_rules! consume {
 
 impl Default for Compiler {
     fn default() -> Self {
-        Compiler::new(vec![])
+        Compiler::new(Scanner::from_string(""))
     }
 }
 

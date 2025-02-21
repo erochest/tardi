@@ -17,7 +17,7 @@ pub enum TokenType {
     Minus,
     Star,
     Slash,
-    Equal,
+    EqualEqual,
     BangEqual,
     Less,
     Greater,
@@ -112,7 +112,7 @@ impl FromStr for TokenType {
             "/" => return Ok(TokenType::Slash),
             "true" => return Ok(TokenType::Boolean(true)),
             "false" => return Ok(TokenType::Boolean(false)),
-            "==" => return Ok(TokenType::Equal),
+            "==" => return Ok(TokenType::EqualEqual),
             "!=" => return Ok(TokenType::BangEqual),
             "<" => return Ok(TokenType::Less),
             ">" => return Ok(TokenType::Greater),
@@ -225,7 +225,8 @@ impl Pos {
     }
 }
 
-struct Scanner {
+#[derive(Debug)]
+pub struct Scanner {
     input: Vec<char>,
     index: usize,
     line_no: usize,
@@ -234,11 +235,11 @@ struct Scanner {
 }
 
 impl Scanner {
-    fn from_string(input: &str) -> Self {
+    pub fn from_string(input: &str) -> Self {
         Scanner::new(input.chars().collect())
     }
 
-    fn new(input: Vec<char>) -> Self {
+    pub fn new(input: Vec<char>) -> Self {
         Scanner {
             input,
             index: 0,
@@ -270,7 +271,7 @@ impl Scanner {
         self.input.get(self.index - 1).copied()
     }
 
-    fn next(&mut self) -> Option<char> {
+    fn next_char(&mut self) -> Option<char> {
         let current = self.input.get(self.index).copied();
         self.index += 1;
 
@@ -286,7 +287,7 @@ impl Scanner {
         current
     }
 
-    fn next_token(&mut self) -> Result<Option<Token>> {
+    pub fn next(&mut self) -> Result<Option<Token>> {
         self.skip_whitespace();
         self.save_start();
 
@@ -294,8 +295,8 @@ impl Scanner {
             match current {
                 '"' => {
                     if self.input[self.index - 1..].starts_with(&['"', '"', '"']) {
-                        self.next();
-                        self.next();
+                        self.next_char();
+                        self.next_char();
                         self.long_string().map(Some)
                     } else {
                         self.string().map(Some)
@@ -309,7 +310,7 @@ impl Scanner {
     }
 
     fn skip_whitespace(&mut self) {
-        while let Some(current) = self.next() {
+        while let Some(current) = self.next_char() {
             if !current.is_whitespace() {
                 break;
             }
@@ -317,7 +318,7 @@ impl Scanner {
     }
 
     fn word(&mut self) -> Result<Option<Token>> {
-        while let Some(current) = self.next() {
+        while let Some(current) = self.next_char() {
             if current.is_whitespace() {
                 break;
             }
@@ -342,16 +343,16 @@ impl Scanner {
     fn string_until(&mut self, terminator: &[char]) -> Result<String> {
         let mut word = String::with_capacity(STRING_INITIALIZATION_CAPACITY);
 
-        while let Some(current) = self.next() {
+        while let Some(current) = self.next_char() {
             if self.input[self.index - 1..].starts_with(terminator) {
                 for _ in 0..(terminator.len() - 1) {
-                    self.next();
+                    self.next_char();
                 }
                 break;
             }
 
             if current == '\\' {
-                if let Some(next) = self.next() {
+                if let Some(next) = self.next_char() {
                     let char_to_push = match next {
                         'n' => '\n',
                         't' => '\t',
@@ -375,7 +376,7 @@ impl Scanner {
     }
 
     fn unicode(&mut self) -> Result<char> {
-        if let Some(bracket) = self.next() {
+        if let Some(bracket) = self.next_char() {
             if bracket != '{' {
                 return Err(Error::InvalidUnicodeChar);
             }
@@ -403,10 +404,10 @@ impl Scanner {
     }
 
     // TODO: make this available to programs for metaprogramming.
-    fn scan_until(&mut self, close: &TokenType) -> Result<Vec<Token>> {
+    pub fn scan_until(&mut self, close: &TokenType) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
 
-        while let Some(next) = self.next_token()? {
+        while let Some(next) = self.next()? {
             if &next.token_type == close {
                 break;
             } else {
@@ -426,11 +427,9 @@ pub fn scan(input: &str) -> Result<Vec<Token>> {
     let mut scanner = Scanner::from_string(input);
     let mut tokens = Vec::new();
 
-    while let Some(token) = scanner.next_token()? {
+    while let Some(token) = scanner.next()? {
         tokens.push(token)
     }
-
-    // TODO: do i need to append an EOF token here?
 
     Ok(tokens)
 }

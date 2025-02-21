@@ -22,6 +22,8 @@ pub enum Error {
     InvalidValueType(Value),
     EndOfFile(TokenType),
     TooManyConstants,
+    PrecedenceError,
+    InvalidState(String),
 }
 
 use Error::*;
@@ -42,6 +44,8 @@ impl fmt::Display for Error {
             InvalidValueType(value) => write!(f, "Invalid Value type for operation: {:?}", value),
             EndOfFile(token_type) => write!(f, "End of file. Expecting: {:?}", token_type),
             TooManyConstants => write!(f, "Too many constants defined. Max is {}", u8::MAX),
+            PrecedenceError => write!(f, "Wrong precedence for expression"),
+            InvalidState(message) => write!(f, "Invalid state: {}", message),
         }
     }
 }

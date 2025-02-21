@@ -13,10 +13,8 @@ use std::io::Write;
 use crate::vm::VM;
 
 pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
-    let script_text = std::fs::read_to_string(file_path)?;
-
-    let tokens = scanner::scan(&script_text)?;
-    let chunk = compile(tokens)?;
+    let input_text = std::fs::read_to_string(file_path)?;
+    let chunk = compile(&input_text)?;
     let mut vm = VM::new();
     vm.execute(chunk)?;
 
@@ -38,15 +36,15 @@ pub fn run_repl(print_stack: bool) -> Result<()> {
 
         let mut line = String::new();
         std::io::stdin().read_line(&mut line)?;
+        let line = line.trim();
 
-        if line.trim() == "/quit" {
+        if line == "/quit" || line == "/exit" {
             break;
         }
 
-        let tokens = scanner::scan(&line)?;
         // TODO: this may not have any memory between lines of input
         // of functions defined, etc. fix this.
-        let chunk = compile(tokens)?;
+        let chunk = compile(&line)?;
         vm.execute(chunk)?;
 
         if print_stack {
