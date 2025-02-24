@@ -100,6 +100,7 @@ impl TokenType {
 }
 
 // TODO: The smarter parts of this should probably go in the compiler.
+// TODO: can this fail? should this be an instance of From instead?
 impl FromStr for TokenType {
     type Err = Error;
 
@@ -232,6 +233,7 @@ pub struct Scanner {
     line_no: usize,
     column: usize,
     start: Option<Pos>,
+    past_eof: bool,
 }
 
 impl Scanner {
@@ -246,6 +248,7 @@ impl Scanner {
             line_no: 0,
             column: 0,
             start: None,
+            past_eof: false,
         }
     }
 
@@ -287,6 +290,8 @@ impl Scanner {
         current
     }
 
+    // TODO: does this ever return an error? remove `Result` from the return type
+    // TODO: if not, also implement `Iterator`
     pub fn next(&mut self) -> Result<Option<Token>> {
         self.skip_whitespace();
         self.save_start();
@@ -304,6 +309,9 @@ impl Scanner {
                 }
                 _ => self.word(),
             }
+        } else if !self.past_eof {
+            self.past_eof = true;
+            Ok(Some(self.token_from_start(TokenType::EOF)))
         } else {
             Ok(None)
         }
@@ -403,6 +411,9 @@ impl Scanner {
         Ok(token)
     }
 
+    /// Return all tokens up-to, but not including, the next occurrance of `close`.
+    /// If it reaches EOF before this, Returns `Error::EndOfFile(close)`.
+    //
     // TODO: make this available to programs for metaprogramming.
     pub fn scan_until(&mut self, close: &TokenType) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();

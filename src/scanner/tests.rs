@@ -15,14 +15,18 @@ fn test_scan_token_types(input: &str, expected: Vec<TokenType>) {
 #[test]
 fn test_scan_skips_whitespace() {
     let input = "\n1\n";
-    let expected = vec![TokenType::Integer(1)];
+    let expected = vec![TokenType::Integer(1), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_integer() {
     let input = "10 3";
-    let expected = vec![TokenType::Integer(10), TokenType::Integer(3)];
+    let expected = vec![
+        TokenType::Integer(10),
+        TokenType::Integer(3),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
@@ -33,6 +37,7 @@ fn test_scan_divide() {
         TokenType::Integer(10),
         TokenType::Integer(3),
         TokenType::Slash,
+        TokenType::EOF,
     ];
     test_scan_token_types(input, expected);
 }
@@ -44,6 +49,7 @@ fn test_scan_plus() {
         TokenType::Integer(10),
         TokenType::Integer(3),
         TokenType::Plus,
+        TokenType::EOF,
     ];
     test_scan_token_types(input, expected);
 }
@@ -55,6 +61,7 @@ fn test_scan_minus() {
         TokenType::Integer(10),
         TokenType::Integer(3),
         TokenType::Minus,
+        TokenType::EOF,
     ];
     test_scan_token_types(input, expected);
 }
@@ -73,46 +80,50 @@ fn test_scan_multiply() {
 #[test]
 fn test_scan_string_empty() {
     let input = "\"\"";
-    let expected = vec![TokenType::String(String::new())];
+    let expected = vec![TokenType::String(String::new()), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_string_single_word() {
     let input = "\"hello\"";
-    let expected = vec![TokenType::String("hello".to_string())];
+    let expected = vec![TokenType::String("hello".to_string()), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_string_with_escaped_whitespace() {
     let input = "\"\\tthis string contains\\nwhitespace\\n\\tlots of whitespace.\\r\\n\"";
-    let expected = vec![TokenType::String(
-        "\tthis string contains\nwhitespace\n\tlots of whitespace.\r\n".to_string(),
-    )];
+    let expected = vec![
+        TokenType::String(
+            "\tthis string contains\nwhitespace\n\tlots of whitespace.\r\n".to_string(),
+        ),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_string_with_escaped_quotes() {
     let input = "\"the alien said, \\\"greetings, earthling.\\\"\"";
-    let expected = vec![TokenType::String(
-        "the alien said, \"greetings, earthling.\"".to_string(),
-    )];
+    let expected = vec![
+        TokenType::String("the alien said, \"greetings, earthling.\"".to_string()),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_string_multiple_words() {
     let input = "\"hello world\"";
-    let expected = vec![TokenType::String("hello world".to_string())];
+    let expected = vec![TokenType::String("hello world".to_string()), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_string_with_emoji() {
     let input = "\"hello! \\u{1f642}\"";
-    let expected = vec![TokenType::String("hello! 🙂".to_string())];
+    let expected = vec![TokenType::String("hello! 🙂".to_string()), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
@@ -132,134 +143,173 @@ fn test_scan_multiline_string() {
         with \"quotes\" and \t tabs
         and \n newlines
     \"\"\"";
-    let expected = vec![TokenType::String(
-        "
+    let expected = vec![
+        TokenType::String(
+            "
         This is a
         multiline string
         with \"quotes\" and \t tabs
         and \n newlines
     "
-        .to_string(),
-    )];
+            .to_string(),
+        ),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_hexadecimal() {
     let input = "0x1A 0XFF";
-    let expected = vec![TokenType::Integer(26), TokenType::Integer(255)];
+    let expected = vec![
+        TokenType::Integer(26),
+        TokenType::Integer(255),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_octal() {
     let input = "0o123 0O77";
-    let expected = vec![TokenType::Integer(83), TokenType::Integer(63)];
+    let expected = vec![
+        TokenType::Integer(83),
+        TokenType::Integer(63),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_binary() {
     let input = "0b1010 0B1111";
-    let expected = vec![TokenType::Integer(10), TokenType::Integer(15)];
+    let expected = vec![
+        TokenType::Integer(10),
+        TokenType::Integer(15),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_negative_decimal() {
     let input = "-10 -3";
-    let expected = vec![TokenType::Integer(-10), TokenType::Integer(-3)];
+    let expected = vec![
+        TokenType::Integer(-10),
+        TokenType::Integer(-3),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_negative_hexadecimal() {
     let input = "-0x1A -0XFF";
-    let expected = vec![TokenType::Integer(-26), TokenType::Integer(-255)];
+    let expected = vec![
+        TokenType::Integer(-26),
+        TokenType::Integer(-255),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_negative_octal() {
     let input = "-0o123 -0O77";
-    let expected = vec![TokenType::Integer(-83), TokenType::Integer(-63)];
+    let expected = vec![
+        TokenType::Integer(-83),
+        TokenType::Integer(-63),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_negative_binary() {
     let input = "-0b1010 -0B1111";
-    let expected = vec![TokenType::Integer(-10), TokenType::Integer(-15)];
+    let expected = vec![
+        TokenType::Integer(-10),
+        TokenType::Integer(-15),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_float_trailing_dot() {
     let input = "1.";
-    let expected = vec![TokenType::Float(1.0)];
+    let expected = vec![TokenType::Float(1.0), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_float_with_digits() {
     let input = "1.23";
-    let expected = vec![TokenType::Float(1.23)];
+    let expected = vec![TokenType::Float(1.23), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_float_scientific_notation() {
     let input = "1e7";
-    let expected = vec![TokenType::Float(1e7)];
+    let expected = vec![TokenType::Float(1e7), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_float_scientific_notation_with_dot() {
     let input = "1.23e12";
-    let expected = vec![TokenType::Float(1.23e12)];
+    let expected = vec![TokenType::Float(1.23e12), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_float_scientific_notation_negative_exponent() {
     let input = "1e-7 1.23e-12";
-    let expected = vec![TokenType::Float(1e-7), TokenType::Float(1.23e-12)];
+    let expected = vec![
+        TokenType::Float(1e-7),
+        TokenType::Float(1.23e-12),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_float_scientific_notation_positive_exponent() {
     let input = "1e+7 1.23e+12";
-    let expected = vec![TokenType::Float(1e7), TokenType::Float(1.23e12)];
+    let expected = vec![
+        TokenType::Float(1e7),
+        TokenType::Float(1.23e12),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_float_scientific_notation_capital_e() {
     let input = "1E7";
-    let expected = vec![TokenType::Float(1e7)];
+    let expected = vec![TokenType::Float(1e7), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_rational_simple() {
     let input = "1/3";
-    let expected = vec![TokenType::Rational(1, 3)];
+    let expected = vec![TokenType::Rational(1, 3), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_rational_mixed_positive() {
     let input = "1+1/3";
-    let expected = vec![TokenType::Rational(4, 3)];
+    let expected = vec![TokenType::Rational(4, 3), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
 #[test]
 fn test_scan_rational_mixed_negative() {
     let input = "1-1/3";
-    let expected = vec![TokenType::Rational(2, 3)];
+    let expected = vec![TokenType::Rational(2, 3), TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
@@ -273,6 +323,7 @@ fn test_scan_rational_signed() {
         TokenType::Rational(1, 3),
         TokenType::Rational(4, 3),
         TokenType::Rational(-2, 3),
+        TokenType::EOF,
     ];
     test_scan_token_types(input, expected);
 }
@@ -298,7 +349,11 @@ fn test_from_string() {
 #[test]
 fn test_scan_booleans() {
     let input = "true false";
-    let expected = vec![TokenType::Boolean(true), TokenType::Boolean(false)];
+    let expected = vec![
+        TokenType::Boolean(true),
+        TokenType::Boolean(false),
+        TokenType::EOF,
+    ];
     test_scan_token_types(input, expected);
 }
 
@@ -313,6 +368,7 @@ fn test_scan_boolean_operators() {
         TokenType::LessEqual,
         TokenType::GreaterEqual,
         TokenType::Bang,
+        TokenType::EOF,
     ];
     test_scan_token_types(input, expected);
 }
@@ -351,6 +407,7 @@ fn test_scan_vector() {
         TokenType::CloseBrace,
         TokenType::CloseBrace,
         TokenType::Integer(9),
+        TokenType::EOF,
     ];
 
     test_scan_token_types(input, expected);
@@ -371,6 +428,7 @@ fn test_function() {
         TokenType::Integer(2),
         TokenType::Star,
         TokenType::Semicolon,
+        TokenType::EOF,
     ];
 
     let actual = scan(&input);
@@ -391,4 +449,10 @@ fn test_end_of_file() {
         TokenType::Star,
         TokenType::EOF,
     ];
+    let actual = scan(&input);
+
+    assert!(actual.is_ok());
+    let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
+    assert_eq!(expected, token_types);
+}
 }
