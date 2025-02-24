@@ -122,6 +122,11 @@ impl FromStr for TokenType {
             "!" => return Ok(TokenType::Bang),
             "{" => return Ok(TokenType::OpenBrace),
             "}" => return Ok(TokenType::CloseBrace),
+            "(" => return Ok(TokenType::OpenParen),
+            ")" => return Ok(TokenType::CloseParen),
+            ":" => return Ok(TokenType::Colon),
+            ";" => return Ok(TokenType::Semicolon),
+            "--" => return Ok(TokenType::LongDash),
             _ => {}
         }
 
@@ -156,7 +161,7 @@ impl FromStr for TokenType {
             return Ok(TokenType::String(word.trim_matches('"').to_string()));
         }
 
-        Err(Error::InvalidToken(word.to_string()))
+        Ok(TokenType::Word(word.to_string()))
     }
 }
 

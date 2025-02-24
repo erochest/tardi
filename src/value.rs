@@ -14,6 +14,7 @@ pub enum Value {
     Boolean(bool),
     String(String),
     Vector(Vec<Value>),
+    Function(Function),
 }
 
 impl fmt::Display for Value {
@@ -30,6 +31,9 @@ impl fmt::Display for Value {
                     write!(f, "{} ", item)?;
                 }
                 write!(f, "}}")
+            }
+            Value::Function(function) => {
+                write!(f, "{}", function)
             }
         }
     }
@@ -181,6 +185,38 @@ impl Mul for Value {
             (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a * b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
+    }
+}
+
+// TODO: need to keep the body here for printing later.
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub struct Function {
+    pub name: String,
+    pub type_declaration: TypeDeclaration,
+    pub ip: u8,
+}
+
+impl fmt::Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub struct TypeDeclaration {
+    inputs: Vec<String>,
+    outputs: Vec<String>,
+}
+
+impl TypeDeclaration {
+    pub fn new(inputs: Vec<String>, outputs: Vec<String>) -> Self {
+        Self { inputs, outputs }
+    }
+}
+
+impl fmt::Display for TypeDeclaration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }
 

@@ -2,18 +2,20 @@ use pretty_assertions::assert_eq;
 
 use super::*;
 
-fn test_compile(input: &str, expected: Vec<u8>) {
+fn test_compile(input: &str, expected: Vec<u8>) -> Chunk {
     let result = compile(input);
     assert!(result.is_ok(), "Result: {:?}", result);
     let chunk = result.unwrap();
     assert_eq!(chunk.code, expected);
+    chunk
 }
 
-fn test_compile_tokens(input: &str, expected: Vec<u8>) {
+fn test_compile_tokens(input: &str, expected: Vec<u8>) -> Chunk {
     let result = compile(input);
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "error: {:?}", result);
     let chunk = result.unwrap();
     assert_eq!(chunk.code, expected);
+    chunk
 }
 
 #[test]
@@ -127,4 +129,20 @@ fn test_compile_vector_nested() {
     }";
     let expected = vec![0, 9, OpCode::Return as u8];
     test_compile_tokens(input, expected);
+}
+
+#[test]
+fn test_compile_function() {
+    let input = ": double ( x -- y ) 2 * ;";
+    let expected = vec![
+        OpCode::Jump as u8,
+        6,
+        OpCode::GetConstant as u8,
+        0,
+        OpCode::Mult as u8,
+        OpCode::Return as u8,
+        OpCode::Return as u8,
+    ];
+    let chunk = test_compile_tokens(input, expected);
+    assert!(chunk.dictionary.contains_key("double"));
 }

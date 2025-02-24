@@ -1,10 +1,13 @@
+use ahash::{HashMap, HashMapExt};
+
 use crate::op_code::OpCode;
-use crate::value::Value;
+use crate::value::{Function, Value};
 
 #[derive(Debug, Default)]
 pub struct Chunk {
     pub constants: Vec<Value>,
     pub code: Vec<u8>,
+    pub dictionary: HashMap<String, Function>,
 }
 
 impl Chunk {
@@ -12,6 +15,7 @@ impl Chunk {
         Self {
             code: Vec::new(),
             constants: Vec::new(),
+            dictionary: HashMap::new(),
         }
     }
 

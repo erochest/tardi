@@ -4,7 +4,7 @@ use crate::chunk::Chunk;
 use crate::error::{Error, Result};
 use crate::op_code::OpCode;
 use crate::scanner::{Scanner, Token, TokenType};
-use crate::value::Value;
+use crate::value::{Function, TypeDeclaration, Value};
 
 // TODO: This should probably take tokens: Vec<Result<ScanError, Token>>
 pub fn compile(input: &str) -> Result<Chunk> {
@@ -14,6 +14,24 @@ pub fn compile(input: &str) -> Result<Chunk> {
     compiler.source_file()?;
 
     Ok(compiler.chunk)
+}
+
+/// consume!(compiler, TokenType::String(_), "error message")
+/// This consumes the next item and advances to the next token
+/// if it matches the pattern. Otherwise, it logs an error at
+/// the current token.
+macro_rules! consume {
+    ($compiler:expr, $token_type_match:pat, $message:expr) => {
+        if matches!(
+            $compiler.current.as_ref().unwrap().token_type,
+            $token_type_match
+        ) {
+            $compiler.advance();
+        } else {
+            $compiler.error_at_current($message);
+            return Err(Error::InvalidToken(format!("{:?}", $compiler.current)));
+        }
+    };
 }
 
 #[derive(Debug)]
@@ -131,7 +149,42 @@ impl Compiler {
     }
 
     fn function(&mut self) -> Result<()> {
-        todo!("function")
+        self.push_op_code_arg(OpCode::Jump, 0);
+        let ip = self.chunk.code.len() as u8;
+        let jump_from = ip - 1;
+
+        self.advance();
+        let name = if let TokenType::Word(ref name) = self.current.as_ref().unwrap().token_type {
+            name.clone()
+        } else {
+            return Err(Error::InvalidToken("missing function name".to_string()));
+        };
+        let type_declaration = self.type_declaration()?;
+
+        while !self.at_end()
+            && !matches!(
+                self.current.as_ref().map(|t| &t.token_type),
+                Some(&TokenType::Semicolon)
+            )
+        {
+            self.expression()?;
+            self.advance();
+        }
+
+        consume!(self, TokenType::Semicolon, "function must end in ;");
+        self.push_op_code(OpCode::Return);
+
+        let function = Function {
+            name: name.clone(),
+            type_declaration,
+            ip,
+        };
+        self.chunk.dictionary.insert(name.clone(), function);
+
+        // TODO: jump argument probably needs to be bigger than u8
+        self.chunk.code[jump_from as usize] = self.chunk.code.len() as u8;
+
+        Ok(())
     }
 
     fn literal(&mut self, with_stack_ops: bool) -> Result<u8> {
@@ -153,6 +206,58 @@ impl Compiler {
             TokenType::OpenBrace => self.vector(with_stack_ops),
             _ => return Err(Error::PrecedenceError),
         }
+    }
+
+    fn type_declaration(&mut self) -> Result<TypeDeclaration> {
+        self.advance();
+        consume!(
+            self,
+            TokenType::OpenParen,
+            "functions must have a type declaration"
+        );
+
+        let mut inputs = Vec::new();
+        let mut outputs = Vec::new();
+
+        while self
+            .current
+            .as_ref()
+            .map(|t| !matches!(t.token_type, TokenType::LongDash))
+            .unwrap_or(false)
+        {
+            if let Some(TokenType::Word(word)) = self.current.as_ref().map(|t| t.token_type.clone())
+            {
+                inputs.push(word);
+            } else {
+                return Err(Error::InvalidToken(format!(
+                    "{:?}",
+                    self.current.as_ref().unwrap()
+                )));
+            }
+            self.advance();
+        }
+        self.advance();
+        while self
+            .current
+            .as_ref()
+            .map(|t| !matches!(t.token_type, TokenType::CloseParen))
+            .unwrap_or(false)
+        {
+            if let Some(TokenType::Word(word)) = self.current.as_ref().map(|t| t.token_type.clone())
+            {
+                outputs.push(word);
+            } else {
+                return Err(Error::InvalidToken(format!(
+                    "{:?}",
+                    self.current.as_ref().unwrap()
+                )));
+            }
+            self.advance();
+        }
+        self.advance();
+
+        let type_declaration = TypeDeclaration::new(inputs, outputs);
+        Ok(type_declaration)
     }
 
     fn vector(&mut self, with_stack_ops: bool) -> Result<u8> {
@@ -186,6 +291,7 @@ impl Compiler {
 
     /// This pushes a byet onto the chunk's code block.
     fn push_byte(&mut self, byte: u8) {
+        log::trace!("push-byte {} -> {}", byte, self.chunk.code.len());
         self.chunk.code.push(byte);
     }
 
@@ -252,16 +358,6 @@ impl Compiler {
     fn get_current_token_type(&self) -> Option<&TokenType> {
         self.current.as_ref().map(|t| &t.token_type)
     }
-}
-
-macro_rules! consume {
-    ($compiler:expr, $token_type_match:tt, $message:expr) => {
-        if matches!($compiler.current, Some($token_type_match)) {
-            $compiler.advance();
-        } else {
-            $compiler.error_at_current($message);
-        }
-    };
 }
 
 impl Default for Compiler {

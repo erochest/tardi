@@ -73,6 +73,7 @@ fn test_scan_multiply() {
         TokenType::Integer(10),
         TokenType::Integer(3),
         TokenType::Star,
+        TokenType::EOF,
     ];
     test_scan_token_types(input, expected);
 }
@@ -414,7 +415,6 @@ fn test_scan_vector() {
 }
 
 #[test]
-#[ignore = "working out scanner"]
 fn test_function() {
     let input = ": double ( x -- x ) 2 * ;";
     let expected_scan = vec![
@@ -455,4 +455,19 @@ fn test_end_of_file() {
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
     assert_eq!(expected, token_types);
 }
+
+#[test]
+fn test_word() {
+    let input = "3 foo bar";
+    let expected = vec![
+        TokenType::Integer(3),
+        TokenType::Word("foo".to_string()),
+        TokenType::Word("bar".to_string()),
+        TokenType::EOF,
+    ];
+    let actual = scan(&input);
+
+    assert!(actual.is_ok());
+    let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
+    assert_eq!(expected, token_types);
 }
