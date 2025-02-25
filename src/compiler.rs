@@ -26,6 +26,7 @@ macro_rules! consume {
             $compiler.current.as_ref().unwrap().token_type,
             $token_type_match
         ) {
+            log::trace!("consumed {:?}", $compiler.current);
             $compiler.advance();
         } else {
             $compiler.error_at_current($message);
@@ -67,6 +68,7 @@ impl Compiler {
         loop {
             match self.scanner.next() {
                 Ok(current) => {
+                    log::trace!("advance -> {:?}", current);
                     self.current = current;
                     break;
                 }
@@ -95,10 +97,12 @@ impl Compiler {
     }
 
     fn declaration(&mut self) -> Result<()> {
+        log::trace!("declaration");
         self.expression()
     }
 
     fn expression(&mut self) -> Result<()> {
+        log::trace!("expression");
         let current = self.current.as_ref().unwrap();
         // TODO: this is too much. you shouldn't be able to define a function here.
         // TODO: how to use `literal` here? and then the rest of it?
@@ -112,7 +116,14 @@ impl Compiler {
                 let value = Value::try_from(current.token_type.clone())?;
                 self.push_constant(value)?;
             }
-            TokenType::Word(_) => todo!(),
+            TokenType::Word(ref word) => {
+                if let Some(function) = self.chunk.dictionary.get(word) {
+                    let jump_to = function.ip;
+                    self.push_op_code_arg(OpCode::MarkJump, jump_to);
+                } else {
+                    return Err(Error::UndefinedFunction(word.clone()));
+                }
+            }
             TokenType::Plus => self.push_op_code(OpCode::Add),
             TokenType::Minus => self.push_op_code(OpCode::Sub),
             TokenType::Star => self.push_op_code(OpCode::Mult),
@@ -149,6 +160,7 @@ impl Compiler {
     }
 
     fn function(&mut self) -> Result<()> {
+        log::trace!("function");
         self.push_op_code_arg(OpCode::Jump, 0);
         let ip = self.chunk.code.len() as u8;
         let jump_from = ip - 1;
@@ -171,7 +183,13 @@ impl Compiler {
             self.advance();
         }
 
-        consume!(self, TokenType::Semicolon, "function must end in ;");
+        if !matches!(
+            self.current.as_ref().map(|t| t.token_type.clone()),
+            Some(TokenType::Semicolon)
+        ) {
+            return Err(Error::InvalidToken("function must end in ;".to_string()));
+        }
+        // TODO: tail call recursion
         self.push_op_code(OpCode::Return);
 
         let function = Function {
@@ -188,6 +206,7 @@ impl Compiler {
     }
 
     fn literal(&mut self, with_stack_ops: bool) -> Result<u8> {
+        log::trace!("literal");
         let current = self.current.as_ref().unwrap();
         match current.token_type {
             TokenType::Integer(_)
@@ -209,6 +228,7 @@ impl Compiler {
     }
 
     fn type_declaration(&mut self) -> Result<TypeDeclaration> {
+        log::trace!("type_declaration");
         self.advance();
         consume!(
             self,
@@ -219,6 +239,7 @@ impl Compiler {
         let mut inputs = Vec::new();
         let mut outputs = Vec::new();
 
+        // TODO: DRY this up
         while self
             .current
             .as_ref()
@@ -261,6 +282,7 @@ impl Compiler {
     }
 
     fn vector(&mut self, with_stack_ops: bool) -> Result<u8> {
+        log::trace!("vector");
         let mut vector = Vec::new();
 
         self.advance();

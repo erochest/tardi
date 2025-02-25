@@ -6,7 +6,8 @@ use super::*;
 
 fn test_chunk(chunk: Chunk, expected: &[Value]) {
     let mut vm = VM::new();
-    vm.execute(chunk).unwrap();
+    let result = vm.execute(chunk);
+    assert!(result.is_ok(), "VM error on {:?}", result);
     assert_eq!(vm.stack, expected);
 }
 
@@ -113,4 +114,32 @@ fn test_execute_greater() {
         OpCode::Greater as u8,
     ];
     test_chunk(chunk, &[Value::Boolean(true), Value::Boolean(false)]);
+}
+
+#[test]
+fn test_execute_jump() {
+    env_logger::builder().init();
+    let mut chunk = Chunk::new();
+    // : double ( x -- y ) 2 * ;
+    // 4 double
+    // 5 double
+    chunk.constants = vec![Value::Integer(2), 4.into(), 5.into()];
+    chunk.code = vec![
+        OpCode::Jump as u8,
+        6,
+        OpCode::GetConstant as u8,
+        0,
+        OpCode::Mult as u8,
+        OpCode::Return as u8,
+        OpCode::GetConstant as u8,
+        1,
+        OpCode::MarkJump as u8,
+        2,
+        OpCode::GetConstant as u8,
+        2,
+        OpCode::MarkJump as u8,
+        2,
+        OpCode::Return as u8,
+    ];
+    test_chunk(chunk, &[Value::Integer(8), 10.into()]);
 }

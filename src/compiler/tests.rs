@@ -146,3 +146,64 @@ fn test_compile_function() {
     let chunk = test_compile_tokens(input, expected);
     assert!(chunk.dictionary.contains_key("double"));
 }
+
+#[test]
+fn test_compile_function_application() {
+    // env_logger::builder().init();
+    let input = "
+        : double ( x -- y ) 2 * ;
+        4 double
+        5 double
+        ";
+    let expected = vec![
+        OpCode::Jump as u8,
+        6,
+        OpCode::GetConstant as u8,
+        0,
+        OpCode::Mult as u8,
+        OpCode::Return as u8,
+        OpCode::GetConstant as u8,
+        1,
+        OpCode::MarkJump as u8,
+        2,
+        OpCode::GetConstant as u8,
+        2,
+        OpCode::MarkJump as u8,
+        2,
+        OpCode::Return as u8,
+    ];
+    let chunk = test_compile_tokens(input, expected);
+    assert!(chunk.dictionary.contains_key("double"));
+}
+
+// TODO: recursive functions
+#[test]
+#[ignore = "when we have conditionals and built-in stack words"]
+fn test_compile_recursive_functions() {
+    let input = "
+        : fib ( x -- y )
+            dup 0 ==
+            [ 1 ]
+            [ dup 1 - fib swap 2 - fib + ] if ;
+        4 fib
+    ";
+    let expected = vec![
+        OpCode::Jump as u8,
+        // fix this offset
+        0,
+        // What will go here for `dup`?
+        OpCode::GetConstant as u8,
+        0,
+        OpCode::Equal as u8,
+        // What will go here for the lambda?
+        // What will go here for the lambda?
+        // What will go here for `if`?
+        OpCode::Return as u8,
+        OpCode::GetConstant as u8,
+        4,
+        OpCode::MarkJump as u8,
+        2,
+        OpCode::Return as u8,
+    ];
+    test_compile_tokens(input, expected);
+}

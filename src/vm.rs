@@ -6,25 +6,32 @@ use std::convert::TryFrom;
 
 #[derive(Default)]
 pub struct VM {
+    ip: usize,
     stack: Vec<Value>,
+    call_stack: Vec<Return>,
 }
 
 impl VM {
     pub fn new() -> Self {
-        VM { stack: Vec::new() }
+        VM {
+            ip: 0,
+            stack: Vec::new(),
+            call_stack: Vec::new(),
+        }
     }
 
     pub fn execute(&mut self, chunk: Chunk) -> Result<()> {
-        let mut ip = 0;
+        while self.ip < chunk.code.len() {
+            let instruction = chunk.code[self.ip];
+            let op = OpCode::try_from(instruction)?;
 
-        while ip < chunk.code.len() {
-            let instruction = chunk.code[ip];
+            log::trace!("executing instruction: {:?}", op);
 
             // TODO: on errors, need to restore the stack
-            match OpCode::try_from(instruction)? {
+            match op {
                 OpCode::GetConstant => {
-                    ip += 1;
-                    let constant_idx = chunk.code[ip];
+                    self.ip += 1;
+                    let constant_idx = chunk.code[self.ip];
                     let constant = chunk.constants[constant_idx as usize].clone();
                     self.stack.push(constant);
                 }
@@ -76,11 +83,36 @@ impl VM {
                     let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
                     self.stack.push(Value::Boolean(a > b));
                 }
-                OpCode::Jump => todo!(),
-                OpCode::Return => break,
+                OpCode::Jump => {
+                    let ip = self.ip;
+                    self.ip += 1;
+                    self.ip = chunk.code[self.ip] as usize;
+                    log::trace!("JUMP@{}: moving to ip {}", ip, self.ip);
+                    continue;
+                }
+                OpCode::MarkJump => {
+                    let ip = self.ip;
+                    log::trace!("MARK-JUMP@{}: call-stack pushing ip {}", ip, self.ip + 2);
+                    self.call_stack.push(Return::new(self.ip + 2));
+                    self.ip += 1;
+                    self.ip = chunk.code[self.ip] as usize;
+                    log::trace!("MARK-JUMP@{}: moving to ip {}", ip, self.ip);
+                    continue;
+                }
+                OpCode::Return => {
+                    let ip = self.ip;
+                    if let Some(Return { ip: return_ip }) = self.call_stack.pop() {
+                        log::trace!("RETURN@{}: {}", ip, return_ip);
+                        self.ip = return_ip;
+                        continue;
+                    } else {
+                        log::trace!("RETURN@{}: ALL", ip);
+                        break;
+                    }
+                }
             }
 
-            ip += 1;
+            self.ip += 1;
         }
 
         Ok(())
@@ -90,6 +122,17 @@ impl VM {
         for value in &self.stack {
             eprintln!("{}", value);
         }
+    }
+}
+
+#[derive(Debug, Default)]
+struct Return {
+    ip: usize,
+}
+
+impl Return {
+    fn new(ip: usize) -> Self {
+        Self { ip }
     }
 }
 

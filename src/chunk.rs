@@ -10,6 +10,7 @@ pub struct Chunk {
     pub dictionary: HashMap<String, Function>,
 }
 
+// TODO: debugging output of a chunk
 impl Chunk {
     pub fn new() -> Self {
         Self {
