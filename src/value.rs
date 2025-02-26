@@ -192,6 +192,7 @@ impl Mul for Value {
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Function {
     pub name: String,
+    pub doc_comment: Option<String>,
     pub type_declaration: TypeDeclaration,
     pub ip: u8,
 }

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{iter::FromIterator, str::FromStr};
 
 use crate::error::{Error, Result};
 
@@ -31,6 +31,8 @@ pub enum TokenType {
     Colon,
     Semicolon,
     LongDash,
+    Comment,
+    DocComment(String),
     EOF,
 }
 
@@ -279,6 +281,10 @@ impl Scanner {
         self.input.get(self.index - 1).copied()
     }
 
+    fn look_ahead(&self) -> Option<char> {
+        self.input.get(self.index).copied()
+    }
+
     fn next_char(&mut self) -> Option<char> {
         let current = self.input.get(self.index).copied();
         self.index += 1;
@@ -312,6 +318,14 @@ impl Scanner {
                         self.string().map(Some)
                     }
                 }
+                '#' => {
+                    if self.look_ahead() == Some('#') {
+                        self.doc_comment()
+                    } else {
+                        self.comment()?;
+                        self.next()
+                    }
+                }
                 _ => self.word(),
             }
         } else if !self.past_eof {
@@ -328,6 +342,34 @@ impl Scanner {
                 break;
             }
         }
+    }
+
+    fn doc_comment(&mut self) -> Result<Option<Token>> {
+        self.next_char();
+        assert_eq!(Some('#'), self.current());
+        let mut buffer = Vec::new();
+
+        while let Some(current) = self.next_char() {
+            buffer.push(current);
+            if current == '\n' || current == '\r' {
+                break;
+            }
+        }
+
+        let token_type = TokenType::DocComment(String::from_iter(&buffer));
+        let token = self.token_from_start(token_type);
+
+        Ok(Some(token))
+    }
+
+    fn comment(&mut self) -> Result<Option<Token>> {
+        while let Some(current) = self.next_char() {
+            if current == '\n' || current == '\r' {
+                break;
+            }
+        }
+        let token = self.token_from_start(TokenType::Comment);
+        Ok(Some(token))
     }
 
     fn word(&mut self) -> Result<Option<Token>> {

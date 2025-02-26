@@ -475,11 +475,30 @@ fn test_word() {
 #[test]
 fn test_comment() {
     let input = "
-        ! comment
-        42 ! comment
-        ! comment
+        # comment
+        42 # comment
+        # comment
         ";
     let expected = vec![TokenType::Integer(42), TokenType::EOF];
+    let actual = scan(&input);
+
+    assert!(actual.is_ok());
+    let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
+    assert_eq!(expected, token_types);
+}
+
+#[test]
+fn test_doc_comment() {
+    let input = "
+        ## doc comment
+        42 # comment
+        # comment
+        ";
+    let expected = vec![
+        TokenType::DocComment(" doc comment\n".to_string()),
+        TokenType::Integer(42),
+        TokenType::EOF,
+    ];
     let actual = scan(&input);
 
     assert!(actual.is_ok());

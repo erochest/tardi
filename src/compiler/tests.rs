@@ -207,3 +207,43 @@ fn test_compile_recursive_functions() {
     ];
     test_compile_tokens(input, expected);
 }
+
+#[test]
+fn test_compile_comments() {
+    // env_logger::builder().init();
+    // Basically this is just `test_compile_function_application`
+    // with a comment added. The output of the compiler shouldn't
+    // change at all.
+    let input = "
+        # This is a comment.
+        ## This will be a documentation comment.
+        ## With two lines.
+        : double ( x -- y ) 2 * ;
+        4 double
+        5 double
+    ";
+    let expected = vec![
+        OpCode::Jump as u8,
+        6,
+        OpCode::GetConstant as u8,
+        0,
+        OpCode::Mult as u8,
+        OpCode::Return as u8,
+        OpCode::GetConstant as u8,
+        1,
+        OpCode::MarkJump as u8,
+        2,
+        OpCode::GetConstant as u8,
+        2,
+        OpCode::MarkJump as u8,
+        2,
+        OpCode::Return as u8,
+    ];
+    let chunk = test_compile_tokens(input, expected);
+    assert!(chunk.dictionary.contains_key("double"));
+    let function = &chunk.dictionary["double"];
+    assert_eq!(
+        function.doc_comment,
+        Some(" This will be a documentation comment.\n With two lines.\n".to_string())
+    );
+}

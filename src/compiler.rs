@@ -41,6 +41,7 @@ struct Compiler {
     previous: Option<Token>,
     current: Option<Token>,
     chunk: Chunk,
+    doc_comment: Option<String>,
     had_error: bool,
     panic_mode: bool,
 }
@@ -52,6 +53,7 @@ impl Compiler {
             previous: None,
             current: None,
             chunk: Chunk::new(),
+            doc_comment: None,
             had_error: false,
             panic_mode: false,
         }
@@ -104,6 +106,15 @@ impl Compiler {
     fn expression(&mut self) -> Result<()> {
         log::trace!("expression");
         let current = self.current.as_ref().unwrap();
+
+        if !matches!(
+            current.token_type,
+            TokenType::Colon | TokenType::DocComment(_)
+        ) && self.doc_comment.is_some()
+        {
+            self.doc_comment = None;
+        }
+
         // TODO: this is too much. you shouldn't be able to define a function here.
         // TODO: how to use `literal` here? and then the rest of it?
         match current.token_type {
@@ -153,6 +164,14 @@ impl Compiler {
             TokenType::Colon => self.function()?,
             TokenType::Semicolon => todo!(),
             TokenType::LongDash => todo!(),
+            TokenType::Comment => todo!(),
+            TokenType::DocComment(ref new_comment) => {
+                if let Some(comments) = self.doc_comment.as_mut() {
+                    comments.extend(new_comment.chars());
+                } else {
+                    self.doc_comment = Some(new_comment.clone());
+                }
+            }
             TokenType::EOF => {}
         }
 
@@ -164,6 +183,7 @@ impl Compiler {
         self.push_op_code_arg(OpCode::Jump, 0);
         let ip = self.chunk.code.len() as u8;
         let jump_from = ip - 1;
+        let doc_comment = self.doc_comment.take();
 
         self.advance();
         let name = if let TokenType::Word(ref name) = self.current.as_ref().unwrap().token_type {
@@ -194,6 +214,7 @@ impl Compiler {
 
         let function = Function {
             name: name.clone(),
+            doc_comment,
             type_declaration,
             ip,
         };
