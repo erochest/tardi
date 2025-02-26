@@ -21,6 +21,7 @@ impl VM {
     }
 
     pub fn execute(&mut self, chunk: Chunk) -> Result<()> {
+        self.ip = 0;
         while self.ip < chunk.code.len() {
             let instruction = chunk.code[self.ip];
             let op = OpCode::try_from(instruction)?;
