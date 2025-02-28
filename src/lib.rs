@@ -14,9 +14,11 @@ use crate::vm::VM;
 
 pub fn run_file(file_path: &std::path::Path, print_stack: bool) -> Result<()> {
     let input_text = std::fs::read_to_string(file_path)?;
-    let chunk = compile(&input_text)?;
+    let mut chunk = compile(&input_text)?;
+    log::trace!("chunk.constants = {:?}", chunk.constants);
+    log::trace!("chunk.code      = {:?}", chunk.code);
     let mut vm = VM::new();
-    vm.execute(chunk)?;
+    vm.execute(&mut chunk)?;
 
     if print_stack {
         vm.print_stack();
@@ -44,8 +46,8 @@ pub fn run_repl(print_stack: bool) -> Result<()> {
 
         // TODO: this may not have any memory between lines of input
         // of functions defined, etc. fix this.
-        let chunk = compile(&line)?;
-        vm.execute(chunk)?;
+        let mut chunk = compile(&line)?;
+        vm.execute(&mut chunk)?;
 
         if print_stack {
             vm.print_stack();

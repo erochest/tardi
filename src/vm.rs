@@ -6,9 +6,9 @@ use std::convert::TryFrom;
 
 #[derive(Default)]
 pub struct VM {
-    ip: usize,
-    stack: Vec<Value>,
-    call_stack: Vec<Return>,
+    pub ip: usize,
+    pub stack: Vec<Value>,
+    pub call_stack: Vec<Return>,
 }
 
 impl VM {
@@ -20,7 +20,7 @@ impl VM {
         }
     }
 
-    pub fn execute(&mut self, chunk: Chunk) -> Result<()> {
+    pub fn execute(&mut self, chunk: &mut Chunk) -> Result<()> {
         self.ip = 0;
         while self.ip < chunk.code.len() {
             let instruction = chunk.code[self.ip];
@@ -100,6 +100,13 @@ impl VM {
                     log::trace!("MARK-JUMP@{}: moving to ip {}", ip, self.ip);
                     continue;
                 }
+                OpCode::MarkCall => todo!(),
+                OpCode::CallTardiFn => {
+                    self.ip += 1;
+                    let index = chunk.code[self.ip] as usize;
+                    let tardi_fn = &mut chunk.builtins[index];
+                    tardi_fn.call(self)?;
+                }
                 OpCode::Return => {
                     let ip = self.ip;
                     if let Some(Return { ip: return_ip }) = self.call_stack.pop() {
@@ -127,12 +134,12 @@ impl VM {
 }
 
 #[derive(Debug, Default)]
-struct Return {
+pub struct Return {
     ip: usize,
 }
 
 impl Return {
-    fn new(ip: usize) -> Self {
+    pub fn new(ip: usize) -> Self {
         Self { ip }
     }
 }

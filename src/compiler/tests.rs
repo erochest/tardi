@@ -247,3 +247,33 @@ fn test_compile_comments() {
         Some(" This will be a documentation comment.\n With two lines.\n".to_string())
     );
 }
+
+#[test]
+fn test_compile_lambda() {
+    // env_logger::builder().init();
+    let input = "4 [ 2 * ] call";
+    let expected = vec![
+        OpCode::GetConstant as u8,
+        0,
+        OpCode::Jump as u8,
+        8,
+        OpCode::GetConstant as u8,
+        1,
+        OpCode::Mult as u8,
+        OpCode::Return as u8,
+        OpCode::GetConstant as u8,
+        2,
+        OpCode::CallTardiFn as u8,
+        0,
+        OpCode::Return as u8,
+    ];
+
+    let chunk = test_compile_tokens(input, expected);
+    let function = &chunk.constants[2];
+
+    assert!(matches!(function, Value::Lambda(_, _)));
+    if let Value::Lambda(repr, jump) = function {
+        assert_eq!(&"[ 2 * ]".to_string(), repr);
+        assert_eq!(&4, jump);
+    }
+}

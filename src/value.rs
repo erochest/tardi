@@ -15,6 +15,7 @@ pub enum Value {
     String(String),
     Vector(Vec<Value>),
     Function(Function),
+    Lambda(String, usize),
 }
 
 impl fmt::Display for Value {
@@ -35,6 +36,7 @@ impl fmt::Display for Value {
             Value::Function(function) => {
                 write!(f, "{}", function)
             }
+            Value::Lambda(_, _) => todo!(),
         }
     }
 }

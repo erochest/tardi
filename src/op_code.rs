@@ -16,6 +16,8 @@ pub enum OpCode {
     Greater,
     Jump,
     MarkJump,
+    MarkCall,
+    CallTardiFn,
     Return,
 }
 
@@ -35,7 +37,9 @@ impl TryFrom<u8> for OpCode {
             8 => Ok(OpCode::Greater),
             9 => Ok(OpCode::Jump),
             10 => Ok(OpCode::MarkJump),
-            11 => Ok(OpCode::Return),
+            11 => Ok(OpCode::MarkCall),
+            12 => Ok(OpCode::CallTardiFn),
+            13 => Ok(OpCode::Return),
             code => Err(Error::InvalidOpCode(code)),
         }
     }
@@ -58,7 +62,9 @@ mod tests {
         assert_eq!(OpCode::try_from(8).unwrap(), OpCode::Greater);
         assert_eq!(OpCode::try_from(9).unwrap(), OpCode::Jump);
         assert_eq!(OpCode::try_from(10).unwrap(), OpCode::MarkJump);
-        assert_eq!(OpCode::try_from(11).unwrap(), OpCode::Return);
+        assert_eq!(OpCode::try_from(11).unwrap(), OpCode::MarkCall);
+        assert_eq!(OpCode::try_from(12).unwrap(), OpCode::CallTardiFn);
+        assert_eq!(OpCode::try_from(13).unwrap(), OpCode::Return);
         assert!(matches!(
             OpCode::try_from(177),
             Err(Error::InvalidOpCode(177))

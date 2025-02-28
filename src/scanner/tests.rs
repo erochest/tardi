@@ -505,3 +505,26 @@ fn test_doc_comment() {
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
     assert_eq!(expected, token_types);
 }
+
+#[test]
+fn test_lambda() {
+    let input = " [ some words here ] [ 2 * ] ";
+    let expected = vec![
+        TokenType::OpenBracket,
+        TokenType::Word("some".to_string()),
+        TokenType::Word("words".to_string()),
+        TokenType::Word("here".to_string()),
+        TokenType::CloseBracket,
+        TokenType::OpenBracket,
+        2.into(),
+        TokenType::Star,
+        TokenType::CloseBracket,
+        TokenType::EOF,
+    ];
+
+    let actual = scan(&input);
+
+    assert!(actual.is_ok());
+    let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
+    assert_eq!(expected, token_types);
+}

@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
+use std::iter::FromIterator;
 
-use crate::chunk::Chunk;
+use crate::chunk::{Chunk, TardiFn};
 use crate::error::{Error, Result};
 use crate::op_code::OpCode;
 use crate::scanner::{Scanner, Token, TokenType};
@@ -128,11 +129,13 @@ impl Compiler {
                 self.push_constant(value)?;
             }
             TokenType::Word(ref word) => {
-                if let Some(function) = self.chunk.dictionary.get(word) {
+                if let Some(index) = self.chunk.builtin_index.get(word) {
+                    self.push_op_code_arg(OpCode::CallTardiFn, *index as u8);
+                } else if let Some(function) = self.chunk.dictionary.get(word) {
                     let jump_to = function.ip;
                     self.push_op_code_arg(OpCode::MarkJump, jump_to);
                 } else {
-                    return Err(Error::UndefinedFunction(word.clone()));
+                    return Err(Error::UndefinedWord(word.clone()));
                 }
             }
             TokenType::Plus => self.push_op_code(OpCode::Add),
@@ -161,6 +164,13 @@ impl Compiler {
             TokenType::CloseBrace => unimplemented!(),
             TokenType::OpenParen => todo!(),
             TokenType::CloseParen => todo!(),
+            // TODO: the issue with these is whether we want them defined
+            // inside the function where they're expressed or if there's some
+            // way to hoist them out of it.
+            // TODO: we also need to define builtins and especially `call` to
+            // make these work.
+            TokenType::OpenBracket => self.lambda()?,
+            TokenType::CloseBracket => todo!(),
             TokenType::Colon => self.function()?,
             TokenType::Semicolon => todo!(),
             TokenType::LongDash => todo!(),
@@ -180,6 +190,11 @@ impl Compiler {
 
     fn function(&mut self) -> Result<()> {
         log::trace!("function");
+        // TODO: this will only jump over this function, but if there are
+        // multiple words defined all together (likely) it'll need to jump over
+        // each separately. How to have it jump over all of them together to
+        // the next non-definition expression? Or have a separate code block
+        // for functions? That may help with lambdas.
         self.push_op_code_arg(OpCode::Jump, 0);
         let ip = self.chunk.code.len() as u8;
         let jump_from = ip - 1;
@@ -222,6 +237,54 @@ impl Compiler {
 
         // TODO: jump argument probably needs to be bigger than u8
         self.chunk.code[jump_from as usize] = self.chunk.code.len() as u8;
+
+        Ok(())
+    }
+
+    fn lambda(&mut self) -> Result<()> {
+        log::trace!("lambda");
+
+        self.push_op_code_arg(OpCode::Jump, 0);
+        let ip = self.chunk.code.len() as u8;
+        let jump_from = ip - 1;
+        let string_start_index = self.current.as_ref().map(|t| t.start).unwrap_or_default();
+        // TODO: get the start index in the input.
+
+        self.advance();
+        while !self.at_end()
+            && !matches!(
+                self.current.as_ref().map(|t| &t.token_type),
+                Some(&TokenType::CloseBracket)
+            )
+        {
+            self.expression()?;
+            self.advance();
+        }
+
+        if !matches!(
+            self.current.as_ref().map(|t| &t.token_type),
+            Some(&TokenType::CloseBracket)
+        ) {
+            return Err(Error::InvalidToken("lambda must end in ]".to_string()));
+        }
+        let string_end_index = self
+            .current
+            .as_ref()
+            .map(|t| t.start + t.length)
+            .unwrap_or_default();
+        let repr = String::from_iter(&self.scanner.input[string_start_index..string_end_index]);
+
+        self.push_op_code(OpCode::Return);
+
+        log::trace!(
+            "resetting ip jump address at {} => {}",
+            jump_from,
+            self.chunk.code.len()
+        );
+        self.chunk.code[jump_from as usize] = self.chunk.code.len() as u8;
+
+        let lambda = Value::Lambda(repr, ip as usize);
+        self.push_constant(lambda)?;
 
         Ok(())
     }

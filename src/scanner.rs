@@ -28,6 +28,8 @@ pub enum TokenType {
     CloseBrace,
     OpenParen,
     CloseParen,
+    OpenBracket,
+    CloseBracket,
     Colon,
     Semicolon,
     LongDash,
@@ -126,6 +128,8 @@ impl FromStr for TokenType {
             "}" => return Ok(TokenType::CloseBrace),
             "(" => return Ok(TokenType::OpenParen),
             ")" => return Ok(TokenType::CloseParen),
+            "[" => return Ok(TokenType::OpenBracket),
+            "]" => return Ok(TokenType::CloseBracket),
             ":" => return Ok(TokenType::Colon),
             ";" => return Ok(TokenType::Semicolon),
             "--" => return Ok(TokenType::LongDash),
@@ -188,15 +192,23 @@ impl From<String> for TokenType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
+    pub start: usize,
     pub line_no: usize,
     pub column: usize,
     pub length: usize,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, line_no: usize, column: usize, length: usize) -> Self {
+    pub fn new(
+        token_type: TokenType,
+        start: usize,
+        line_no: usize,
+        column: usize,
+        length: usize,
+    ) -> Self {
         Self {
             token_type,
+            start,
             line_no,
             column,
             length,
@@ -204,7 +216,7 @@ impl Token {
     }
 
     pub fn from_token_type(input: &str) -> Result<Self> {
-        Ok(Token::new(input.parse()?, 0, 0, 0))
+        Ok(Token::new(input.parse()?, 0, 0, 0, 0))
     }
 }
 
@@ -235,7 +247,7 @@ impl Pos {
 
 #[derive(Debug)]
 pub struct Scanner {
-    input: Vec<char>,
+    pub input: Vec<char>,
     index: usize,
     line_no: usize,
     column: usize,
@@ -271,6 +283,7 @@ impl Scanner {
         let pos = self.start.take().unwrap();
         Token {
             token_type,
+            start: pos.index,
             line_no: pos.line_no,
             column: pos.column,
             length: self.index - pos.index - 1,

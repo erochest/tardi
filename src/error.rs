@@ -24,7 +24,8 @@ pub enum Error {
     TooManyConstants,
     PrecedenceError,
     InvalidState(String),
-    UndefinedFunction(String),
+    UndefinedWord(String),
+    UncallableObject(Value),
 }
 
 use Error::*;
@@ -47,7 +48,8 @@ impl fmt::Display for Error {
             TooManyConstants => write!(f, "Too many constants defined. Max is {}", u8::MAX),
             PrecedenceError => write!(f, "Wrong precedence for expression"),
             InvalidState(message) => write!(f, "Invalid state: {}", message),
-            UndefinedFunction(name) => write!(f, "Unknown function: {}", name),
+            UndefinedWord(name) => write!(f, "Unknown function: {}", name),
+            UncallableObject(value) => write!(f, "Uncallable object: {:?}", value),
         }
     }
 }
