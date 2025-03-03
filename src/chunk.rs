@@ -1,4 +1,5 @@
-use std::fmt;
+use std::convert::TryFrom;
+use std::{fmt, result};
 
 use ahash::{HashMap, HashMapExt};
 
@@ -31,13 +32,151 @@ impl fmt::Debug for TardiFn {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Chunk {
     pub constants: Vec<Value>,
     pub code: Vec<u8>,
     pub builtins: Vec<TardiFn>,
     pub builtin_index: HashMap<String, usize>,
     pub dictionary: HashMap<String, Function>,
+}
+
+impl fmt::Debug for Chunk {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "CONSTANTS")?;
+        for (i, value) in self.constants.iter().enumerate() {
+            write!(f, " [{} => {:?}]", i, value)?;
+        }
+        writeln!(f)?;
+
+        writeln!(f, "DICTIONARY")?;
+        for (name, v) in self.dictionary.iter() {
+            write!(f, " [{} => {:?}]", name, v)?;
+        }
+        writeln!(f)?;
+
+        writeln!(f, "CODE")?;
+        let mut i = 0;
+        while i < self.code.len() {
+            let op = OpCode::try_from(self.code[i]);
+            match op {
+                Ok(op) => i = self.debug_op(f, &op, i)?,
+                Err(err) => writeln!(f, "ERROR: {:?}", err)?,
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Chunk {
+    pub fn debug_op<W: fmt::Write>(
+        &self,
+        w: &mut W,
+        op_code: &OpCode,
+        i: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut i = i;
+
+        i = match op_code {
+            OpCode::GetConstant => self.debug_op_code_constant(w, op_code, i)?,
+            OpCode::Add
+            | OpCode::Sub
+            | OpCode::Mult
+            | OpCode::Div
+            | OpCode::Not
+            | OpCode::Equal
+            | OpCode::Less
+            | OpCode::Greater => self.debug_op_code(w, op_code, i)?,
+            OpCode::Jump | OpCode::MarkJump | OpCode::MarkCall => {
+                self.debug_op_jump(w, op_code, i)?
+            }
+            OpCode::CallTardiFn => self.debug_op_builtin(w, op_code, i)?,
+            OpCode::Return => self.debug_op_code(w, op_code, i)?,
+        };
+
+        Ok(i + 1)
+    }
+
+    fn debug_op_code<W: fmt::Write>(
+        &self,
+        w: &mut W,
+        op_code: &OpCode,
+        i: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        self.write_ip_number(w, i)?;
+        self.write_op_code(w, op_code)?;
+        writeln!(w)?;
+        Ok(i)
+    }
+
+    fn debug_op_code_constant<W: fmt::Write>(
+        &self,
+        w: &mut W,
+        op_code: &OpCode,
+        i: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut i = i;
+
+        self.write_ip_number(w, i)?;
+        self.write_op_code(w, op_code)?;
+
+        i += 1;
+
+        let index = self.code[i];
+        let value = &self.constants[index as usize];
+        writeln!(w, " {:0>4}. {: <16}", index, value)?;
+
+        Ok(i)
+    }
+
+    fn debug_op_jump<W: fmt::Write>(
+        &self,
+        w: &mut W,
+        op_code: &OpCode,
+        i: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut i = i;
+
+        self.write_ip_number(w, i)?;
+        self.write_op_code(w, op_code)?;
+
+        i += 1;
+
+        let index = self.code[i];
+        writeln!(w, " {:0>4}", index)?;
+
+        Ok(i)
+    }
+
+    fn debug_op_builtin<W: fmt::Write>(
+        &self,
+        w: &mut W,
+        op_code: &OpCode,
+        i: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut i = i;
+
+        self.write_ip_number(w, i)?;
+        self.write_op_code(w, op_code)?;
+
+        i += 1;
+
+        let index = self.code[i];
+        let builtin = &self.builtins[index as usize];
+        writeln!(w, " {:0>4}. {}", index, builtin.name)?;
+
+        Ok(i)
+    }
+
+    fn write_ip_number<W: fmt::Write>(&self, w: &mut W, i: usize) -> fmt::Result {
+        write!(w, "{:0>4}. ", i)
+    }
+
+    fn write_op_code<W: fmt::Write>(&self, w: &mut W, op_code: &OpCode) -> fmt::Result {
+        let debugged = format!("{:?}", op_code);
+        write!(w, "{: <16} | ", debugged)
+    }
 }
 
 // TODO: debugging output of a chunk

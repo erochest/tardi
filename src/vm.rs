@@ -22,11 +22,18 @@ impl VM {
 
     pub fn execute(&mut self, chunk: &mut Chunk) -> Result<()> {
         self.ip = 0;
+
+        log::trace!("executing chunk {:?}", chunk);
+
         while self.ip < chunk.code.len() {
             let instruction = chunk.code[self.ip];
             let op = OpCode::try_from(instruction)?;
 
-            log::trace!("executing instruction: {:?}", op);
+            if log::log_enabled!(log::Level::Trace) {
+                let mut buffer = String::new();
+                chunk.debug_op(&mut buffer, &op, self.ip)?;
+                log::trace!("executing op: {}", buffer.trim_end());
+            }
 
             // TODO: on errors, need to restore the stack
             match op {

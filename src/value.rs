@@ -36,7 +36,7 @@ impl fmt::Display for Value {
             Value::Function(function) => {
                 write!(f, "{}", function)
             }
-            Value::Lambda(_, _) => todo!(),
+            Value::Lambda(repr, loc) => write!(f, "{}", repr),
         }
     }
 }
