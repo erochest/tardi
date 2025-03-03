@@ -207,10 +207,12 @@ fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
     let mut builtins = Vec::new();
     let mut index = HashMap::new();
 
-    let name = "call".to_string();
-    let tardi_fn = TardiFn {
-        name: name.clone(),
-        function: Box::new(|vm: &mut VM| {
+    // TODO: can I create a macro to DRY this up even more?
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "call",
+        Box::new(|vm: &mut VM| {
             let top = vm.stack.pop().ok_or(Error::StackUnderflow)?;
             if let Value::Lambda(_, ip) = top {
                 vm.call_stack.push(Return::new(vm.ip + 1));
@@ -220,38 +222,104 @@ fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
             }
             Ok(())
         }),
-    };
-    index.insert(name.clone(), builtins.len());
-    builtins.push(tardi_fn);
+    );
+
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "drop",
+        Box::new(|vm: &mut VM| {
+            vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            Ok(())
+        }),
+    );
+
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "dup",
+        Box::new(|vm: &mut VM| {
+            // TODO: need to wrap values on the stack in Rc<RefCell<_>>
+            let top = vm.stack.last().ok_or(Error::StackUnderflow)?;
+            vm.stack.push(top.clone());
+            Ok(())
+        }),
+    );
+
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "nip",
+        Box::new(|vm: &mut VM| {
+            let top = vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            vm.stack.push(top.clone());
+            Ok(())
+        }),
+    );
+
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "over",
+        Box::new(|vm: &mut VM| {
+            let index = vm.stack.len();
+            if index >= 2 {
+                let item = &vm.stack[index - 2];
+                vm.stack.push(item.clone());
+            } else {
+                return Err(Error::StackUnderflow);
+            }
+            Ok(())
+        }),
+    );
+
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "rot",
+        Box::new(|vm: &mut VM| {
+            let index = vm.stack.len();
+            if index >= 3 {
+                let item = vm.stack.remove(index - 3);
+                vm.stack.push(item);
+            } else {
+                return Err(Error::StackUnderflow);
+            }
+            Ok(())
+        }),
+    );
+
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "swap",
+        Box::new(|vm: &mut VM| {
+            let b = vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            let a = vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            vm.stack.push(b);
+            vm.stack.push(a);
+            Ok(())
+        }),
+    );
 
     (builtins, index)
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::op_code::OpCode;
-
-    use super::*;
-
-    #[test]
-    fn test_add_constant() {
-        let mut chunk = Chunk::new();
-        let constant = Value::Integer(10);
-        let index = chunk.add_constant(constant.clone());
-        assert_eq!(index, 0);
-        assert_eq!(chunk.constants.len(), 1);
-        assert_eq!(chunk.constants[0], constant);
-    }
-
-    #[test]
-    fn test_push_opcode() {
-        let mut chunk = Chunk::new();
-        let constant = Value::Integer(10);
-        let index = chunk.add_constant(constant.clone());
-
-        chunk.push_op_code(OpCode::GetConstant, index as u8);
-
-        assert_eq!(chunk.code.len(), 2);
-        assert_eq!(chunk.code, vec![0, 0]);
-    }
+fn insert_builtin(
+    builtins: &mut Vec<TardiFn>,
+    index: &mut HashMap<String, usize>,
+    name: &str,
+    tardi_fn: Box<dyn FnMut(&mut VM) -> Result<()>>,
+) {
+    let name = name.to_string();
+    let tardi_fn = TardiFn {
+        name: name.clone(),
+        function: tardi_fn,
+    };
+    index.insert(name.clone(), builtins.len());
+    builtins.push(tardi_fn);
 }
+
+#[cfg(test)]
+mod tests;
