@@ -200,3 +200,111 @@ fn test_execute_call_stack_ops() {
     ];
     test_chunk(&mut chunk, &[8i64.into(), 8i64.into()]);
 }
+
+struct OpTest {
+    word: String,
+    constants: Option<Vec<Value>>,
+    setup: Option<Vec<u8>>,
+    teardown: Option<Vec<u8>>,
+    expected: Option<Vec<Value>>,
+}
+
+impl OpTest {
+    fn word(word: &str) -> Self {
+        let word = word.to_string();
+        OpTest {
+            word,
+            constants: None,
+            setup: None,
+            teardown: None,
+            expected: None,
+        }
+    }
+
+    fn constants(mut self, constants: &[Value]) -> Self {
+        self.constants = Some(Vec::from(constants));
+        self
+    }
+
+    fn setup(mut self, setup: &[u8]) -> Self {
+        self.setup = Some(Vec::from(setup));
+        self
+    }
+
+    fn teardown(mut self, teardown: &[u8]) -> Self {
+        self.teardown = Some(Vec::from(teardown));
+        self
+    }
+
+    fn expected(mut self, expected: &[Value]) -> Self {
+        self.expected = Some(Vec::from(expected));
+        self
+    }
+
+    fn test(self) {
+        let mut chunk = Chunk::new();
+        let word_index = chunk.builtin_index[&self.word];
+
+        chunk.constants = vec![Value::Integer(2), 8i64.into(), 16i64.into()];
+        if let Some(constants) = self.constants {
+            chunk.constants.extend(constants);
+        }
+
+        chunk.code = vec![
+            OpCode::GetConstant as u8,
+            0,
+            OpCode::GetConstant as u8,
+            1,
+            OpCode::GetConstant as u8,
+            2,
+        ];
+        if let Some(setup) = self.setup {
+            chunk.code.extend(setup);
+        }
+        chunk
+            .code
+            .extend_from_slice(&[OpCode::CallTardiFn as u8, word_index as u8]);
+        if let Some(teardown) = self.teardown {
+            chunk.code.extend(teardown);
+        }
+        chunk.code.extend_from_slice(&[OpCode::Return as u8]);
+
+        let expected = self.expected.unwrap_or_default();
+        test_chunk(&mut chunk, &expected);
+    }
+}
+
+#[test]
+fn test_op_words() {
+    // env_logger::builder().init();
+    let chunk = Chunk::new();
+
+    let drop = OpCode::Drop as u8;
+    let add = OpCode::Add as u8;
+    let get_constant = OpCode::GetConstant as u8;
+    let jump = OpCode::Jump as u8;
+
+    OpTest::word("-get-constant-")
+        .setup(&[drop, drop])
+        .expected(&[16i64.into()])
+        .test();
+
+    OpTest::word("-jump-")
+        .setup(&[jump, 10, add, OpCode::Return as u8, get_constant, 1])
+        .expected(&[2i64.into(), 24i64.into()])
+        .test();
+
+    OpTest::word("-mark-jump-")
+        .setup(&[jump, 10, add, OpCode::Return as u8, get_constant, 1])
+        .teardown(&[add])
+        .expected(&[26i64.into()])
+        .test();
+
+    let pop_target = chunk.builtin_index["pop"];
+    OpTest::word("-call-tardi-fn-")
+        .constants(&[pop_target.into()])
+        .setup(&[get_constant, 3])
+        .teardown(&[add])
+        .expected(&[10i64.into()])
+        .test();
+}

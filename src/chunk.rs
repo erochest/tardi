@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::convert::TryFrom;
+use std::rc::Rc;
 use std::{fmt, result};
 
 use ahash::{HashMap, HashMapExt};
@@ -9,21 +11,26 @@ use crate::op_code::OpCode;
 use crate::value::{Function, Value};
 use crate::vm::VM;
 
+#[derive(Clone)]
 pub struct TardiFn {
     pub name: String,
-    pub function: Box<dyn FnMut(&mut VM) -> Result<()>>,
+    pub function: Rc<RefCell<dyn FnMut(&mut VM, &mut Chunk) -> Result<()>>>,
 }
 
 impl TardiFn {
-    pub fn new(name: &str, function: Box<dyn FnMut(&mut VM) -> Result<()>>) -> Self {
+    pub fn new(
+        name: &str,
+        function: Rc<RefCell<dyn FnMut(&mut VM, &mut Chunk) -> Result<()>>>,
+    ) -> Self {
         TardiFn {
             name: name.to_string(),
             function,
         }
     }
 
-    pub fn call(&mut self, vm: &mut VM) -> Result<()> {
-        (*self.function)(vm)
+    pub fn call(&mut self, vm: &mut VM, chunk: &mut Chunk) -> Result<()> {
+        let mut function = self.function.borrow_mut();
+        function(vm, chunk)
     }
 }
 
@@ -91,10 +98,10 @@ impl Chunk {
             | OpCode::Greater
             | OpCode::ToCallStack
             | OpCode::FromCallStack
-            | OpCode::CopyCallStack => self.debug_op_code(w, op_code, i)?,
-            OpCode::Jump | OpCode::MarkJump | OpCode::MarkCall => {
-                self.debug_op_jump(w, op_code, i)?
-            }
+            | OpCode::CopyCallStack
+            | OpCode::Drop
+            | OpCode::Swap => self.debug_op_code(w, op_code, i)?,
+            OpCode::Jump | OpCode::MarkJump => self.debug_op_jump(w, op_code, i)?,
             OpCode::CallTardiFn => self.debug_op_builtin(w, op_code, i)?,
             OpCode::Return => self.debug_op_code(w, op_code, i)?,
         };

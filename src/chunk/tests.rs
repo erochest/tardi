@@ -25,13 +25,20 @@ fn test_push_opcode() {
 }
 
 #[test]
-fn test_define_stack_ops() {
+fn test_define_stack_words() {
     let chunk = Chunk::new();
-    assert!(chunk.builtin_index.contains_key("drop"));
     assert!(chunk.builtin_index.contains_key("dup"));
     assert!(chunk.builtin_index.contains_key("nip"));
     assert!(chunk.builtin_index.contains_key("over"));
     assert!(chunk.builtin_index.contains_key("pop"));
     assert!(chunk.builtin_index.contains_key("rot"));
-    assert!(chunk.builtin_index.contains_key("swap"));
+}
+
+#[test]
+fn test_define_op_code_words() {
+    let chunk = Chunk::new();
+    assert!(chunk.builtin_index.contains_key("-get-constant-"));
+    assert!(chunk.builtin_index.contains_key("-jump-"));
+    assert!(chunk.builtin_index.contains_key("-mark-jump-"));
+    assert!(chunk.builtin_index.contains_key("-call-tardi-fn-"));
 }

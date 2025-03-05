@@ -27,6 +27,7 @@ pub enum Error {
     InvalidState(String),
     UndefinedWord(String),
     UncallableObject(Value),
+    InvalidOpCodeName(String),
 }
 
 use Error::*;
@@ -52,6 +53,7 @@ impl fmt::Display for Error {
             InvalidState(message) => write!(f, "Invalid state: {}", message),
             UndefinedWord(name) => write!(f, "Unknown function: {}", name),
             UncallableObject(value) => write!(f, "Uncallable object: {:?}", value),
+            InvalidOpCodeName(name) => write!(f, "Invalide op code name: {:?}", name),
         }
     }
 }

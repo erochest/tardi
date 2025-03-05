@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::iter::FromIterator;
 
 use crate::chunk::{Chunk, TardiFn};
@@ -129,7 +129,9 @@ impl Compiler {
                 self.push_constant(value)?;
             }
             TokenType::Word(ref word) => {
-                if let Some(index) = self.chunk.builtin_index.get(word) {
+                if let Ok(op) = OpCode::try_from(&word[..]) {
+                    self.push_op_code(op);
+                } else if let Some(index) = self.chunk.builtin_index.get(word) {
                     self.push_op_code_arg(OpCode::CallTardiFn, *index as u8);
                 } else if let Some(function) = self.chunk.dictionary.get(word) {
                     let jump_to = function.ip;

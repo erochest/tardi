@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 type SharedValue = Rc<RefCell<Value>>;
 
+#[macro_export]
 macro_rules! binary_op {
     ($vm:expr, $op:tt) => {
         {
@@ -122,12 +123,11 @@ impl VM {
                     log::trace!("MARK-JUMP@{}: moving to ip {}", ip, self.ip);
                     continue;
                 }
-                OpCode::MarkCall => todo!(),
                 OpCode::CallTardiFn => {
                     self.ip += 1;
                     let index = chunk.code[self.ip] as usize;
-                    let tardi_fn = &mut chunk.builtins[index];
-                    tardi_fn.call(self)?;
+                    let mut tardi_fn = chunk.builtins[index].clone();
+                    tardi_fn.call(self, chunk)?;
                 }
                 OpCode::ToCallStack => {
                     let item = pop_unwrap!(self.stack);
@@ -140,6 +140,15 @@ impl VM {
                 OpCode::CopyCallStack => {
                     let item = self.call_stack.last().ok_or(Error::StackUnderflow)?;
                     self.stack.push(item.clone());
+                }
+                OpCode::Drop => {
+                    let _ = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                }
+                OpCode::Swap => {
+                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(b);
+                    self.stack.push(a);
                 }
                 OpCode::Return => {
                     let ip = self.ip;
