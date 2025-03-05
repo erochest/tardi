@@ -6,7 +6,7 @@ use ahash::{HashMap, HashMapExt};
 use crate::error::{Error, Result};
 use crate::op_code::OpCode;
 use crate::value::{Function, Value};
-use crate::vm::{Return, VM};
+use crate::vm::VM;
 
 pub struct TardiFn {
     pub name: String,
@@ -215,7 +215,7 @@ fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
         Box::new(|vm: &mut VM| {
             let top = vm.stack.pop().ok_or(Error::StackUnderflow)?;
             if let Value::Lambda(_, ip) = top {
-                vm.call_stack.push(Return::new(vm.ip + 1));
+                vm.call_stack.push(Value::from(vm.ip + 1));
                 vm.ip = ip - 1;
             } else {
                 return Err(Error::UncallableObject(top));

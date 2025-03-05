@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 pub struct VM {
     pub ip: usize,
     pub stack: Vec<Value>,
-    pub call_stack: Vec<Return>,
+    pub call_stack: Vec<Value>,
 }
 
 impl VM {
@@ -101,7 +101,7 @@ impl VM {
                 OpCode::MarkJump => {
                     let ip = self.ip;
                     log::trace!("MARK-JUMP@{}: call-stack pushing ip {}", ip, self.ip + 2);
-                    self.call_stack.push(Return::new(self.ip + 2));
+                    self.call_stack.push(Value::from(self.ip + 2));
                     self.ip += 1;
                     self.ip = chunk.code[self.ip] as usize;
                     log::trace!("MARK-JUMP@{}: moving to ip {}", ip, self.ip);
@@ -116,7 +116,7 @@ impl VM {
                 }
                 OpCode::Return => {
                     let ip = self.ip;
-                    if let Some(Return { ip: return_ip }) = self.call_stack.pop() {
+                    if let Some(Value::Address(return_ip)) = self.call_stack.pop() {
                         log::trace!("RETURN@{}: {}", ip, return_ip);
                         self.ip = return_ip;
                         continue;
@@ -137,17 +137,6 @@ impl VM {
         for value in &self.stack {
             eprintln!("{}", value);
         }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct Return {
-    ip: usize,
-}
-
-impl Return {
-    pub fn new(ip: usize) -> Self {
-        Self { ip }
     }
 }
 

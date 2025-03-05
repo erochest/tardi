@@ -16,6 +16,7 @@ pub enum Value {
     Vector(Vec<Value>),
     Function(Function),
     Lambda(String, usize),
+    Address(usize),
 }
 
 impl fmt::Display for Value {
@@ -37,6 +38,7 @@ impl fmt::Display for Value {
                 write!(f, "{}", function)
             }
             Value::Lambda(repr, loc) => write!(f, "{}", repr),
+            Value::Address(addr) => write!(f, "<@{}>", addr),
         }
     }
 }
@@ -50,6 +52,12 @@ impl From<i64> for Value {
 impl From<f64> for Value {
     fn from(value: f64) -> Self {
         Value::Float(value)
+    }
+}
+
+impl From<usize> for Value {
+    fn from(value: usize) -> Self {
+        Value::Address(value)
     }
 }
 

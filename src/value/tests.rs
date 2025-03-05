@@ -158,6 +158,12 @@ fn test_from_string() {
 }
 
 #[test]
+fn test_from_usize() {
+    let result = Value::from(74usize);
+    assert_eq!(result, Value::Address(74));
+}
+
+#[test]
 fn test_try_from_tokentype_integer() {
     let result = Value::try_from(TokenType::Integer(64));
     assert!(result.is_ok());
@@ -194,19 +200,19 @@ fn test_try_from_tokentype_boolean() {
 
 #[test]
 fn test_display_vector() {
-    let value: Value = vec![Value::from(42)].into();
+    let value: Value = vec![Value::from(42i64)].into();
     assert_eq!("{ 42 }", format!("{}", value));
 }
 
 #[test]
 #[ignore = "value sharing"]
 fn test_add_vectors() {
-    let a: Value = vec![Value::from(2)].into();
-    let b: Value = vec![Value::from(3)].into();
+    let a: Value = vec![Value::from(2i64)].into();
+    let b: Value = vec![Value::from(3i64)].into();
 
     let c = a + b;
 
     assert!(c.is_ok());
     let c = c.unwrap();
-    assert_eq!(Value::from(vec![Value::from(2), Value::from(3)]), c);
+    assert_eq!(Value::from(vec![Value::from(2i64), Value::from(3i64)]), c);
 }

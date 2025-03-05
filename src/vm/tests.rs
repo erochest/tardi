@@ -123,7 +123,7 @@ fn test_execute_jump() {
     // : double ( x -- y ) 2 * ;
     // 4 double
     // 5 double
-    chunk.constants = vec![Value::Integer(2), 4.into(), 5.into()];
+    chunk.constants = vec![Value::Integer(2), 4i64.into(), 5i64.into()];
     chunk.code = vec![
         OpCode::Jump as u8,
         6,
@@ -141,7 +141,7 @@ fn test_execute_jump() {
         2,
         OpCode::Return as u8,
     ];
-    test_chunk(&mut chunk, &[Value::Integer(8), 10.into()]);
+    test_chunk(&mut chunk, &[Value::Integer(8), 10i64.into()]);
 }
 
 #[test]
@@ -151,7 +151,7 @@ fn test_execute_lambda_call() {
     // let input = "4 [ 2 * ] call";
     chunk.constants = vec![
         Value::Integer(4),
-        2.into(),
+        2i64.into(),
         Value::Lambda("[ 2 * ]".to_string(), 4),
     ];
     chunk.code = vec![
@@ -169,5 +169,5 @@ fn test_execute_lambda_call() {
         0,
         OpCode::Return as u8,
     ];
-    test_chunk(&mut chunk, &[8.into()]);
+    test_chunk(&mut chunk, &[8i64.into()]);
 }
