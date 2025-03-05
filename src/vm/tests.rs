@@ -146,7 +146,7 @@ fn test_execute_jump() {
 
 #[test]
 fn test_execute_lambda_call() {
-    env_logger::builder().init();
+    // env_logger::builder().init();
     let mut chunk = Chunk::new();
     // let input = "4 [ 2 * ] call";
     chunk.constants = vec![
@@ -170,4 +170,24 @@ fn test_execute_lambda_call() {
         OpCode::Return as u8,
     ];
     test_chunk(&mut chunk, &[8i64.into()]);
+}
+
+#[test]
+fn test_execute_call_stack_ops() {
+    let mut chunk = Chunk::new();
+    let pop_index = chunk.builtin_index["pop"];
+    chunk.constants = vec![Value::Integer(4), 8i64.into(), 16i64.into()];
+    chunk.code = vec![
+        OpCode::GetConstant as u8,
+        0,
+        OpCode::GetConstant as u8,
+        1,
+        OpCode::ToCallStack as u8,
+        OpCode::CallTardiFn as u8,
+        pop_index as u8,
+        OpCode::CopyCallStack as u8,
+        OpCode::FromCallStack as u8,
+        OpCode::Return as u8,
+    ];
+    test_chunk(&mut chunk, &[8i64.into(), 8i64.into()]);
 }

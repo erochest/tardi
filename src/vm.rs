@@ -114,6 +114,18 @@ impl VM {
                     let tardi_fn = &mut chunk.builtins[index];
                     tardi_fn.call(self)?;
                 }
+                OpCode::ToCallStack => {
+                    let item = self.stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.call_stack.push(item);
+                }
+                OpCode::FromCallStack => {
+                    let item = self.call_stack.pop().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(item);
+                }
+                OpCode::CopyCallStack => {
+                    let item = self.call_stack.last().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(item.clone());
+                }
                 OpCode::Return => {
                     let ip = self.ip;
                     if let Some(Value::Address(return_ip)) = self.call_stack.pop() {

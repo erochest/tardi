@@ -31,6 +31,7 @@ fn test_define_stack_ops() {
     assert!(chunk.builtin_index.contains_key("dup"));
     assert!(chunk.builtin_index.contains_key("nip"));
     assert!(chunk.builtin_index.contains_key("over"));
+    assert!(chunk.builtin_index.contains_key("pop"));
     assert!(chunk.builtin_index.contains_key("rot"));
     assert!(chunk.builtin_index.contains_key("swap"));
 }

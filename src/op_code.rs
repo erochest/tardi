@@ -18,6 +18,9 @@ pub enum OpCode {
     MarkJump,
     MarkCall,
     CallTardiFn,
+    ToCallStack,
+    FromCallStack,
+    CopyCallStack,
     Return,
 }
 
@@ -39,7 +42,10 @@ impl TryFrom<u8> for OpCode {
             10 => Ok(OpCode::MarkJump),
             11 => Ok(OpCode::MarkCall),
             12 => Ok(OpCode::CallTardiFn),
-            13 => Ok(OpCode::Return),
+            13 => Ok(OpCode::ToCallStack),
+            14 => Ok(OpCode::FromCallStack),
+            15 => Ok(OpCode::CopyCallStack),
+            16 => Ok(OpCode::Return),
             code => Err(Error::InvalidOpCode(code)),
         }
     }
@@ -64,7 +70,10 @@ mod tests {
         assert_eq!(OpCode::try_from(10).unwrap(), OpCode::MarkJump);
         assert_eq!(OpCode::try_from(11).unwrap(), OpCode::MarkCall);
         assert_eq!(OpCode::try_from(12).unwrap(), OpCode::CallTardiFn);
-        assert_eq!(OpCode::try_from(13).unwrap(), OpCode::Return);
+        assert_eq!(OpCode::try_from(13).unwrap(), OpCode::ToCallStack);
+        assert_eq!(OpCode::try_from(14).unwrap(), OpCode::FromCallStack);
+        assert_eq!(OpCode::try_from(15).unwrap(), OpCode::CopyCallStack);
+        assert_eq!(OpCode::try_from(16).unwrap(), OpCode::Return);
         assert!(matches!(
             OpCode::try_from(177),
             Err(Error::InvalidOpCode(177))

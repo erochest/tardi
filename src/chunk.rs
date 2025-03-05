@@ -87,7 +87,10 @@ impl Chunk {
             | OpCode::Not
             | OpCode::Equal
             | OpCode::Less
-            | OpCode::Greater => self.debug_op_code(w, op_code, i)?,
+            | OpCode::Greater
+            | OpCode::ToCallStack
+            | OpCode::FromCallStack
+            | OpCode::CopyCallStack => self.debug_op_code(w, op_code, i)?,
             OpCode::Jump | OpCode::MarkJump | OpCode::MarkCall => {
                 self.debug_op_jump(w, op_code, i)?
             }
@@ -254,6 +257,16 @@ fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
             let top = vm.stack.pop().ok_or(Error::StackUnderflow)?;
             vm.stack.pop().ok_or(Error::StackUnderflow)?;
             vm.stack.push(top.clone());
+            Ok(())
+        }),
+    );
+
+    insert_builtin(
+        &mut builtins,
+        &mut index,
+        "pop",
+        Box::new(|vm: &mut VM| {
+            vm.stack.pop().ok_or(Error::StackUnderflow)?;
             Ok(())
         }),
     );
