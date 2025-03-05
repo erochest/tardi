@@ -11,3 +11,5 @@ clean:
 watch:
     cargo watch -x "nextest run"
     
+install:
+    cargo install --path .
