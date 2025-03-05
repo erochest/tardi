@@ -2,8 +2,9 @@ use ahash::{HashMap, HashMapExt};
 
 use crate::chunk::TardiFn;
 use crate::error::{Error, Result};
+use crate::pop_unwrap;
 use crate::value::Value;
-use crate::vm::VM;
+use crate::vm::{shared, VM};
 
 pub fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
     let mut builtins = Vec::new();
@@ -15,9 +16,9 @@ pub fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
         &mut index,
         "call",
         Box::new(|vm: &mut VM| {
-            let top = vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            let top = pop_unwrap!(vm.stack);
             if let Value::Lambda(_, ip) = top {
-                vm.call_stack.push(Value::from(vm.ip + 1));
+                vm.call_stack.push(shared(Value::from(vm.ip + 1)));
                 vm.ip = ip - 1;
             } else {
                 return Err(Error::UncallableObject(top));
@@ -31,7 +32,7 @@ pub fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
         &mut index,
         "drop",
         Box::new(|vm: &mut VM| {
-            vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            pop_unwrap!(vm.stack);
             Ok(())
         }),
     );
@@ -53,9 +54,9 @@ pub fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
         &mut index,
         "nip",
         Box::new(|vm: &mut VM| {
-            let top = vm.stack.pop().ok_or(Error::StackUnderflow)?;
-            vm.stack.pop().ok_or(Error::StackUnderflow)?;
-            vm.stack.push(top.clone());
+            let top = pop_unwrap!(vm.stack);
+            pop_unwrap!(vm.stack);
+            vm.stack.push(shared(top));
             Ok(())
         }),
     );
@@ -65,7 +66,7 @@ pub fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
         &mut index,
         "pop",
         Box::new(|vm: &mut VM| {
-            vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            pop_unwrap!(vm.stack);
             Ok(())
         }),
     );
@@ -107,10 +108,10 @@ pub fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
         &mut index,
         "swap",
         Box::new(|vm: &mut VM| {
-            let b = vm.stack.pop().ok_or(Error::StackUnderflow)?;
-            let a = vm.stack.pop().ok_or(Error::StackUnderflow)?;
-            vm.stack.push(b);
-            vm.stack.push(a);
+            let b = pop_unwrap!(vm.stack);
+            let a = pop_unwrap!(vm.stack);
+            vm.stack.push(shared(b));
+            vm.stack.push(shared(a));
             Ok(())
         }),
     );

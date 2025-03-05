@@ -8,7 +8,16 @@ fn test_chunk(chunk: &mut Chunk, expected: &[Value]) {
     let mut vm = VM::new();
     let result = vm.execute(chunk);
     assert!(result.is_ok(), "VM error on {:?}", result);
-    assert_eq!(vm.stack, expected);
+    let stack = vm
+        .stack
+        .iter()
+        .map(|x| {
+            let x = x.borrow();
+            let x = x.clone();
+            x
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(stack, expected);
 }
 
 #[test]

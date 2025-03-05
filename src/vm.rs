@@ -2,13 +2,41 @@ use crate::chunk::Chunk;
 use crate::error::{Error, Result};
 use crate::op_code::OpCode;
 use crate::value::Value;
+use std::cell::RefCell;
 use std::convert::TryFrom;
+use std::rc::Rc;
+
+type SharedValue = Rc<RefCell<Value>>;
+
+macro_rules! binary_op {
+    ($vm:expr, $op:tt) => {
+        {
+            let b = $vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            let a = $vm.stack.pop().ok_or(Error::StackUnderflow)?;
+            let b = b.borrow();
+            let a = a.borrow();
+            let c = (a.clone() $op b.clone())?;
+            let c = shared(c);
+            $vm.stack.push(c);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! pop_unwrap {
+    ($stack:expr) => {{
+        let a = $stack.pop().ok_or(Error::StackUnderflow)?;
+        let a = a.borrow();
+        let a = a.clone();
+        a
+    }};
+}
 
 #[derive(Default)]
 pub struct VM {
     pub ip: usize,
-    pub stack: Vec<Value>,
-    pub call_stack: Vec<Value>,
+    pub stack: Vec<SharedValue>,
+    pub call_stack: Vec<SharedValue>,
 }
 
 impl VM {
@@ -41,55 +69,42 @@ impl VM {
                     self.ip += 1;
                     let constant_idx = chunk.code[self.ip];
                     let constant = chunk.constants[constant_idx as usize].clone();
+                    let constant = shared(constant);
                     self.stack.push(constant);
                 }
-                OpCode::Add => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push((a + b)?);
-                }
-                OpCode::Sub => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push((a - b)?);
-                }
-                OpCode::Mult => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push((a * b)?);
-                }
-                OpCode::Div => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push(a.checked_div(b)?);
-                }
+                OpCode::Add => binary_op!(self, +),
+                OpCode::Sub => binary_op!(self, -),
+                OpCode::Mult => binary_op!(self, *),
+                OpCode::Div => binary_op!(self, /),
                 OpCode::Equal => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push(Value::Boolean(a == b));
+                    let b = pop_unwrap!(self.stack);
+                    let a = pop_unwrap!(self.stack);
+                    let c = shared(Value::Boolean(a == b));
+                    self.stack.push(c);
                 }
-                OpCode::Not => match self.stack.pop() {
-                    Some(Value::Boolean(a)) => {
-                        self.stack.push(Value::Boolean(!a));
+                OpCode::Not => {
+                    // TODO: add better type checking. this just assumes it's a boolean
+                    let a = pop_unwrap!(self.stack);
+                    match a {
+                        Value::Boolean(a) => {
+                            self.stack.push(shared(Value::Boolean(!a)));
+                        }
+                        v => {
+                            let error_v = v.clone();
+                            self.stack.push(shared(v));
+                            return Err(Error::InvalidValueType(error_v));
+                        }
                     }
-                    Some(v) => {
-                        let error_v = v.clone();
-                        self.stack.push(v);
-                        return Err(Error::InvalidValueType(error_v));
-                    }
-                    _ => {
-                        return Err(Error::StackUnderflow);
-                    }
-                },
+                }
                 OpCode::Less => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push(Value::Boolean(a < b));
+                    let b = pop_unwrap!(self.stack);
+                    let a = pop_unwrap!(self.stack);
+                    self.stack.push(shared(Value::Boolean(a < b)));
                 }
                 OpCode::Greater => {
-                    let b = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    let a = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.stack.push(Value::Boolean(a > b));
+                    let b = pop_unwrap!(self.stack);
+                    let a = pop_unwrap!(self.stack);
+                    self.stack.push(shared(Value::Boolean(a > b)));
                 }
                 OpCode::Jump => {
                     let ip = self.ip;
@@ -101,7 +116,7 @@ impl VM {
                 OpCode::MarkJump => {
                     let ip = self.ip;
                     log::trace!("MARK-JUMP@{}: call-stack pushing ip {}", ip, self.ip + 2);
-                    self.call_stack.push(Value::from(self.ip + 2));
+                    self.call_stack.push(shared(Value::from(self.ip + 2)));
                     self.ip += 1;
                     self.ip = chunk.code[self.ip] as usize;
                     log::trace!("MARK-JUMP@{}: moving to ip {}", ip, self.ip);
@@ -115,8 +130,8 @@ impl VM {
                     tardi_fn.call(self)?;
                 }
                 OpCode::ToCallStack => {
-                    let item = self.stack.pop().ok_or(Error::StackUnderflow)?;
-                    self.call_stack.push(item);
+                    let item = pop_unwrap!(self.stack);
+                    self.call_stack.push(shared(item));
                 }
                 OpCode::FromCallStack => {
                     let item = self.call_stack.pop().ok_or(Error::StackUnderflow)?;
@@ -128,10 +143,15 @@ impl VM {
                 }
                 OpCode::Return => {
                     let ip = self.ip;
-                    if let Some(Value::Address(return_ip)) = self.call_stack.pop() {
-                        log::trace!("RETURN@{}: {}", ip, return_ip);
-                        self.ip = return_ip;
-                        continue;
+                    if !self.call_stack.is_empty() {
+                        let a = pop_unwrap!(self.call_stack);
+                        if let Value::Address(return_ip) = a {
+                            log::trace!("RETURN@{}: {}", ip, return_ip);
+                            self.ip = return_ip;
+                            continue;
+                        } else {
+                            return Err(Error::InvalidValueType(a.clone()));
+                        }
                     } else {
                         log::trace!("RETURN@{}: ALL", ip);
                         break;
@@ -147,9 +167,13 @@ impl VM {
 
     pub fn print_stack(&self) {
         for value in &self.stack {
-            eprintln!("{}", value);
+            eprintln!("{}", value.borrow());
         }
     }
+}
+
+pub fn shared(value: Value) -> SharedValue {
+    Rc::new(RefCell::new(value))
 }
 
 #[cfg(test)]
