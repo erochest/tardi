@@ -47,7 +47,7 @@ pub fn run_repl(print_stack: bool) -> Result<()> {
 
         // TODO: this may not have any memory between lines of input
         // of functions defined, etc. fix this.
-        let mut chunk = compile(&line)?;
+        let mut chunk = compile(line)?;
         vm.execute(&mut chunk)?;
 
         if print_stack {

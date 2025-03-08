@@ -13,8 +13,8 @@ fn test_chunk(chunk: &mut Chunk, expected: &[Value]) {
         .iter()
         .map(|x| {
             let x = x.borrow();
-            let x = x.clone();
-            x
+            
+            x.clone()
         })
         .collect::<Vec<_>>();
     assert_eq!(stack, expected);

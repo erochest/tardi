@@ -1,7 +1,7 @@
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 use std::iter::FromIterator;
 
-use crate::chunk::{Chunk, TardiFn};
+use crate::chunk::Chunk;
 use crate::error::{Error, Result};
 use crate::op_code::OpCode;
 use crate::scanner::{Scanner, Token, TokenType};
@@ -179,7 +179,7 @@ impl Compiler {
             TokenType::Comment => todo!(),
             TokenType::DocComment(ref new_comment) => {
                 if let Some(comments) = self.doc_comment.as_mut() {
-                    comments.extend(new_comment.chars());
+                    comments.push_str(new_comment);
                 } else {
                     self.doc_comment = Some(new_comment.clone());
                 }
@@ -309,7 +309,7 @@ impl Compiler {
                 Ok(index)
             }
             TokenType::OpenBrace => self.vector(with_stack_ops),
-            _ => return Err(Error::PrecedenceError),
+            _ => Err(Error::PrecedenceError),
         }
     }
 

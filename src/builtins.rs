@@ -7,7 +7,7 @@ use crate::chunk::{Chunk, TardiFn};
 use crate::error::{Error, Result};
 use crate::value::Value;
 use crate::vm::{shared, VM};
-use crate::{binary_op, pop_unwrap};
+use crate::pop_unwrap;
 
 macro_rules! builtin {
     ($vec:expr, $idx:expr, $name:expr, $fn:expr) => {

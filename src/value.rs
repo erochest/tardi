@@ -75,7 +75,7 @@ impl From<bool> for Value {
 
 impl From<Vec<Value>> for Value {
     fn from(value: Vec<Value>) -> Self {
-        let values = value.into_iter().map(Value::from).collect::<Vec<_>>();
+        let values = value.into_iter().collect::<Vec<_>>();
         Value::Vector(values)
     }
 }

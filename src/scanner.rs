@@ -272,11 +272,11 @@ impl Scanner {
     }
 
     fn is_eof(&self) -> bool {
-        self.index - 1 >= self.input.len()
+        self.index > self.input.len()
     }
 
     fn save_start(&mut self) {
-        self.start = Some(Pos::from_scanner(&self))
+        self.start = Some(Pos::from_scanner(self))
     }
 
     fn token_from_start(&mut self, token_type: TokenType) -> Token {
@@ -426,8 +426,8 @@ impl Scanner {
                         't' => '\t',
                         'r' => '\r',
                         'u' => {
-                            let unichar = self.unicode()?;
-                            unichar
+                            
+                            self.unicode()?
                         }
                         c => c,
                     };

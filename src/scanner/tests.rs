@@ -431,7 +431,7 @@ fn test_function() {
         TokenType::EOF,
     ];
 
-    let actual = scan(&input);
+    let actual = scan(input);
 
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
@@ -449,7 +449,7 @@ fn test_end_of_file() {
         TokenType::Star,
         TokenType::EOF,
     ];
-    let actual = scan(&input);
+    let actual = scan(input);
 
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
@@ -465,7 +465,7 @@ fn test_word() {
         TokenType::Word("bar".to_string()),
         TokenType::EOF,
     ];
-    let actual = scan(&input);
+    let actual = scan(input);
 
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
@@ -480,7 +480,7 @@ fn test_comment() {
         # comment
         ";
     let expected = vec![TokenType::Integer(42), TokenType::EOF];
-    let actual = scan(&input);
+    let actual = scan(input);
 
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
@@ -499,7 +499,7 @@ fn test_doc_comment() {
         TokenType::Integer(42),
         TokenType::EOF,
     ];
-    let actual = scan(&input);
+    let actual = scan(input);
 
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
@@ -522,7 +522,7 @@ fn test_lambda() {
         TokenType::EOF,
     ];
 
-    let actual = scan(&input);
+    let actual = scan(input);
 
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
