@@ -102,6 +102,7 @@ impl Chunk {
             | OpCode::CopyCallStack
             | OpCode::Drop
             | OpCode::Swap
+            | OpCode::Dup
             | OpCode::IP => self.debug_op_code(w, op_code, i)?,
             OpCode::Jump | OpCode::MarkJump => self.debug_op_jump(w, op_code, i)?,
             OpCode::CallTardiFn => self.debug_op_builtin(w, op_code, i)?,

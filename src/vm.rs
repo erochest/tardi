@@ -151,6 +151,10 @@ impl VM {
                     self.stack.push(b);
                     self.stack.push(a);
                 }
+                OpCode::Dup => {
+                    let top = self.stack.last().ok_or(Error::StackUnderflow)?;
+                    self.stack.push(top.clone());
+                }
                 OpCode::IP => {
                     let next_ip = self.ip + 1;
                     self.stack.push(shared(Value::Address(next_ip)));

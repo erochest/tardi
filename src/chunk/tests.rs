@@ -27,7 +27,6 @@ fn test_push_opcode() {
 #[test]
 fn test_define_stack_words() {
     let chunk = Chunk::new();
-    assert!(chunk.builtin_index.contains_key("dup"));
     assert!(chunk.builtin_index.contains_key("nip"));
     assert!(chunk.builtin_index.contains_key("over"));
     assert!(chunk.builtin_index.contains_key("pop"));

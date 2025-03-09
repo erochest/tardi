@@ -66,12 +66,6 @@ fn flow_builtins(builtins: &mut Vec<TardiFn>, index: &mut HashMap<String, usize>
 }
 
 fn stack_builtins(builtins: &mut Vec<TardiFn>, index: &mut HashMap<String, usize>) {
-    builtin!(builtins, index, "dup", |vm: &mut VM, _chunk: &mut Chunk| {
-        let top = vm.stack.last().ok_or(Error::StackUnderflow)?;
-        vm.stack.push(top.clone());
-        Ok(())
-    });
-
     builtin!(builtins, index, "nip", |vm: &mut VM, _chunk: &mut Chunk| {
         let top = pop_unwrap!(vm.stack);
         pop_unwrap!(vm.stack);

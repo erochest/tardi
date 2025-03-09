@@ -162,6 +162,14 @@ fn test_execute_jump() {
 }
 
 #[test]
+fn test_execute_dup() {
+    let mut chunk = Chunk::new();
+    chunk.constants = vec![Value::Integer(42)];
+    chunk.code = vec![0, 0, OpCode::Dup as u8];
+    test_chunk(&mut chunk, &[Value::Integer(42), Value::Integer(42)]);
+}
+
+#[test]
 fn test_execute_ip() {
     let mut chunk = Chunk::new();
     chunk.code = vec![OpCode::IP as u8, OpCode::Return as u8];
