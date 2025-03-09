@@ -43,6 +43,15 @@ fn test_scan_divide() {
 }
 
 #[test]
+fn test_scan_modulo() {
+    let input = "3 2 %";
+    let expected = vec![
+        3i64.into(), 2i64.into(), TokenType::Percent, TokenType::EOF,
+    ];
+    test_scan_token_types(input, expected);
+}
+
+#[test]
 fn test_scan_plus() {
     let input = "10 3 +";
     let expected = vec![

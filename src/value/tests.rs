@@ -216,3 +216,57 @@ fn test_add_vectors() {
     let c = c.unwrap();
     assert_eq!(Value::from(vec![Value::from(2i64), Value::from(3i64)]), c);
 }
+
+#[test]
+fn test_mod_operand_error() {
+    let a = Value::from(6i64);
+    let b = Value::from(3.0);
+
+    let c = a % b;
+
+    assert!(c.is_err_and(|e| matches!(e, Error::InvalidOperands(_, _))));
+}
+
+#[test]
+fn test_mod_integers() {
+    let a = Value::from(6i64);
+    let b = Value::from(3i64);
+
+    let c = a % b;
+
+    assert!(c.is_ok());
+    assert_eq!(Value::from(0i64), c.unwrap());
+}
+
+#[test]
+fn test_mod_floats() {
+    let a = Value::from(6.0);
+    let b = Value::from(3.0);
+
+    let c = a % b;
+
+    assert!(c.is_ok());
+    assert_eq!(Value::from(0.0), c.unwrap());
+}
+
+#[test]
+fn test_mod_rationals() {
+    let a = Value::Rational(Rational64::new(1, 4));
+    let b = Value::Rational(Rational64::new(1, 2));
+
+    let c = a % b;
+
+    assert!(c.is_ok());
+    assert_eq!(Value::Rational(Rational64::new(1, 4)), c.unwrap());
+}
+
+#[test]
+fn test_display_floats() {
+    let zero = Value::from(0.0);
+    let output = format!("{}", zero);
+    assert_eq!("0.0", &output);
+
+    let quarter = Value::from(0.25);
+    let output = format!("{}", quarter);
+    assert_eq!("0.25", &output);
+}

@@ -63,6 +63,8 @@ Comments start with the hash and go to the end of the line.
 
 `/`
 
+`%`
+
 `==`
 
 `!=`

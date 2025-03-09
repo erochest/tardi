@@ -17,6 +17,7 @@ pub enum TokenType {
     Minus,
     Star,
     Slash,
+    Percent,
     EqualEqual,
     BangEqual,
     Less,
@@ -115,6 +116,7 @@ impl FromStr for TokenType {
             "-" => return Ok(TokenType::Minus),
             "*" => return Ok(TokenType::Star),
             "/" => return Ok(TokenType::Slash),
+            "%" => return Ok(TokenType::Percent),
             "true" => return Ok(TokenType::Boolean(true)),
             "false" => return Ok(TokenType::Boolean(false)),
             "==" => return Ok(TokenType::EqualEqual),
@@ -425,10 +427,7 @@ impl Scanner {
                         'n' => '\n',
                         't' => '\t',
                         'r' => '\r',
-                        'u' => {
-                            
-                            self.unicode()?
-                        }
+                        'u' => self.unicode()?,
                         c => c,
                     };
                     word.push(char_to_push);

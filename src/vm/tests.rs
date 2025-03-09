@@ -61,6 +61,14 @@ fn test_execute_div() {
 }
 
 #[test]
+fn test_execute_modulo() {
+    let mut chunk = Chunk::new();
+    chunk.constants = vec![Value::Integer(6), Value::Integer(3)];
+    chunk.code = vec![0, 0, 0, 1, OpCode::Modulo as u8];
+    test_chunk(&mut chunk, &[Value::Integer(0)]);
+}
+
+#[test]
 fn test_execute_equals() {
     let mut chunk = Chunk::new();
     chunk.constants = vec![Value::Integer(4), Value::Integer(3)];

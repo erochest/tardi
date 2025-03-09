@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
 use crate::scanner::{Token, TokenType};
 use std::convert::TryFrom;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::{fmt, result};
 
 use num::Rational64;
@@ -23,7 +23,13 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Integer(n) => write!(f, "{}", n),
-            Value::Float(n) => write!(f, "{}", n),
+            Value::Float(n) => {
+                let mut formatted = format!("{}", n);
+                if !formatted.contains('.') {
+                    formatted += ".0";
+                }
+                write!(f, "{}", formatted)
+            }
             Value::Rational(r) => write!(f, "{}/{}", r.numer(), r.denom()),
             Value::String(s) => write!(f, "\"{}\"", s),
             Value::Boolean(b) => write!(f, "{}", b),
@@ -194,6 +200,19 @@ impl Mul for Value {
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a * b)),
             (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a * b)),
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
+        }
+    }
+}
+
+impl Rem for Value {
+    type Output = Result<Value>;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        match (self.clone(), rhs.clone()) {
+            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a % b)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a % b)),
+            (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a % b)),
+            _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string()))
         }
     }
 }

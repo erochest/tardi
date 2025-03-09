@@ -10,6 +10,7 @@ pub enum OpCode {
     Sub,
     Mult,
     Div,
+    Modulo,
     Not,
     Equal,
     Less,
@@ -35,19 +36,20 @@ impl TryFrom<u8> for OpCode {
             2 => Ok(OpCode::Sub),
             3 => Ok(OpCode::Mult),
             4 => Ok(OpCode::Div),
-            5 => Ok(OpCode::Not),
-            6 => Ok(OpCode::Equal),
-            7 => Ok(OpCode::Less),
-            8 => Ok(OpCode::Greater),
-            9 => Ok(OpCode::Jump),
-            10 => Ok(OpCode::MarkJump),
-            11 => Ok(OpCode::CallTardiFn),
-            12 => Ok(OpCode::ToCallStack),
-            13 => Ok(OpCode::FromCallStack),
-            14 => Ok(OpCode::CopyCallStack),
-            15 => Ok(OpCode::Drop),
-            16 => Ok(OpCode::Swap),
-            17 => Ok(OpCode::Return),
+            5 => Ok(OpCode::Modulo),
+            6 => Ok(OpCode::Not),
+            7 => Ok(OpCode::Equal),
+            8 => Ok(OpCode::Less),
+            9 => Ok(OpCode::Greater),
+            10 => Ok(OpCode::Jump),
+            11 => Ok(OpCode::MarkJump),
+            12 => Ok(OpCode::CallTardiFn),
+            13 => Ok(OpCode::ToCallStack),
+            14 => Ok(OpCode::FromCallStack),
+            15 => Ok(OpCode::CopyCallStack),
+            16 => Ok(OpCode::Drop),
+            17 => Ok(OpCode::Swap),
+            18 => Ok(OpCode::Return),
             code => Err(Error::InvalidOpCode(code)),
         }
     }
@@ -62,6 +64,7 @@ impl TryFrom<&str> for OpCode {
             "-" => Ok(OpCode::Sub),
             "*" => Ok(OpCode::Mult),
             "/" => Ok(OpCode::Div),
+            "%" => Ok(OpCode::Modulo),
             "!" => Ok(OpCode::Not),
             "==" => Ok(OpCode::Equal),
             "<" => Ok(OpCode::Less),
@@ -88,19 +91,20 @@ mod tests {
         assert_eq!(OpCode::try_from(2).unwrap(), OpCode::Sub);
         assert_eq!(OpCode::try_from(3).unwrap(), OpCode::Mult);
         assert_eq!(OpCode::try_from(4).unwrap(), OpCode::Div);
-        assert_eq!(OpCode::try_from(5).unwrap(), OpCode::Not);
-        assert_eq!(OpCode::try_from(6).unwrap(), OpCode::Equal);
-        assert_eq!(OpCode::try_from(7).unwrap(), OpCode::Less);
-        assert_eq!(OpCode::try_from(8).unwrap(), OpCode::Greater);
-        assert_eq!(OpCode::try_from(9).unwrap(), OpCode::Jump);
-        assert_eq!(OpCode::try_from(10).unwrap(), OpCode::MarkJump);
-        assert_eq!(OpCode::try_from(11).unwrap(), OpCode::CallTardiFn);
-        assert_eq!(OpCode::try_from(12).unwrap(), OpCode::ToCallStack);
-        assert_eq!(OpCode::try_from(13).unwrap(), OpCode::FromCallStack);
-        assert_eq!(OpCode::try_from(14).unwrap(), OpCode::CopyCallStack);
-        assert_eq!(OpCode::try_from(15).unwrap(), OpCode::Drop);
-        assert_eq!(OpCode::try_from(16).unwrap(), OpCode::Swap);
-        assert_eq!(OpCode::try_from(17).unwrap(), OpCode::Return);
+        assert_eq!(OpCode::try_from(5).unwrap(), OpCode::Modulo);
+        assert_eq!(OpCode::try_from(6).unwrap(), OpCode::Not);
+        assert_eq!(OpCode::try_from(7).unwrap(), OpCode::Equal);
+        assert_eq!(OpCode::try_from(8).unwrap(), OpCode::Less);
+        assert_eq!(OpCode::try_from(9).unwrap(), OpCode::Greater);
+        assert_eq!(OpCode::try_from(10).unwrap(), OpCode::Jump);
+        assert_eq!(OpCode::try_from(11).unwrap(), OpCode::MarkJump);
+        assert_eq!(OpCode::try_from(12).unwrap(), OpCode::CallTardiFn);
+        assert_eq!(OpCode::try_from(13).unwrap(), OpCode::ToCallStack);
+        assert_eq!(OpCode::try_from(14).unwrap(), OpCode::FromCallStack);
+        assert_eq!(OpCode::try_from(15).unwrap(), OpCode::CopyCallStack);
+        assert_eq!(OpCode::try_from(16).unwrap(), OpCode::Drop);
+        assert_eq!(OpCode::try_from(17).unwrap(), OpCode::Swap);
+        assert_eq!(OpCode::try_from(18).unwrap(), OpCode::Return);
         assert!(matches!(
             OpCode::try_from(177),
             Err(Error::InvalidOpCode(177))
@@ -113,6 +117,7 @@ mod tests {
         assert_eq!(OpCode::try_from("-").unwrap(), OpCode::Sub);
         assert_eq!(OpCode::try_from("*").unwrap(), OpCode::Mult);
         assert_eq!(OpCode::try_from("/").unwrap(), OpCode::Div);
+        assert_eq!(OpCode::try_from("%").unwrap(), OpCode::Modulo);
         assert_eq!(OpCode::try_from("!").unwrap(), OpCode::Not);
         assert_eq!(OpCode::try_from("==").unwrap(), OpCode::Equal);
         assert_eq!(OpCode::try_from("<").unwrap(), OpCode::Less);

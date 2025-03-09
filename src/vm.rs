@@ -77,6 +77,7 @@ impl VM {
                 OpCode::Sub => binary_op!(self, -),
                 OpCode::Mult => binary_op!(self, *),
                 OpCode::Div => binary_op!(self, /),
+                OpCode::Modulo => binary_op!(self, %),
                 OpCode::Equal => {
                     let b = pop_unwrap!(self.stack);
                     let a = pop_unwrap!(self.stack);

@@ -92,6 +92,7 @@ impl Chunk {
             | OpCode::Sub
             | OpCode::Mult
             | OpCode::Div
+            | OpCode::Modulo
             | OpCode::Not
             | OpCode::Equal
             | OpCode::Less

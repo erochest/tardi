@@ -144,6 +144,7 @@ impl Compiler {
             TokenType::Minus => self.push_op_code(OpCode::Sub),
             TokenType::Star => self.push_op_code(OpCode::Mult),
             TokenType::Slash => self.push_op_code(OpCode::Div),
+            TokenType::Percent => self.push_op_code(OpCode::Modulo),
             TokenType::EqualEqual => self.push_op_code(OpCode::Equal),
             TokenType::BangEqual => {
                 self.push_op_code(OpCode::Equal);

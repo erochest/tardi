@@ -27,6 +27,14 @@ fn test_compile_simple_expression_with_div() {
 }
 
 #[test]
+fn test_compile_simple_expression_with_modulo() {
+    test_compile(
+        "10 3 %",
+        vec![0, 0, 0, 1, OpCode::Modulo as u8, OpCode::Return as u8],
+    );
+}
+
+#[test]
 fn test_compile_simple_expression() {
     test_compile("10 3", vec![0, 0, 0, 1, OpCode::Return as u8]);
 }
