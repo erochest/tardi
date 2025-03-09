@@ -51,6 +51,8 @@ Comments start with the hash and go to the end of the line.
 
 `call`
 
+`if`
+
 `return`
 
 ### Operators
@@ -86,6 +88,21 @@ Comments start with the hash and go to the end of the line.
 `r>`
 
 `r@`
+
+### Conditionals
+
+#### `if`
+
+**Stack effect**: `( ? then-clause: ( ...s -- ...s' ) else-clause: ( ...s -- ...s' ) )
+
+For example, this poorly factored word determines if a number is odd or even and prints out the result:
+
+```
+: print-even ( n -- )
+  2 % 0 ==
+  [ "even" ]  [ "odd" ] if
+  println ;
+```
 
 ### Op Code Words
 

@@ -5,9 +5,9 @@ use ahash::{HashMap, HashMapExt};
 
 use crate::chunk::{Chunk, TardiFn};
 use crate::error::{Error, Result};
+use crate::pop_unwrap;
 use crate::value::Value;
 use crate::vm::{shared, VM};
-use crate::pop_unwrap;
 
 macro_rules! builtin {
     ($vec:expr, $idx:expr, $name:expr, $fn:expr) => {
@@ -24,26 +24,45 @@ pub fn define_builtins() -> (Vec<TardiFn>, HashMap<String, usize>) {
     let mut builtins = Vec::new();
     let mut index = HashMap::new();
 
-    builtin_mut!(
+    flow_builtins(&mut builtins, &mut index);
+    stack_builtins(&mut builtins, &mut index);
+    op_code_builtins(&mut builtins, &mut index);
+
+    (builtins, index)
+}
+
+fn call_lambda(vm: &mut VM, lambda: &Value) -> Result<()> {
+    if let Value::Lambda(_, ip) = lambda {
+        vm.call_stack.push(shared(Value::from(vm.ip + 1)));
+        vm.ip = ip - 1;
+        Ok(())
+    } else {
+        Err(Error::UncallableObject(lambda.clone()))
+    }
+}
+
+fn flow_builtins(builtins: &mut Vec<TardiFn>, index: &mut HashMap<String, usize>) {
+    builtin!(
         builtins,
         index,
         "call",
         |vm: &mut VM, _chunk: &mut Chunk| {
             let top = pop_unwrap!(vm.stack);
-            if let Value::Lambda(_, ip) = top {
-                vm.call_stack.push(shared(Value::from(vm.ip + 1)));
-                vm.ip = ip - 1;
-            } else {
-                return Err(Error::UncallableObject(top));
-            }
-            Ok(())
+            call_lambda(vm, &top)
         }
     );
 
-    stack_builtins(&mut builtins, &mut index);
-    op_code_builtins(&mut builtins, &mut index);
+    builtin!(builtins, index, "if", |vm: &mut VM, _chunk: &mut Chunk| {
+        let else_clause = pop_unwrap!(vm.stack);
+        let then_clause = pop_unwrap!(vm.stack);
+        let condition = pop_unwrap!(vm.stack);
 
-    (builtins, index)
+        match condition {
+            Value::Boolean(true) => call_lambda(vm, &then_clause),
+            Value::Boolean(false) => call_lambda(vm, &else_clause),
+            _ => Err(Error::InvalidValueType(condition.clone())),
+        }
+    });
 }
 
 fn stack_builtins(builtins: &mut Vec<TardiFn>, index: &mut HashMap<String, usize>) {

@@ -1,0 +1,7 @@
+: even? ( x -- ? ) 2 % 0 == ;
+: odd||even ( x -- str ) even? [ "even" ] [ "odd" ] if ;
+
+4 odd||even
+7 odd||even
+12 odd||even
+13 odd||even
