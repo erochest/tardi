@@ -23,6 +23,7 @@ pub enum OpCode {
     CopyCallStack,
     Drop,
     Swap,
+    IP,
     Return,
 }
 
@@ -49,7 +50,8 @@ impl TryFrom<u8> for OpCode {
             15 => Ok(OpCode::CopyCallStack),
             16 => Ok(OpCode::Drop),
             17 => Ok(OpCode::Swap),
-            18 => Ok(OpCode::Return),
+            18 => Ok(OpCode::IP),
+            19 => Ok(OpCode::Return),
             code => Err(Error::InvalidOpCode(code)),
         }
     }
@@ -74,6 +76,7 @@ impl TryFrom<&str> for OpCode {
             "r@" => Ok(OpCode::CopyCallStack),
             "drop" => Ok(OpCode::Drop),
             "swap" => Ok(OpCode::Swap),
+            "IP" => Ok(OpCode::IP),
             "return" => Ok(OpCode::Return),
             _ => Err(Error::InvalidOpCodeName(value.to_string())),
         }
@@ -104,7 +107,8 @@ mod tests {
         assert_eq!(OpCode::try_from(15).unwrap(), OpCode::CopyCallStack);
         assert_eq!(OpCode::try_from(16).unwrap(), OpCode::Drop);
         assert_eq!(OpCode::try_from(17).unwrap(), OpCode::Swap);
-        assert_eq!(OpCode::try_from(18).unwrap(), OpCode::Return);
+        assert_eq!(OpCode::try_from(18).unwrap(), OpCode::IP);
+        assert_eq!(OpCode::try_from(19).unwrap(), OpCode::Return);
         assert!(matches!(
             OpCode::try_from(177),
             Err(Error::InvalidOpCode(177))
@@ -128,6 +132,7 @@ mod tests {
         assert_eq!(OpCode::try_from("drop").unwrap(), OpCode::Drop);
         assert_eq!(OpCode::try_from("swap").unwrap(), OpCode::Swap);
         assert_eq!(OpCode::try_from("return").unwrap(), OpCode::Return);
+        assert_eq!(OpCode::try_from("IP").unwrap(), OpCode::IP);
         assert!(OpCode::try_from("oops").is_err());
     }
 }

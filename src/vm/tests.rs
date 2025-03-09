@@ -162,6 +162,13 @@ fn test_execute_jump() {
 }
 
 #[test]
+fn test_execute_ip() {
+    let mut chunk = Chunk::new();
+    chunk.code = vec![OpCode::IP as u8, OpCode::Return as u8];
+    test_chunk(&mut chunk, &[Value::Address(1)]);
+}
+
+#[test]
 fn test_execute_lambda_call() {
     // env_logger::builder().init();
     let mut chunk = Chunk::new();

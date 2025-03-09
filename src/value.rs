@@ -44,7 +44,7 @@ impl fmt::Display for Value {
                 write!(f, "{}", function)
             }
             Value::Lambda(repr, loc) => write!(f, "{}", repr),
-            Value::Address(addr) => write!(f, "<@{}>", addr),
+            Value::Address(addr) => write!(f, "{}", addr),
         }
     }
 }

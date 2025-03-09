@@ -151,6 +151,10 @@ impl VM {
                     self.stack.push(b);
                     self.stack.push(a);
                 }
+                OpCode::IP => {
+                    let next_ip = self.ip + 1;
+                    self.stack.push(shared(Value::Address(next_ip)));
+                }
                 OpCode::Return => {
                     let ip = self.ip;
                     if !self.call_stack.is_empty() {
