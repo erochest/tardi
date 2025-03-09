@@ -1,1 +1,4 @@
 IP
+dup 1 +
+dup 1 swap +
+dup 1 -

@@ -28,6 +28,8 @@ pub enum Error {
     UndefinedWord(String),
     UncallableObject(Value),
     InvalidOpCodeName(String),
+    MathOverflow,
+    MathUnderflow,
 }
 
 use Error::*;
@@ -54,6 +56,8 @@ impl fmt::Display for Error {
             UndefinedWord(name) => write!(f, "Unknown function: {}", name),
             UncallableObject(value) => write!(f, "Uncallable object: {:?}", value),
             InvalidOpCodeName(name) => write!(f, "Invalide op code name: {:?}", name),
+            MathOverflow => write!(f, "Math operation resulted in overflow"),
+            MathUnderflow => write!(f, "Math operation resulted in underflow"),
         }
     }
 }

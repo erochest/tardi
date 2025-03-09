@@ -173,6 +173,28 @@ impl Add for Value {
                 // a plan or a framework.
                 todo!("vector addition (and value sharing)")
             }
+            (Value::Address(a), Value::Integer(b)) => {
+                if b >= 0 {
+                    a.checked_add(b as usize)
+                        .map(Value::Address)
+                        .ok_or(Error::MathOverflow)
+                } else {
+                    a.checked_sub(b.unsigned_abs() as usize)
+                        .map(Value::Address)
+                        .ok_or(Error::MathUnderflow)
+                }
+            }
+            (Value::Integer(a), Value::Address(b)) => {
+                if a >= 0 {
+                    b.checked_add(a as usize)
+                        .map(Value::Address)
+                        .ok_or(Error::MathOverflow)
+                } else {
+                    b.checked_sub(a.unsigned_abs() as usize)
+                        .map(Value::Address)
+                        .ok_or(Error::MathUnderflow)
+                }
+            }
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }
@@ -186,6 +208,17 @@ impl Sub for Value {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
             (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a - b)),
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a - b)),
+            (Value::Address(a), Value::Integer(b)) => {
+                if b >= 0 {
+                    a.checked_sub(b as usize)
+                        .map(Value::Address)
+                        .ok_or(Error::MathUnderflow)
+                } else {
+                    a.checked_add(b.unsigned_abs() as usize)
+                        .map(Value::Address)
+                        .ok_or(Error::MathOverflow)
+                }
+            }
             _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }

@@ -261,6 +261,30 @@ fn test_mod_rationals() {
 }
 
 #[test]
+fn test_address_arithmetic() {
+    // Test Address + Integer
+    let address = Value::Address(5);
+    let integer = Value::Integer(3);
+    assert_eq!(Value::Address(8), (address.clone() + integer.clone()).unwrap());
+
+    // Test Integer + Address
+    assert_eq!(Value::Address(8), (integer.clone() + address.clone()).unwrap());
+
+    // Test Address - Integer
+    assert_eq!(Value::Address(2), (address - integer).unwrap());
+
+    // Test Address + Integer (overflow case)
+    let max_address = Value::Address(usize::MAX);
+    let one = Value::Integer(1);
+    assert!(matches!((max_address + one), Err(Error::MathOverflow)));
+
+    // Test Address - Integer (underflow case)
+    let zero_address = Value::Address(0);
+    let one = Value::Integer(1);
+    assert!(matches!((zero_address - one), Err(Error::MathUnderflow)));
+}
+
+#[test]
 fn test_display_floats() {
     let zero = Value::from(0.0);
     let output = format!("{}", zero);
