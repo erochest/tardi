@@ -142,3 +142,32 @@ Maybe someday we'll do something with them.
 ### Stack Effects
 
 ### Recursion
+
+## Metaprogramming
+
+Metaprogramming in Tardi is achieved using compile-time words. This is triggered by the `MACRO:` word. The syntax for this word is:
+
+```
+MACRO: TOKEN definition... ;
+```
+
+When `TOKEN` is read as Tardi is scanning the source code, the rest of the definition is triggered. This has the core Tardi words available to them. The stack will be empty, but there are several words available to scan ahead through the stack. These read forward to the next occurance of a token and return the source code scanned in different formats. Anything on the stack after the macro executes is appended to the values being read by the scanner.
+
+`lookahead-string ( TOKEN -- STRING )` This reads forward until it reads `TOKEN` and returns the characters read as a single string.
+
+`lookahead-tokens ( TOKEN -- STRING-LIST )` This reads forward until it reads `TOKEN` and it returns the words read as a list of strings.
+
+`lookahead-values ( TOKEN -- VALUE-LIST )` This reads forward until it reads `TOKEN` and it parses and converts these strings into values. This may involve invoking other macros.
+
+- [ ] TODO: Does this need to have a vector of previously scanned words available on the stack?
+- [ ] TODO: define "core words."
+
+### Example
+
+The most simple example is for defining lists. Essentially, this is defined in this way:
+
+```
+MACRO: [ ] lookahead-values ;
+```
+
+That is, it parses the input ahead to the end of the list, and it leaves that list on the stack.
