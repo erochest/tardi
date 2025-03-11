@@ -73,6 +73,12 @@ impl From<String> for Value {
     }
 }
 
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        Value::String(value.to_string())
+    }
+}
+
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
         Value::Boolean(value)
@@ -245,7 +251,7 @@ impl Rem for Value {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a % b)),
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a % b)),
             (Value::Rational(a), Value::Rational(b)) => Ok(Value::Rational(a % b)),
-            _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string()))
+            _ => Err(Error::InvalidOperands(self.to_string(), rhs.to_string())),
         }
     }
 }

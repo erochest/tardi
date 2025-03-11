@@ -33,6 +33,10 @@ macro_rules! pop_unwrap {
     }};
 }
 
+pub trait IVM {
+    fn execute(&mut self, chunk: &mut Chunk) -> Result<()>;
+}
+
 #[derive(Default)]
 pub struct VM {
     pub ip: usize,
@@ -49,7 +53,15 @@ impl VM {
         }
     }
 
-    pub fn execute(&mut self, chunk: &mut Chunk) -> Result<()> {
+    pub fn print_stack(&self) {
+        for value in &self.stack {
+            eprintln!("{}", value.borrow());
+        }
+    }
+}
+
+impl IVM for VM {
+    fn execute(&mut self, chunk: &mut Chunk) -> Result<()> {
         self.ip = 0;
 
         log::trace!("executing chunk {:?}", chunk);
@@ -181,12 +193,6 @@ impl VM {
         }
 
         Ok(())
-    }
-
-    pub fn print_stack(&self) {
-        for value in &self.stack {
-            eprintln!("{}", value.borrow());
-        }
     }
 }
 

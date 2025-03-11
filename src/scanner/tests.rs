@@ -1,4 +1,5 @@
-use std::{f64::consts::PI, iter::Iterator};
+use std::f64::consts::PI;
+use std::iter::Iterator;
 
 use pretty_assertions::assert_eq;
 
@@ -45,9 +46,7 @@ fn test_scan_divide() {
 #[test]
 fn test_scan_modulo() {
     let input = "3 2 %";
-    let expected = vec![
-        3i64.into(), 2i64.into(), TokenType::Percent, TokenType::EOF,
-    ];
+    let expected = vec![3i64.into(), 2i64.into(), TokenType::Percent, TokenType::EOF];
     test_scan_token_types(input, expected);
 }
 
@@ -536,4 +535,80 @@ fn test_lambda() {
     assert!(actual.is_ok());
     let token_types: Vec<_> = actual.unwrap().into_iter().map(|t| t.token_type).collect();
     assert_eq!(expected, token_types);
+}
+
+#[test]
+fn test_lookahead_string_basic() {
+    let mut scanner = Scanner::from_string(" hello world !");
+
+    let result = scanner.lookahead_string("!");
+
+    assert!(result.is_ok());
+    assert_eq!(" hello world ".to_string(), result.unwrap());
+}
+
+#[test]
+fn test_lookahead_string_error() {
+    let mut scanner = Scanner::from_string(" hello world !");
+    let result = scanner.lookahead_string("]");
+    assert!(result.is_err_and(|e| matches!(e, Error::EndOfFile(TokenType::CloseBracket))));
+}
+
+#[test]
+fn test_lookahead_tokens_error() {
+    let mut scanner = Scanner::from_string(" hello world !");
+    let result = scanner.lookahead_tokens("]");
+    assert!(result.is_err_and(|e| matches!(e, Error::EndOfFile(TokenType::CloseBracket))));
+}
+
+#[test]
+fn test_lookahead_tokens_basic() {
+    let mut scanner = Scanner::from_string(" hello world !");
+
+    let result = scanner.lookahead_tokens("!");
+
+    assert!(result.is_ok());
+    assert_eq!(
+        vec!["hello".to_string(), "world".to_string()],
+        result.unwrap()
+    );
+}
+
+struct MockVM {}
+
+impl IVM for MockVM {
+    fn execute(&mut self, chunk: &mut Chunk) -> Result<()> {
+        todo!("MockVM::execute")
+    }
+}
+
+#[test]
+fn test_lookahead_values_error() {
+    let mock = Box::new(MockVM {});
+    let mut mock_trait: Box<dyn IVM> = mock;
+    let mut chunk = Chunk::new();
+    let mut scanner = Scanner::from_string(" hello world !");
+    let result = scanner.lookahead_values(&mut mock_trait, &mut chunk, "]");
+    assert!(result.is_err_and(|e| matches!(e, Error::EndOfFile(TokenType::CloseBracket))));
+}
+
+#[test]
+fn test_lookahead_values_basic() {
+    let mock = Box::new(MockVM {});
+    let mut mock_trait: Box<dyn IVM> = mock;
+    let mut chunk = Chunk::new();
+    let mut scanner = Scanner::from_string(" the answer = 42 !");
+
+    let result = scanner.lookahead_values(&mut mock_trait, &mut chunk, "!");
+
+    assert!(result.is_ok());
+    assert_eq!(
+        vec![
+            Value::from("the"),
+            "answer".into(),
+            "=".into(),
+            42i64.into()
+        ],
+        result.unwrap()
+    );
 }

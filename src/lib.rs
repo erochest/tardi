@@ -7,6 +7,8 @@ pub mod scanner;
 pub mod value;
 pub mod vm;
 
+use vm::IVM;
+
 use crate::compiler::compile;
 use crate::error::Result;
 use std::io::Write;

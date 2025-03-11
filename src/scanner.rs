@@ -1,6 +1,12 @@
-use std::{iter::FromIterator, str::FromStr};
+use std::iter::FromIterator;
+use std::str::FromStr;
 
-use crate::error::{Error, Result};
+use crate::{
+    chunk::Chunk,
+    error::{Error, Result},
+    value::Value,
+    vm::IVM,
+};
 
 const STRING_INITIALIZATION_CAPACITY: usize = 8;
 
@@ -490,6 +496,39 @@ impl Scanner {
         } else {
             Ok(tokens)
         }
+    }
+
+    pub fn lookahead_string(&mut self, end: &str) -> Result<String> {
+        let target: Vec<char> = end.chars().collect();
+
+        for i in self.index..self.input.len() {
+            if self.input[i..].starts_with(&target) {
+                let lookahead = &self.input[self.index..i];
+                let lookahead = lookahead.iter().collect();
+                self.index = i;
+                return Ok(lookahead);
+            }
+        }
+
+        Err(Error::EndOfFile(end.parse()?))
+    }
+
+    pub fn lookahead_tokens(&mut self, end: &str) -> Result<Vec<String>> {
+        self.lookahead_string(end).map(|s| {
+            s.split_whitespace()
+                .filter(|w| !w.is_empty())
+                .map(|w| w.to_string())
+                .collect()
+        })
+    }
+
+    pub fn lookahead_values(
+        &mut self,
+        vm: &mut Box<dyn IVM>,
+        chunk: &mut Chunk,
+        end: &str,
+    ) -> Result<Vec<Value>> {
+        Err(Error::EndOfFile(end.parse()?))
     }
 }
 
