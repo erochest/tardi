@@ -1,0 +1,53 @@
+# Project Configuration
+
+## Tech Stack
+
+`rust`
+
+`just`: Main work flow commands are implemented and documented in a `Justfile` in the main directory.
+
+## Project Structure
+
+/docs           -- Documentation
+/src            -- All of the source code for the project.
+    main.rs     -- The primary entrypoint for the executable.
+    lib.rs      -- The primary entrypoint for the library.
+    error.rs    -- This defines different errors that the library is aware of and bundles them into one enum and an alias of `Result`.
+/tests          -- This directory contains integration tests. Most of them are built dynamically using a test harness that reads files from `tests/fixtures`.
+    /fixtures   -- This directory contains test fixtures. Each fixture has two files -- `FIXTURE.tardi` and `FIXTURE.stderr`. It also looks for files named `FIXTURE.stdout`. The test harness executes the `FIXTURE.tardi` file and compares its STDOUT against `FIXTURE.stdout` and its STDERR against `FIXTURE.stderr`, if those files exist.
+
+## Architecture
+
+The primary entrypoint is in `src/main.rs`. The `src/lib.rs` file has two functions: `run_file` executes a source file, and `run_repl` runs a repl and executes the user's input.
+
+## TDD
+
+- Write tests first. When starting on a feature, write the integration test first. As we work through the implementation, write unit tests before implementing it.
+- Tests should be focused on one behavior.
+- Only write enough software to make the tests pass.
+- You can easily run all the tests by calling `just`
+- You can easily filter tests by running `cargo nextest run FILTER`
+
+## Coding
+
+- Write simple code. Keep it readable.
+- Make the code SOLID.
+- A little duplication is OK. Only refactor after three repetions.
+- Constants defined and used in a file should appear at the top of the file, after `use` statements.
+
+## Version Control
+
+This project uses `jj` for version control with the `git` backend. The version control workflow goes like this:
+
+1. Beginning work on a new feature, call `jj commit -m "DESCRIPTION"`. This creates an empty named commit to store the work, and an undescribed work area.
+
+2. As work toward this feature is finished, after testing it, squash what's in the work area into the named commit with `jj squash`.
+
+3. Once the feature is complete and all the tests are passing, change the description to include the story number. This requires an external editor.
+
+4. Push this to GitHub my moving the `main` bookmark to point to the primary commit and push:
+
+    ```
+    jj bookmork move --to @- main
+    jj git push
+    ```
