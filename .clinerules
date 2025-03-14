@@ -2,19 +2,30 @@
 
 ## Tech Stack
 
-`rust`
+`rust`: Primary implementation language
 
-`just`: Main work flow commands are implemented and documented in a `Justfile` in the main directory.
+`just`: Main workflow commands are implemented and documented in a `Justfile` in the main directory.
+
+`jj`: Version control system with git backend
+
+`cargo-nextest`: Test runner with filtering capabilities
 
 ## Project Structure
 
-/docs           -- Documentation
-/src            -- All of the source code for the project.
-    main.rs     -- The primary entrypoint for the executable.
-    lib.rs      -- The primary entrypoint for the library.
-    error.rs    -- This defines different errors that the library is aware of and bundles them into one enum and an alias of `Result`.
-/tests          -- This directory contains integration tests. Most of them are built dynamically using a test harness that reads files from `tests/fixtures`.
-    /fixtures   -- This directory contains test fixtures. Each fixture has two files -- `FIXTURE.tardi` and `FIXTURE.stderr`. It also looks for files named `FIXTURE.stdout`. The test harness executes the `FIXTURE.tardi` file and compares its STDOUT against `FIXTURE.stdout` and its STDERR against `FIXTURE.stderr`, if those files exist.
+/cline_docs     -- Memory bank files for project documentation and context
+    project-brief.md    -- Overview of the project and roadmap
+    product_context.md  -- Purpose, problem space, and user experience goals
+    active_context.md   -- Current focus, recent changes, and next steps
+    system_patterns.md  -- Architecture, design patterns, and component relationships
+    tech_context.md     -- Technologies, setup, and technical constraints
+    progress.md         -- Current status, what's built, and what's left to build
+/docs           -- Additional documentation
+/src            -- All of the source code for the project
+    main.rs     -- The primary entrypoint for the executable
+    lib.rs      -- The primary entrypoint for the library
+    error.rs    -- Defines different errors that the library is aware of and bundles them into one enum and an alias of `Result`
+/tests          -- This directory contains integration tests. Most of them are built dynamically using a test harness that reads files from `tests/fixtures`
+    /fixtures   -- This directory contains test fixtures. Each fixture has two files -- `FIXTURE.tardi` and `FIXTURE.stderr`. It also looks for files named `FIXTURE.stdout`. The test harness executes the `FIXTURE.tardi` file and compares its STDOUT against `FIXTURE.stdout` and its STDERR against `FIXTURE.stderr`, if those files exist
 
 ## Architecture
 
