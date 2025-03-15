@@ -24,12 +24,31 @@
     main.rs     -- The primary entrypoint for the executable
     lib.rs      -- The primary entrypoint for the library
     error.rs    -- Defines different errors that the library is aware of and bundles them into one enum and an alias of `Result`
+    vm/         -- Virtual Machine implementation
+        mod.rs  -- VM module definition
+        ops.rs  -- Operation implementations
+        stack.rs -- Stack implementations
 /tests          -- This directory contains integration tests. Most of them are built dynamically using a test harness that reads files from `tests/fixtures`
     /fixtures   -- This directory contains test fixtures. Each fixture has two files -- `FIXTURE.tardi` and `FIXTURE.stderr`. It also looks for files named `FIXTURE.stdout`. The test harness executes the `FIXTURE.tardi` file and compares its STDOUT against `FIXTURE.stdout` and its STDERR against `FIXTURE.stderr`, if those files exist
 
 ## Architecture
 
 The primary entrypoint is in `src/main.rs`. The `src/lib.rs` file has two functions: `run_file` executes a source file, and `run_repl` runs a repl and executes the user's input.
+
+## VM Implementation
+
+- Indirect Threaded Code (ITC) approach chosen for VM implementation
+- Function pointer table used for operation dispatch
+- Instruction stream contains indices into the function pointer table
+- Basic interpreter loop:
+  1. Fetch next operation index
+  2. Look up function pointer in table
+  3. Execute operation
+  4. Repeat
+- Stack-based execution model
+  - Data stack for operation arguments and results
+  - Return stack (planned) for control flow
+- Error handling with custom error types for VM operations
 
 ## TDD
 
@@ -40,13 +59,15 @@ The primary entrypoint is in `src/main.rs`. The `src/lib.rs` file has two functi
 - Only write enough software to make the tests pass.
 - You can easily run all the tests by calling `just test`
 - You can easily filter tests by running `just test FILTER`
+- For VM operations, test stack manipulation correctness, error handling, and edge cases
 
 ## Coding
 
 - Write simple code. Keep it readable.
 - Make the code SOLID.
-- A little duplication is OK. Only refactor after three repetions.
+- A little duplication is OK. Only refactor after three repetitions.
 - Constants defined and used in a file should appear at the top of the file, after `use` statements.
+- Clear separation of VM components: core VM logic, operation implementations, and stack management
 
 ## Version Control
 
@@ -64,3 +85,27 @@ This project uses `jj` for version control with the `git` backend. The version c
     jj bookmork move --to @- main
     jj git push
     ```
+
+## Performance Considerations
+
+- Current ITC implementation balances performance and safety
+- Avoid unsafe code unless absolutely necessary
+- May revisit Direct Threading in the future if performance becomes a critical concern
+- Profile VM performance regularly to identify bottlenecks
+
+## Error Handling
+
+- Use custom error types defined in `error.rs`
+- Implement VM-specific error types for operation failures
+- Ensure proper stack underflow/overflow protection
+- Implement type checking for operations where applicable
+
+## Next Steps
+
+1. Implement core VM operations for literal values
+   - Set up the function pointer table structure
+   - Implement the basic ITC interpreter loop
+   - Add initial literal value operations
+2. Develop basic stack manipulation operations
+3. Create simple test cases for VM functionality
+4. Begin work on the REPL for interactive testing
