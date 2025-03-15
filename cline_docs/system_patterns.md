@@ -51,7 +51,7 @@ graph TD
 ## Project Structure
 - `/src`: All source code
   - `main.rs`: Primary entrypoint for the executable
-  - `lib.rs`: Primary entrypoint for the library
+  - `lib.rs`: Primary entrypoint for the library, re-exports error module
   - `error.rs`: Defines different errors and bundles them into one enum
   - `vm/`: Virtual machine implementation
     - `mod.rs`: VM module definition
@@ -60,6 +60,12 @@ graph TD
 - `/tests`: Integration tests
   - `/fixtures`: Test fixtures (*.tardi, *.stderr, *.stdout files)
 - `/docs`: Documentation
+
+## Library and Binary Structure
+- The project is now structured as a library with a binary target
+- `lib.rs` exposes the public interface of the library
+- `main.rs` uses the library as a dependency
+- Error handling is part of the library and used by the binary
 
 ## VM Architecture
 - Indirect Threaded Code (ITC) implementation

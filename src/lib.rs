@@ -1,0 +1,4 @@
+//! Tardi programming language implementation
+
+/// Re-export error types
+pub mod error;
