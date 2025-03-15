@@ -8,6 +8,12 @@ pub struct Program {
     op_map: HashMap<String, usize>,
 }
 
+impl Default for Program {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Program {
     pub fn new() -> Self {
         Program {

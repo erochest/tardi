@@ -44,6 +44,12 @@ pub struct VM {
     stack: Vec<Value>,
 }
 
+impl Default for VM {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VM {
     /// Returns an iterator over stack values from bottom to top
     pub fn stack_iter(&self) -> impl Iterator<Item = &Value> {

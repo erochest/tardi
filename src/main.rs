@@ -1,7 +1,6 @@
 
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
-use env_logger;
 use human_panic::setup_panic;
 use std::path::PathBuf;
 

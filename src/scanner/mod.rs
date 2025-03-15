@@ -135,7 +135,7 @@ impl<'a> Scanner<'a> {
     }
 }
 
-impl<'a> Iterator for Scanner<'a> {
+impl Iterator for Scanner<'_> {
     type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
