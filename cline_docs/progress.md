@@ -3,7 +3,10 @@
 ## What Works
 - Project initialization
 - Basic project structure set up
-- Documentation started (project brief, memory bank files)
+- Documentation started
+  - Project brief and memory bank files
+  - User-facing documentation for types and literals
+  - Language syntax decisions documented (comments, function definitions)
 - VM architecture decision made (Indirect Threading)
 - Library structure implemented
   - Created src/lib.rs as the library entry point
@@ -15,12 +18,18 @@
   - Stack operations (push/pop)
   - Error handling system with custom VMError types
   - Initial test suite using cargo-nextest
+- Scanner implementation started
+  - Token and TokenType structures created
+  - Scanner with iterator interface implemented
+  - Position tracking added
+  - Basic literal value scanning (integers, floats, scheme-style booleans)
+  - Error handling for invalid number formats and unexpected characters
+  - Test suite for scanner functionality
 
 ## What's Left to Build
-1. Scanner implementation
-   - Token structures
-   - Position tracking
-   - Iterator interface
+1. Complete Scanner implementation
+   - Add support for more token types (operators, identifiers, etc.)
+   - Implement error recovery for better error reporting
 2. Program structure
    - Constants table
    - Operation table
@@ -44,7 +53,8 @@
 16. System initializer
 
 ## Current Status
-- Shifting focus to compiler and scanner implementation
+- Implemented basic scanner functionality for literal values
+- Continuing work on compiler and scanner implementation
 - Planning Program structure for compiled code
 - Designing literal handling through constants table
 - Selected Indirect Threading (ITC) for VM implementation to balance performance and safety
