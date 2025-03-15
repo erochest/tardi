@@ -11,13 +11,16 @@ pub enum Error {
     IoError(io::Error),
     VMError(VMError),
     ScannerError(ScannerError),
+    CompilerError(CompilerError),
 }
 
 #[derive(Debug)]
 pub enum VMError {
     StackUnderflow,
+    StackOverflow,
     InvalidOpCode(usize),
-    // Add more VM-specific errors as needed
+    InvalidConstantIndex(usize),
+    NoProgram,
 }
 
 use Error::*;
@@ -28,6 +31,7 @@ impl fmt::Display for Error {
             IoError(ref err) => err.fmt(f),
             VMError(ref err) => err.fmt(f),
             ScannerError(ref err) => err.fmt(f),
+            CompilerError(ref err) => err.fmt(f),
         }
     }
 }
@@ -36,7 +40,10 @@ impl fmt::Display for VMError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             VMError::StackUnderflow => write!(f, "Stack underflow"),
+            VMError::StackOverflow => write!(f, "Stack overflow"),
             VMError::InvalidOpCode(code) => write!(f, "Invalid opcode: {}", code),
+            VMError::InvalidConstantIndex(index) => write!(f, "Invalid constant index: {}", index),
+            VMError::NoProgram => write!(f, "No program loaded"),
         }
     }
 }
@@ -56,6 +63,7 @@ impl From<VMError> for Error {
     }
 }
 
+// TODO: move to scanner?
 #[derive(Debug)]
 pub enum ScannerError {
     InvalidNumber(String),
@@ -80,5 +88,30 @@ impl error::Error for ScannerError {}
 impl From<ScannerError> for Error {
     fn from(err: ScannerError) -> Error {
         ScannerError(err)
+    }
+}
+
+// TODO: move to compiler?
+#[derive(Debug)]
+pub enum CompilerError {
+    UnsupportedToken(String),
+    InvalidOperation(String),
+    // Add more compiler-specific errors as needed
+}
+
+impl fmt::Display for CompilerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CompilerError::UnsupportedToken(s) => write!(f, "Unsupported token: {}", s),
+            CompilerError::InvalidOperation(s) => write!(f, "Invalid operation: {}", s),
+        }
+    }
+}
+
+impl error::Error for CompilerError {}
+
+impl From<CompilerError> for Error {
+    fn from(err: CompilerError) -> Error {
+        CompilerError(err)
     }
 }

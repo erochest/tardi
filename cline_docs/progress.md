@@ -16,8 +16,10 @@
   - Function pointer table for ITC implementation
   - Basic interpreter loop
   - Stack operations (push/pop)
+  - Stack iteration and display from bottom to top
   - Error handling system with custom VMError types
   - Initial test suite using cargo-nextest
+  - Test infrastructure with line ending normalization
 - Scanner implementation started
   - Token and TokenType structures created
   - Scanner with iterator interface implemented
@@ -58,6 +60,8 @@
 - Planning Program structure for compiled code
 - Designing literal handling through constants table
 - Selected Indirect Threading (ITC) for VM implementation to balance performance and safety
+- Improved VM stack operations with consistent bottom-to-top iteration
+- Enhanced test infrastructure with line ending normalization
 
 ## Known Issues
 - No significant issues at this early stage

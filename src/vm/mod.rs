@@ -1,23 +1,41 @@
-use crate::error::VMError;
+use crate::error::{Result, Error, VMError};
+use std::collections::HashMap;
+use std::fmt;
 
-/// Type alias for VM operation functions
-pub type OpFn = fn(&mut VM) -> Result<(), VMError>;
+/// Function pointer type for VM operations
+pub type OpFn = fn(&mut VM) -> Result<()>;
+
+/// Trait for programs that can be executed by the VM
+pub trait Program: 'static {
+    fn get_instruction(&self, ip: usize) -> Option<usize>;
+    fn get_constant(&self, index: usize) -> Option<&Value>;
+    fn get_op(&self, index: usize) -> Option<&OpFn>;
+    fn instructions_len(&self) -> usize;
+}
 
 /// Enum representing different types of values that can be stored on the stack
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Integer(i64),
     Float(f64),
     Boolean(bool),
 }
 
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Integer(n) => write!(f, "{}", n),
+            Value::Float(x) => write!(f, "{}", x),
+            Value::Boolean(true) => write!(f, "#t"),
+            Value::Boolean(false) => write!(f, "#f"),
+        }
+    }
+}
+
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
 pub struct VM {
-    /// Function pointer table for operation dispatch
-    op_table: Vec<OpFn>,
-    
-    /// Instruction stream (bytecode) containing indices into the op_table
-    instructions: Vec<usize>,
+    /// The program being executed
+    program: Option<Box<dyn Program>>,
     
     /// Instruction pointer tracking the current position in the instruction stream
     ip: usize,
@@ -27,39 +45,62 @@ pub struct VM {
 }
 
 impl VM {
+    /// Returns an iterator over stack values from bottom to top
+    pub fn stack_iter(&self) -> impl Iterator<Item = &Value> {
+        self.stack.iter()
+    }
+
     /// Creates a new VM instance
     pub fn new() -> Self {
         VM {
-            op_table: Vec::new(),
-            instructions: Vec::new(),
+            program: None,
             ip: 0,
             stack: Vec::new(),
         }
     }
 
+    /// Loads a program into the VM
+    pub fn load_program(&mut self, program: Box<dyn Program>) {
+        self.program = Some(program);
+        self.ip = 0;
+    }
+
     /// Runs the VM, executing all instructions in the instruction stream
-    pub fn run(&mut self) -> Result<(), VMError> {
-        while self.ip < self.instructions.len() {
-            let op_index = self.instructions[self.ip];
-            self.ip += 1;
-            
-            if let Some(op) = self.op_table.get(op_index) {
-                op(self)?;
-            } else {
-                return Err(VMError::InvalidOpCode(op_index));
+    pub fn run(&mut self) -> Result<()> {
+        while let Some(program) = &self.program {
+            if self.ip >= program.instructions_len() {
+                break;
             }
+
+            // Get the next instruction and operation
+            let op_index = program.get_instruction(self.ip)
+                .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
+            let operation = program.get_op(op_index)
+                .ok_or(Error::VMError(VMError::InvalidOpCode(op_index)))?;
+            
+            // Store the operation in a local variable
+            let op = *operation;
+            self.ip += 1;
+
+            // Execute the operation
+            op(self)?;
         }
+
         Ok(())
     }
 
     /// Pushes a value onto the data stack
-    pub fn push(&mut self, value: Value) {
+    pub fn push(&mut self, value: Value) -> Result<()> {
+        if self.stack.len() >= 1024 {
+            return Err(VMError::StackOverflow.into());
+        }
         self.stack.push(value);
+        Ok(())
     }
 
     /// Pops a value from the data stack
-    pub fn pop(&mut self) -> Result<Value, VMError> {
-        self.stack.pop().ok_or(VMError::StackUnderflow)
+    pub fn pop(&mut self) -> Result<Value> {
+        self.stack.pop().ok_or(VMError::StackUnderflow.into())
     }
 
     /// Returns the current size of the data stack
@@ -67,28 +108,72 @@ impl VM {
         self.stack.len()
     }
 
-    /// Adds an operation to the op_table and returns its index
-    pub fn add_op(&mut self, op: OpFn) -> usize {
-        self.op_table.push(op);
-        self.op_table.len() - 1
+    /// Executes the lit operation - loads a constant onto the stack
+    pub fn lit(&mut self) -> Result<()> {
+        let program = self.program.as_ref().ok_or(Error::VMError(VMError::NoProgram))?;
+        
+        let const_index = program.get_instruction(self.ip)
+            .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
+        self.ip += 1;
+        
+        if let Some(value) = program.get_constant(const_index) {
+            self.push(value.clone())
+        } else {
+            Err(Error::VMError(VMError::InvalidConstantIndex(const_index)))
+        }
     }
+}
 
-    /// Adds an instruction (op_table index) to the instruction stream
-    pub fn add_instruction(&mut self, op_index: usize) {
-        self.instructions.push(op_index);
-    }
+// Define the operations
+pub fn lit(vm: &mut VM) -> Result<()> {
+    vm.lit()
+}
+
+// Create the default operation table
+pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
+    let mut op_table = Vec::new();
+    let mut op_map = HashMap::new();
+    
+    op_table.push(lit as OpFn);
+    op_map.insert("lit".to_string(), 0);
+    
+    (op_table, op_map)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    struct TestProgram {
+        instructions: Vec<usize>,
+        constants: Vec<Value>,
+        op_table: Vec<OpFn>,
+    }
+
+    impl Program for TestProgram {
+        fn get_instruction(&self, ip: usize) -> Option<usize> {
+            self.instructions.get(ip).copied()
+        }
+
+        fn get_constant(&self, index: usize) -> Option<&Value> {
+            self.constants.get(index)
+        }
+
+        fn get_op(&self, index: usize) -> Option<&OpFn> {
+            self.op_table.get(index)
+        }
+
+        fn instructions_len(&self) -> usize {
+            self.instructions.len()
+        }
+    }
+
     #[test]
     fn test_stack_operations() {
         let mut vm = VM::new();
         
         // Test push
-        vm.push(Value::Integer(42));
+        vm.push(Value::Integer(42)).unwrap();
         assert_eq!(vm.stack_size(), 1);
         
         // Test pop
@@ -96,23 +181,21 @@ mod tests {
         assert!(matches!(value, Value::Integer(42)));
         
         // Test stack underflow
-        assert!(matches!(vm.pop(), Err(VMError::StackUnderflow)));
+        assert!(matches!(vm.pop(), Err(Error::VMError(VMError::StackUnderflow))));
     }
 
     #[test]
     fn test_basic_vm_execution() {
         let mut vm = VM::new();
+        let (op_table, _) = create_op_table();
         
-        // Add a test operation that pushes an integer
-        let op_index = vm.add_op(|vm: &mut VM| {
-            vm.push(Value::Integer(123));
-            Ok(())
+        let program = Box::new(TestProgram {
+            instructions: vec![0, 0], // lit operation index followed by constant index
+            constants: vec![Value::Integer(123)],
+            op_table,
         });
         
-        // Add the operation to the instruction stream
-        vm.add_instruction(op_index);
-        
-        // Run the VM
+        vm.load_program(program);
         vm.run().unwrap();
         
         // Verify the result
@@ -123,11 +206,13 @@ mod tests {
     #[test]
     fn test_invalid_opcode() {
         let mut vm = VM::new();
+        let program = Box::new(TestProgram {
+            instructions: vec![999], // Invalid opcode
+            constants: vec![],
+            op_table: vec![],
+        });
         
-        // Add an invalid operation index
-        vm.add_instruction(999); // This index doesn't exist in op_table
-        
-        // Run should return an error
-        assert!(matches!(vm.run(), Err(VMError::InvalidOpCode(_))));
+        vm.load_program(program);
+        assert!(matches!(vm.run(), Err(Error::VMError(VMError::InvalidOpCode(_)))));
     }
 }

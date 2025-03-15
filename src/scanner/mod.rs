@@ -1,7 +1,7 @@
 mod token;
 pub use token::{Token, TokenType};
 
-use crate::error::ScannerError;
+use crate::error::{Error, ScannerError};
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -70,7 +70,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a number (integer or float)
-    fn scan_number(&mut self, first_digit: char) -> Result<TokenType, ScannerError> {
+    fn scan_number(&mut self, first_digit: char) -> Result<TokenType, Error> {
         let mut number = String::from(first_digit);
         let mut is_float = false;
 
@@ -88,7 +88,7 @@ impl<'a> Scanner<'a> {
                 if c == '.' {
                     // Only allow one decimal point
                     if is_float {
-                        return Err(ScannerError::InvalidNumber(number));
+                        return Err(Error::ScannerError(ScannerError::InvalidNumber(number)));
                     }
                     is_float = true;
                     number.push(c);
@@ -97,10 +97,10 @@ impl<'a> Scanner<'a> {
                     // Must have at least one digit after decimal
                     if let Some(next) = self.peek() {
                         if !next.is_ascii_digit() {
-                            return Err(ScannerError::InvalidNumber(number));
+                            return Err(Error::ScannerError(ScannerError::InvalidNumber(number)));
                         }
                     } else {
-                        return Err(ScannerError::InvalidNumber(number));
+                        return Err(Error::ScannerError(ScannerError::InvalidNumber(number)));
                     }
                 } else {
                     break;
@@ -115,28 +115,28 @@ impl<'a> Scanner<'a> {
         if is_float {
             match number.parse::<f64>() {
                 Ok(n) => Ok(TokenType::Float(n)),
-                Err(_) => Err(ScannerError::InvalidNumber(number)),
+                Err(_) => Err(Error::ScannerError(ScannerError::InvalidNumber(number))),
             }
         } else {
             match number.parse::<i64>() {
                 Ok(n) => Ok(TokenType::Integer(n)),
-                Err(_) => Err(ScannerError::InvalidNumber(number)),
+                Err(_) => Err(Error::ScannerError(ScannerError::InvalidNumber(number))),
             }
         }
     }
 
     /// Scans a potential boolean value
-    fn scan_boolean(&mut self) -> Result<TokenType, ScannerError> {
+    fn scan_boolean(&mut self) -> Result<TokenType, Error> {
         match self.next_char() {
             Some('t') => Ok(TokenType::Boolean(true)),
             Some('f') => Ok(TokenType::Boolean(false)),
-            _ => Err(ScannerError::InvalidLiteral("#".to_string())),
+            _ => Err(Error::ScannerError(ScannerError::InvalidLiteral("#".to_string()))),
         }
     }
 }
 
 impl<'a> Iterator for Scanner<'a> {
-    type Item = Result<Token, ScannerError>;
+    type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Skip any whitespace before the next token
@@ -154,7 +154,7 @@ impl<'a> Iterator for Scanner<'a> {
         let result = match c {
             '0'..='9' => self.scan_number(c),
             '#' => self.scan_boolean(),
-            _ => Err(ScannerError::UnexpectedCharacter(c)),
+            _ => Err(Error::ScannerError(ScannerError::UnexpectedCharacter(c))),
         };
 
         // Calculate token length

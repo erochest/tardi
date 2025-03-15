@@ -4,6 +4,7 @@
 - Implementing compiler and scanner components
 - Designing the Program structure for compiled code
 - Implementing literal value handling through constants table
+- Improving VM and test infrastructure
 
 ## Recent Changes
 - Implemented basic VM structure with function pointer table and stack operations
@@ -17,6 +18,11 @@
 - Added plans for extended number format support (binary, octal, hex, rationals, etc.)
 - Created initial user-facing documentation for types and literals
 - Decided on using double slashes (//) for comments in the language
+- Implemented `Display` for `Value` in `src/vm/mod.rs`
+- Added `stack_iter()` method to `VM` to iterate over stack values from bottom to top
+- Updated `run_file` function in `src/main.rs` to use the new `stack_iter()` method
+- Modified `validate_print_output` function in `tests/test_main.rs` to normalize line endings
+- Improved test fixtures to handle different line ending formats
 
 ## Next Steps
 1. Implement remaining scanner components
@@ -33,6 +39,7 @@
 4. Update VM to work with Program structure
    - Add lit operation
    - Modify VM to use Program object
+5. Continue improving test coverage and infrastructure
 
 ## Active Decisions and Considerations
 - Using iterator pattern for scanner output
@@ -53,3 +60,5 @@
   - Floats with optional leading digit (e.g., .5)
 - Using double slashes (//) for comments in the language
 - Reserving semicolons (;) for function definitions
+- Stack iteration and display now consistently show values from bottom to top
+- Test infrastructure now handles different line ending formats (CRLF vs LF)

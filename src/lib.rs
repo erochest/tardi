@@ -8,3 +8,12 @@ pub mod vm;
 
 /// Scanner implementation
 pub mod scanner;
+
+/// Compiler implementation
+pub mod compiler;
+
+// Re-exports
+pub use error::Result;
+pub use scanner::Scanner;
+pub use compiler::Compiler;
+pub use vm::{VM, Value};
