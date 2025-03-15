@@ -33,11 +33,13 @@ The primary entrypoint is in `src/main.rs`. The `src/lib.rs` file has two functi
 
 ## TDD
 
+- Work in small steps.
+- Run tests often to get feedback constantly.
 - Write tests first. When starting on a feature, write the integration test first. As we work through the implementation, write unit tests before implementing it.
 - Tests should be focused on one behavior.
 - Only write enough software to make the tests pass.
-- You can easily run all the tests by calling `just`
-- You can easily filter tests by running `cargo nextest run FILTER`
+- You can easily run all the tests by calling `just test`
+- You can easily filter tests by running `just test FILTER`
 
 ## Coding
 

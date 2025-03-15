@@ -1,6 +1,6 @@
 
-test:
-    cargo nextest run
+test *FILTERS:
+    cargo nextest run {{FILTERS}}
 
 build:
     cargo build
