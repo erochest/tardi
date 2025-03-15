@@ -1,29 +1,33 @@
 # Active Context
 
 ## Current Work Focus
-- Implementing the core VM operations for retrieving literal values using Indirect Threading
+- Implementing literal value handling in the VM
+- Designing the instruction format to support both operations and literal values
 - Setting up the basic project structure and development environment
 
 ## Recent Changes
-- Project initialization
-- Creation of the project brief and initial documentation
-- Decision to implement VM using Indirect Threading (ITC) for a balance of performance and safety
+- Implemented basic VM structure with function pointer table and stack operations
+- Created initial error handling system with VMError types
+- Set up test infrastructure using cargo-nextest
+- Implemented basic stack operations (push/pop)
 
 ## Next Steps
-1. Implement VM with core operations for retrieving literal values
-   - Set up the function pointer table for ITC implementation
-   - Implement the basic interpreter loop
-   - Add initial literal value operations
+1. Extend VM to handle literal values in instruction stream
+   - Design instruction format that can represent both operations and literals
+   - Implement mechanism to distinguish between operation indices and literal values
+   - Add operations for pushing different types of literals (integers, floats, booleans)
 2. Add operations for stack manipulation
 3. Implement return stack, jumps, and operations for moving data between the data stack and return stack
 
 ## Active Decisions and Considerations
 - Decided on Indirect Threading (ITC) for VM implementation to avoid unsafe code while maintaining reasonable performance
-- Deciding on the syntax for literal values and stack operations
-- Considering the best approach for implementing the return stack and jump operations
+- Need to design instruction format that can handle both operation indices and literal values
+- Considering approaches for encoding literals in the instruction stream:
+  - Could use a special opcode for "push literal" followed by the value
+  - Or could use a tagged union type for instructions to distinguish ops from literals
 - May revisit Direct Threading in the future if performance becomes a critical concern
 
 ## Open Questions
-- What specific literal types should be supported in the initial implementation?
-- How should error handling be implemented in the VM?
-- What testing strategy should be used for the VM and language features?
+- What's the most efficient way to represent literals in the instruction stream?
+- How should we distinguish between operation indices and literal values?
+- Should we use different opcodes for different literal types (push_int, push_float, etc.)?

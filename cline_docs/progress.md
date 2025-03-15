@@ -9,12 +9,18 @@
   - Created src/lib.rs as the library entry point
   - Moved error handling to the library
   - Updated src/main.rs to use the library
+- Basic VM structure implemented
+  - Function pointer table for ITC implementation
+  - Basic interpreter loop
+  - Stack operations (push/pop)
+  - Error handling system with custom VMError types
+  - Initial test suite using cargo-nextest
 
 ## What's Left to Build
-1. VM with core operations for retrieving literal values
-   - Function pointer table for ITC implementation
-   - Basic interpreter loop
-   - Initial literal value operations
+1. VM literal value handling
+   - Design instruction format to represent both operations and literals
+   - Implement mechanism to distinguish ops from literals in instruction stream
+   - Add operations for different literal types (integers, floats, booleans)
 2. Stack manipulation operations
 3. Return stack, jumps, and operations for moving data between stacks
 4. File and console IO operations
