@@ -17,30 +17,37 @@
   - Initial test suite using cargo-nextest
 
 ## What's Left to Build
-1. VM literal value handling
-   - Design instruction format to represent both operations and literals
-   - Implement mechanism to distinguish ops from literals in instruction stream
-   - Add operations for different literal types (integers, floats, booleans)
-2. Stack manipulation operations
-3. Return stack, jumps, and operations for moving data between stacks
-4. File and console IO operations
-5. Core datatype creation operations
-6. Basic operations on integers, floating point numbers, rationals
-7. Basic string operations
-8. Basic vector operations
-9. Basic hashtable operations
-10. FFI operations
-11. Green- and OS-threading operations
-12. Tokenizer/scanner
-13. Compiler (token array to bytecode)
-14. Metaprogramming capabilities
-15. System initializer
+1. Scanner implementation
+   - Token structures
+   - Position tracking
+   - Iterator interface
+2. Program structure
+   - Constants table
+   - Operation table
+   - Instruction format
+3. Compiler implementation
+   - Token consumption
+   - Constant pooling
+   - Literal handling
+4. VM updates for Program integration
+5. Stack manipulation operations
+6. Return stack, jumps, and operations for moving data between stacks
+7. File and console IO operations
+8. Core datatype creation operations
+9. Basic operations on integers, floating point numbers, rationals
+10. Basic string operations
+11. Basic vector operations
+12. Basic hashtable operations
+13. FFI operations
+14. Green- and OS-threading operations
+15. Metaprogramming capabilities
+16. System initializer
 
 ## Current Status
-- Early development stage
-- Focus on implementing core VM operations
+- Shifting focus to compiler and scanner implementation
+- Planning Program structure for compiled code
+- Designing literal handling through constants table
 - Selected Indirect Threading (ITC) for VM implementation to balance performance and safety
-- Planning initial implementation of literal value operations
 
 ## Known Issues
 - No significant issues at this early stage
@@ -77,10 +84,18 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Implement core VM operations for literal values
-   - Set up the function pointer table structure
-   - Implement the basic ITC interpreter loop
-   - Add initial literal value operations
-2. Develop basic stack manipulation operations
-3. Create simple test cases for VM functionality
-4. Begin work on the REPL for interactive testing
+1. Implement scanner components
+   - Create Token and TokenType structures
+   - Implement Scanner with iterator interface
+   - Add position tracking
+2. Implement Program structure
+   - Constants table management
+   - Operation table construction
+   - Instruction generation
+3. Implement compiler
+   - Token stream consumption
+   - Constant pooling
+   - Literal handling
+4. Update VM to work with Program structure
+   - Add lit operation
+   - Modify VM to use Program object

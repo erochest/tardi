@@ -36,16 +36,16 @@ The Tardi language system consists of the following main components:
 ## Component Relationships
 ```mermaid
 graph TD
-    A[Source Code] --> B[Tokenizer/Scanner]
-    B --> C[Compiler]
-    C --> D[Bytecode]
-    D --> E[Virtual Machine]
-    E --> F[Function Pointer Table]
-    E --> G[Data Stack]
-    E --> H[Return Stack]
-    I[REPL] --> B
-    J[File Executor] --> B
-    K[Test Harness] --> J
+    A[Source Code] --> B[Scanner]
+    B --> |Iterator<Token>| C[Compiler]
+    C --> D[Program]
+    D --> |Constants Table| E[Virtual Machine]
+    D --> |Instructions| E
+    D --> |Op Table| E
+    E --> F[Data Stack]
+    E --> G[Return Stack]
+    H[REPL] --> A
+    I[File Executor] --> A
 ```
 
 ## Project Structure
@@ -57,6 +57,12 @@ graph TD
     - `mod.rs`: VM module definition
     - `ops.rs`: Operation implementations
     - `stack.rs`: Stack implementations
+  - `compiler/`
+    - `mod.rs`: Compiler implementation
+    - `program.rs`: Program structure
+  - `scanner/`
+    - `mod.rs`: Scanner implementation
+    - `token.rs`: Token and TokenType definitions
 - `/tests`: Integration tests
   - `/fixtures`: Test fixtures (*.tardi, *.stderr, *.stdout files)
 - `/docs`: Documentation
