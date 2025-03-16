@@ -128,6 +128,36 @@ impl VM {
             Err(Error::VMError(VMError::InvalidConstantIndex(const_index)))
         }
     }
+
+    /// Duplicates the top item on the stack
+    pub fn dup(&mut self) -> Result<()> {
+        let value = self.pop()?;
+        self.push(value.clone())?;
+        self.push(value)
+    }
+
+    /// Swaps the top two items on the stack
+    pub fn swap(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        self.push(b)?;
+        self.push(a)
+    }
+
+    /// Rotates the top three items on the stack
+    pub fn rot(&mut self) -> Result<()> {
+        let c = self.pop()?;
+        let b = self.pop()?;
+        let a = self.pop()?;
+        self.push(b)?;
+        self.push(c)?;
+        self.push(a)
+    }
+
+    /// Removes the top item from the stack
+    pub fn drop_op(&mut self) -> Result<()> {
+        self.pop().map(|_| ())
+    }
 }
 
 // Define the operations
@@ -135,13 +165,39 @@ pub fn lit(vm: &mut VM) -> Result<()> {
     vm.lit()
 }
 
+pub fn dup(vm: &mut VM) -> Result<()> {
+    vm.dup()
+}
+
+pub fn swap(vm: &mut VM) -> Result<()> {
+    vm.swap()
+}
+
+pub fn rot(vm: &mut VM) -> Result<()> {
+    vm.rot()
+}
+
+pub fn drop_op(vm: &mut VM) -> Result<()> {
+    vm.drop_op()
+}
+
+// Helper function to add an operation to the table and map
+fn add_op(op_table: &mut Vec<OpFn>, op_map: &mut HashMap<String, usize>, op: OpFn, name: &str) {
+    let index = op_table.len();
+    op_table.push(op);
+    op_map.insert(name.to_string(), index);
+}
+
 // Create the default operation table
 pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
     let mut op_table = Vec::new();
     let mut op_map = HashMap::new();
     
-    op_table.push(lit as OpFn);
-    op_map.insert("lit".to_string(), 0);
+    add_op(&mut op_table, &mut op_map, lit, "lit");
+    add_op(&mut op_table, &mut op_map, dup, "dup");
+    add_op(&mut op_table, &mut op_map, swap, "swap");
+    add_op(&mut op_table, &mut op_map, rot, "rot");
+    add_op(&mut op_table, &mut op_map, drop_op, "drop");
     
     (op_table, op_map)
 }
@@ -178,16 +234,40 @@ mod tests {
     fn test_stack_operations() {
         let mut vm = VM::new();
         
-        // Test push
+        // Test push and pop
         vm.push(Value::Integer(42)).unwrap();
         assert_eq!(vm.stack_size(), 1);
-        
-        // Test pop
         let value = vm.pop().unwrap();
         assert!(matches!(value, Value::Integer(42)));
-        
-        // Test stack underflow
         assert!(matches!(vm.pop(), Err(Error::VMError(VMError::StackUnderflow))));
+
+        // Test dup
+        vm.push(Value::Integer(1)).unwrap();
+        vm.dup().unwrap();
+        assert_eq!(vm.stack_size(), 2);
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
+
+        // Test swap
+        vm.push(Value::Integer(1)).unwrap();
+        vm.push(Value::Integer(2)).unwrap();
+        vm.swap().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(2)));
+
+        // Test rot
+        vm.push(Value::Integer(1)).unwrap();
+        vm.push(Value::Integer(2)).unwrap();
+        vm.push(Value::Integer(3)).unwrap();
+        vm.rot().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(3)));
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(2)));
+
+        // Test drop_op
+        vm.push(Value::Integer(42)).unwrap();
+        vm.drop_op().unwrap();
+        assert_eq!(vm.stack_size(), 0);
     }
 
     #[test]

@@ -10,7 +10,11 @@ pub enum TokenType {
     Float(f64),
     Boolean(bool),
 
-    // Add more token types as needed
+    // Stack Operations
+    Dup,
+    Swap,
+    Rot,
+    Drop,
 
     // Special tokens
     Error,

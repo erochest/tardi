@@ -1,0 +1,4 @@
+1 2 3 dup
+4 5 swap
+6 7 8 rot
+9 drop

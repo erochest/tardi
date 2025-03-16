@@ -2,7 +2,9 @@
 
 ## What Works
 - Project initialization and basic structure
-- Documentation started (project brief, memory bank, types and literals, language syntax decisions)
+- Documentation:
+  - Project brief, memory bank, types and literals, language syntax decisions
+  - Stack manipulation operations (docs/stack-manipulation.md)
 - VM architecture with Indirect Threading (ITC)
 - Library structure (src/lib.rs, error handling, src/main.rs updates)
 - Basic VM structure:
@@ -16,33 +18,37 @@
   - Position tracking
   - Basic literal value scanning (integers, floats, scheme-style booleans)
   - Error handling for invalid number formats and unexpected characters
-- Compiler implementation started:
+  - Support for basic stack operation words (dup, swap, rot, drop)
+- Compiler implementation:
   - Basic structure for compiling integers, floats, and booleans
   - Uses Program structure to generate bytecode
+  - Support for compiling basic stack operations
 - Program structure:
   - Manages constants, instructions, and op_table
   - Implements VMProgram trait
+- VM enhancements:
+  - Implementation of basic stack manipulation primitives (dup, swap, rot, drop)
 - Test infrastructure:
   - Initial test suite using cargo-nextest
   - Integration tests for major features
   - System-specific tests (Scanner, Compiler, VM)
   - Line ending normalization
+  - Comprehensive tests for basic stack operations
 - TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
 1. Enhance Scanner:
-   - Support for operators and identifiers
+   - Support for arithmetic and comparison operators
    - Extended number formats (binary, octal, hex, rationals, exponential notation)
    - Error recovery for better reporting
 2. Expand Compiler:
-   - Support for operators
+   - Support for arithmetic and comparison operators
    - Variable declaration and assignment
    - Function declarations and calls
    - Control flow structures (if/else, loops)
 3. Enhance VM:
    - Arithmetic operations (add, sub, mul, div)
    - Comparison operations (eq, lt, gt, etc.)
-   - Stack manipulation primitives (dup, swap, rot, drop)
    - Variable management and function call operations
 4. Improve Program structure:
    - Methods for easier instruction and constant addition
@@ -60,6 +66,7 @@
 ## Current Status
 - Basic scanner, compiler, and VM functionality implemented
 - Program structure in place for managing bytecode
+- Basic stack operations (dup, swap, rot, drop) implemented across all components
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
 - Improving test coverage and maintaining TDD-focused workflow
@@ -92,17 +99,19 @@
 
 ## Next Steps
 1. Enhance the Scanner:
-   - Add support for operators and identifiers
+   - Add support for arithmetic and comparison operators
    - Implement extended number formats
    - Improve error recovery and reporting
 2. Expand the Compiler:
-   - Implement support for operators and variables
+   - Implement support for arithmetic and comparison operators
+   - Add variable declaration and assignment support
    - Add function declaration and call support
    - Implement control flow structures
 3. Enhance the VM:
    - Add arithmetic and comparison operations
-   - Implement stack manipulation primitives
    - Add variable management and function call operations
 4. Improve Program structure and serialization
 5. Begin work on the module system
-6. Continue improving test coverage and documentation
+6. Continue improving test coverage and documentation:
+   - Add documentation for arithmetic operations (when implemented)
+   - Update stack-manipulation.md as new operations are added

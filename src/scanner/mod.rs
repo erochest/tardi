@@ -133,6 +133,29 @@ impl<'a> Scanner<'a> {
             _ => Err(Error::ScannerError(ScannerError::InvalidLiteral("#".to_string()))),
         }
     }
+
+    /// Scans an identifier or keyword
+    fn scan_identifier(&mut self, first_char: char) -> Result<TokenType, Error> {
+        let mut identifier = String::from(first_char);
+        
+        // Scan the rest of the identifier
+        while let Some(c) = self.peek() {
+            if c.is_ascii_whitespace() {
+                break;
+            }
+            identifier.push(c);
+            self.next_char();
+        }
+
+        // Check for stack operation keywords
+        Ok(match identifier.as_str() {
+            "dup" => TokenType::Dup,
+            "swap" => TokenType::Swap,
+            "rot" => TokenType::Rot,
+            "drop" => TokenType::Drop,
+            _ => return Err(Error::ScannerError(ScannerError::UnexpectedCharacter(first_char))),
+        })
+    }
 }
 
 impl Iterator for Scanner<'_> {
@@ -154,7 +177,7 @@ impl Iterator for Scanner<'_> {
         let result = match c {
             '0'..='9' => self.scan_number(c),
             '#' => self.scan_boolean(),
-            _ => Err(Error::ScannerError(ScannerError::UnexpectedCharacter(c))),
+            c => self.scan_identifier(c),
         };
 
         // Calculate token length
@@ -320,5 +343,45 @@ mod tests {
 
         // Test invalid boolean
         assert!(scanner.next().unwrap().is_err()); // "#x" is not a valid boolean
+    }
+
+    #[test]
+    fn test_scan_stack_operations() {
+        let mut scanner = Scanner::new("dup swap rot drop");
+
+        // Test "dup"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Dup));
+            assert_eq!(token.line, 1);
+            assert_eq!(token.column, 1);
+            assert_eq!(token.length, 3);
+            assert_eq!(token.lexeme, "dup");
+        } else {
+            panic!("Failed to scan dup");
+        }
+
+        // Test "swap"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Swap));
+            assert_eq!(token.lexeme, "swap");
+        } else {
+            panic!("Failed to scan swap");
+        }
+
+        // Test "rot"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Rot));
+            assert_eq!(token.lexeme, "rot");
+        } else {
+            panic!("Failed to scan rot");
+        }
+
+        // Test "drop"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Drop));
+            assert_eq!(token.lexeme, "drop");
+        } else {
+            panic!("Failed to scan drop");
+        }
     }
 }

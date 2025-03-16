@@ -23,14 +23,14 @@
 - Improved scanner with support for integers, floats, and booleans
 - Enhanced error handling across all components
 - Improved test infrastructure and coverage
+- Implemented basic stack operations (dup, swap, rot, drop) across all components:
+  - Added scanner support for stack operation words
+  - Added compiler support for stack operations
+  - Implemented VM stack manipulation primitives
+  - Added comprehensive tests for stack operations
 
 ## Next Steps
-1. Implement Basic Stack Operations:
-   - Stack manipulation primitives (dup, swap, rot, drop)
-   - Integration across scanner, compiler, and VM
-   - Error handling for stack operations
-
-2. Add Arithmetic Operations:
+1. Add Arithmetic Operations:
    - Scanner support for arithmetic operators
    - Compiler implementation for arithmetic expressions
    - VM operations for add, sub, mul, div
@@ -102,3 +102,5 @@
 - Test infrastructure handles different line ending formats (CRLF vs LF)
 - Need to implement a module system before developing the standard library
 - Flexibility in adjusting the development plan as we progress
+- Following Forth-style word handling with whitespace-delimited words that can start with any character
+- Using helper functions to maintain consistent operation table management

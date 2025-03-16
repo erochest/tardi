@@ -39,7 +39,10 @@ impl Compiler {
             TokenType::Integer(value) => self.compile_integer(value),
             TokenType::Float(value) => self.compile_float(value),
             TokenType::Boolean(value) => self.compile_boolean(value),
-            // Add more token types as needed
+            TokenType::Dup => self.compile_stack_op("dup"),
+            TokenType::Swap => self.compile_stack_op("swap"),
+            TokenType::Rot => self.compile_stack_op("rot"),
+            TokenType::Drop => self.compile_stack_op("drop"),
             _ => Err(Error::CompilerError(CompilerError::UnsupportedToken(format!("{:?}", token)))),
         }
     }
@@ -68,6 +71,13 @@ impl Compiler {
             .ok_or(Error::CompilerError(CompilerError::InvalidOperation("lit operation not found".to_string())))?;
         self.program.add_instruction(lit_index);
         self.program.add_instruction(const_index);
+        Ok(())
+    }
+
+    fn compile_stack_op(&mut self, op_name: &str) -> Result<()> {
+        let op_index = self.program.get_op_index(op_name)
+            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(format!("{} operation not found", op_name))))?;
+        self.program.add_instruction(op_index);
         Ok(())
     }
 }
