@@ -50,16 +50,32 @@ The primary entrypoint is in `src/main.rs`. The `src/lib.rs` file has two functi
   - Return stack (planned) for control flow
 - Error handling with custom error types for VM operations
 
-## TDD
+## Development Approach
 
-- Work in small steps.
-- Run tests often to get feedback constantly.
-- Write tests first. When starting on a feature, write the integration test first. As we work through the implementation, write unit tests before implementing it.
-- Tests should be focused on one behavior.
-- Only write enough software to make the tests pass.
+### Feature-First Development
+- Organize work around vertical slices of functionality
+- Focus on delivering end-user/developer value
+- Implement features across all system layers (scanner, compiler, VM)
+- Complete one feature before moving to the next
+
+### TDD
+- Work in small steps
+- Run tests often to get feedback constantly
+- Write tests first. When starting a feature, write the integration test first. As we work through the implementation, write unit tests before implementing it
+- Tests should be focused on one behavior
+- Only write enough software to make the tests pass
 - You can easily run all the tests by calling `just test`
 - You can easily filter tests by running `just test FILTER`
 - For VM operations, test stack manipulation correctness, error handling, and edge cases
+
+### Feature Implementation Flow
+1. Start with integration test defining the feature
+2. Implement required scanner support
+3. Add compiler implementation
+4. Create VM operations
+5. Add error handling across all layers
+6. Verify integration test passes
+7. Document the feature
 
 ## Coding
 
@@ -102,10 +118,28 @@ This project uses `jj` for version control with the `git` backend. The version c
 
 ## Next Steps
 
-1. Implement core VM operations for literal values
-   - Set up the function pointer table structure
-   - Implement the basic ITC interpreter loop
-   - Add initial literal value operations
-2. Develop basic stack manipulation operations
-3. Create simple test cases for VM functionality
-4. Begin work on the REPL for interactive testing
+1. Implement Basic Stack Operations:
+   - Stack manipulation primitives (dup, swap, rot, drop)
+   - Integration across scanner, compiler, and VM
+   - Error handling for stack operations
+
+2. Add Arithmetic Operations:
+   - Scanner support for arithmetic operators
+   - Compiler implementation for arithmetic expressions
+   - VM operations for add, sub, mul, div
+   - Error handling for arithmetic operations
+   - Integration tests for arithmetic functionality
+
+3. Implement Comparison Operations:
+   - Scanner support for comparison operators
+   - Compiler implementation for comparisons
+   - VM operations for eq, lt, gt, etc.
+   - Error handling for comparison operations
+   - Integration tests for comparison functionality
+
+4. Add Variable Support:
+   - Scanner support for identifiers
+   - Compiler implementation for variable declaration/assignment
+   - VM operations for variable management
+   - Error handling for variable operations
+   - Integration tests for variable functionality

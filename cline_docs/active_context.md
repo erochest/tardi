@@ -25,39 +25,68 @@
 - Improved test infrastructure and coverage
 
 ## Next Steps
-1. Enhance the Scanner:
-   - Add support for operators (arithmetic, comparison, etc.)
-   - Implement identifiers for variables and functions
-   - Complete the extended number formats (binary, octal, hex, rationals, exponential notation)
-   - Implement error recovery for better error reporting
+1. Implement Basic Stack Operations:
+   - Stack manipulation primitives (dup, swap, rot, drop)
+   - Integration across scanner, compiler, and VM
+   - Error handling for stack operations
 
-2. Expand the Compiler:
-   - Add support for compiling operators
-   - Implement variable declaration and assignment
-   - Add support for function declarations and calls
-   - Implement control flow structures (if/else, loops)
+2. Add Arithmetic Operations:
+   - Scanner support for arithmetic operators
+   - Compiler implementation for arithmetic expressions
+   - VM operations for add, sub, mul, div
+   - Error handling for arithmetic operations
+   - Integration tests for arithmetic functionality
 
-3. Enhance the VM with more operations:
-   - Implement arithmetic operations (add, sub, mul, div)
-   - Add comparison operations (eq, lt, gt, etc.)
-   - Implement stack manipulation primitives (dup, swap, rot, drop)
-   - Add operations for variable management and function calls
+3. Implement Comparison Operations:
+   - Scanner support for comparison operators
+   - Compiler implementation for comparisons
+   - VM operations for eq, lt, gt, etc.
+   - Error handling for comparison operations
+   - Integration tests for comparison functionality
 
-4. Improve the Program structure:
-   - Add methods for easier instruction and constant addition
-   - Implement serialization/deserialization for programs
+4. Add Variable Support:
+   - Scanner support for identifiers
+   - Compiler implementation for variable declaration/assignment
+   - VM operations for variable management
+   - Error handling for variable operations
+   - Integration tests for variable functionality
 
-5. Implement a module system
+5. Implement Function Support:
+   - Scanner support for function syntax
+   - Compiler implementation for function declarations/calls
+   - VM operations for function execution
+   - Error handling for function operations
+   - Integration tests for function functionality
 
-6. Develop a basic standard library
+6. Add Control Flow Structures:
+   - Scanner support for if/else and loop syntax
+   - Compiler implementation for control flow
+   - VM operations for conditional execution and loops
+   - Error handling for control flow
+   - Integration tests for control flow functionality
 
-7. Enhance error handling and reporting across all components
+7. Implement Extended Number Formats:
+   - Scanner support for binary, octal, hex, rationals
+   - Compiler implementation for extended numbers
+   - VM operations for extended number types
+   - Error handling for number formats
+   - Integration tests for number format functionality
 
-8. Expand test coverage:
-   - Add more comprehensive tests for the compiler
-   - Create integration tests that cover the entire pipeline from scanning to execution
+8. Add Module System:
+   - Module syntax and loading
+   - Compiler support for modules
+   - VM support for module execution
+   - Error handling for module operations
+   - Integration tests for module functionality
 
-9. Regularly update documentation and memory bank files
+9. Develop Basic Standard Library:
+   - Core utility functions
+   - Common operations library
+   - Standard data structure implementations
+   - Documentation and examples
+   - Integration tests for standard library
+
+10. Regularly update documentation and memory bank files
 
 ## Active Decisions and Considerations
 - Using iterator pattern for scanner output
