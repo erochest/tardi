@@ -5,6 +5,17 @@
 - Designing the Program structure for compiled code
 - Implementing literal value handling through constants table
 - Improving VM and test infrastructure
+- Implementing and following new TDD-focused workflow
+
+## Development Workflow
+1. Create integration test in `tests/fixtures` for new major features
+2. Work backward from scanner to VM
+3. For Scanner, Compiler, and VM systems:
+   a. Create tests (including error cases)
+   b. Implement functionality
+   c. Run system-specific tests
+4. Verify integration tests
+5. Update documentation and memory bank
 
 ## Recent Changes
 - Implemented basic VM structure with function pointer table and stack operations
@@ -28,6 +39,7 @@
 1. Implement remaining scanner components
    - Add support for more token types (operators, identifiers, etc.)
    - Implement error recovery for better error reporting
+   - Focus on error cases and edge conditions
 2. Implement Program structure
    - Constants table management
    - Operation table construction
@@ -36,10 +48,13 @@
    - Token stream consumption
    - Constant pooling
    - Literal handling
+   - Ensure robust error handling
 4. Update VM to work with Program structure
    - Add lit operation
    - Modify VM to use Program object
+   - Implement comprehensive error checking
 5. Continue improving test coverage and infrastructure
+6. Regularly update documentation and memory bank files
 
 ## Active Decisions and Considerations
 - Using iterator pattern for scanner output

@@ -27,6 +27,11 @@
   - Basic literal value scanning (integers, floats, scheme-style booleans)
   - Error handling for invalid number formats and unexpected characters
   - Test suite for scanner functionality
+- New TDD-focused workflow implemented
+  - Integration tests for major features
+  - System-specific tests (Scanner, Compiler, VM)
+  - Emphasis on error case testing
+  - Regular documentation updates
 
 ## What's Left to Build
 1. Complete Scanner implementation
@@ -62,6 +67,8 @@
 - Selected Indirect Threading (ITC) for VM implementation to balance performance and safety
 - Improved VM stack operations with consistent bottom-to-top iteration
 - Enhanced test infrastructure with line ending normalization
+- Adopted new TDD-focused workflow for development process
+- Increased emphasis on error case testing and documentation updates
 
 ## Known Issues
 - No significant issues at this early stage
@@ -98,10 +105,10 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Implement scanner components
-   - Create Token and TokenType structures
-   - Implement Scanner with iterator interface
-   - Add position tracking
+1. Implement remaining scanner components
+   - Add support for more token types (operators, identifiers, etc.)
+   - Implement error recovery for better error reporting
+   - Focus on error cases and edge conditions
 2. Implement Program structure
    - Constants table management
    - Operation table construction
@@ -110,6 +117,10 @@
    - Token stream consumption
    - Constant pooling
    - Literal handling
+   - Ensure robust error handling
 4. Update VM to work with Program structure
    - Add lit operation
    - Modify VM to use Program object
+   - Implement comprehensive error checking
+5. Continue improving test coverage and infrastructure
+6. Regularly update documentation and memory bank files
