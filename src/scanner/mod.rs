@@ -147,12 +147,20 @@ impl<'a> Scanner<'a> {
             self.next_char();
         }
 
-        // Check for stack operation keywords
+        // Check for keywords and operators
         Ok(match identifier.as_str() {
+            // Stack operations
             "dup" => TokenType::Dup,
             "swap" => TokenType::Swap,
             "rot" => TokenType::Rot,
             "drop" => TokenType::Drop,
+            
+            // Arithmetic operators
+            "+" => TokenType::Plus,
+            "-" => TokenType::Dash,
+            "*" => TokenType::Star,
+            "/" => TokenType::Slash,
+            
             _ => return Err(Error::ScannerError(ScannerError::UnexpectedCharacter(first_char))),
         })
     }
@@ -382,6 +390,46 @@ mod tests {
             assert_eq!(token.lexeme, "drop");
         } else {
             panic!("Failed to scan drop");
+        }
+    }
+
+    #[test]
+    fn test_scan_arithmetic_operators() {
+        let mut scanner = Scanner::new("+ - * /");
+
+        // Test "+"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Plus));
+            assert_eq!(token.line, 1);
+            assert_eq!(token.column, 1);
+            assert_eq!(token.length, 1);
+            assert_eq!(token.lexeme, "+");
+        } else {
+            panic!("Failed to scan plus");
+        }
+
+        // Test "-"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Dash));
+            assert_eq!(token.lexeme, "-");
+        } else {
+            panic!("Failed to scan dash");
+        }
+
+        // Test "*"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Star));
+            assert_eq!(token.lexeme, "*");
+        } else {
+            panic!("Failed to scan star");
+        }
+
+        // Test "/"
+        if let Some(Ok(token)) = scanner.next() {
+            assert!(matches!(token.token_type, TokenType::Slash));
+            assert_eq!(token.lexeme, "/");
+        } else {
+            panic!("Failed to scan slash");
         }
     }
 }

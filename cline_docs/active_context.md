@@ -28,16 +28,14 @@
   - Added compiler support for stack operations
   - Implemented VM stack manipulation primitives
   - Added comprehensive tests for stack operations
+- Implemented arithmetic operations (+, -, *, /):
+  - Implemented std::ops traits for Value type
+  - Added VM support for arithmetic operations
+  - Added error handling for type mismatches and division by zero
+  - Added comprehensive tests for arithmetic operations and error cases
 
 ## Next Steps
-1. Add Arithmetic Operations:
-   - Scanner support for arithmetic operators
-   - Compiler implementation for arithmetic expressions
-   - VM operations for add, sub, mul, div
-   - Error handling for arithmetic operations
-   - Integration tests for arithmetic functionality
-
-3. Implement Comparison Operations:
+1. Implement Comparison Operations:
    - Scanner support for comparison operators
    - Compiler implementation for comparisons
    - VM operations for eq, lt, gt, etc.

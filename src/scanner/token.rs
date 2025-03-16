@@ -16,6 +16,12 @@ pub enum TokenType {
     Rot,
     Drop,
 
+    // Arithmetic Operators
+    Plus,
+    Dash,
+    Star,
+    Slash,
+
     // Special tokens
     Error,
     Eof,

@@ -21,6 +21,8 @@ pub enum VMError {
     InvalidOpCode(usize),
     InvalidConstantIndex(usize),
     NoProgram,
+    TypeMismatch(String),
+    DivisionByZero,
 }
 
 use Error::*;
@@ -44,6 +46,8 @@ impl fmt::Display for VMError {
             VMError::InvalidOpCode(code) => write!(f, "Invalid opcode: {}", code),
             VMError::InvalidConstantIndex(index) => write!(f, "Invalid constant index: {}", index),
             VMError::NoProgram => write!(f, "No program loaded"),
+            VMError::TypeMismatch(op) => write!(f, "Type mismatch in {} operation", op),
+            VMError::DivisionByZero => write!(f, "Division by zero"),
         }
     }
 }

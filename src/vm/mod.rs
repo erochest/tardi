@@ -1,6 +1,7 @@
 use crate::error::{Result, Error, VMError};
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::{Add, Sub, Mul, Div};
 
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM) -> Result<()>;
@@ -25,9 +26,96 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Integer(n) => write!(f, "{}", n),
-            Value::Float(x) => write!(f, "{}", x),
+            Value::Float(x) => {
+                let s = format!("{}", x);
+                if !s.contains('.') {
+                    write!(f, "{}.0", s)
+                } else {
+                    write!(f, "{}", s)
+                }
+            },
             Value::Boolean(true) => write!(f, "#t"),
             Value::Boolean(false) => write!(f, "#f"),
+        }
+    }
+}
+
+impl Add for Value {
+    type Output = Result<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(a as f64 + b)),
+            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a + b as f64)),
+            _ => Err(VMError::TypeMismatch("addition".to_string()).into()),
+        }
+    }
+}
+
+impl Sub for Value {
+    type Output = Result<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a - b)),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(a as f64 - b)),
+            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a - b as f64)),
+            _ => Err(VMError::TypeMismatch("subtraction".to_string()).into()),
+        }
+    }
+}
+
+impl Mul for Value {
+    type Output = Result<Self>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a * b)),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(a as f64 * b)),
+            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a * b as f64)),
+            _ => Err(VMError::TypeMismatch("multiplication".to_string()).into()),
+        }
+    }
+}
+
+impl Div for Value {
+    type Output = Result<Self>;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(a), Value::Integer(b)) => {
+                if b == 0 {
+                    Err(VMError::DivisionByZero.into())
+                } else {
+                    Ok(Value::Integer(a / b))
+                }
+            },
+            (Value::Float(a), Value::Float(b)) => {
+                if b == 0.0 {
+                    Err(VMError::DivisionByZero.into())
+                } else {
+                    Ok(Value::Float(a / b))
+                }
+            },
+            (Value::Integer(a), Value::Float(b)) => {
+                if b == 0.0 {
+                    Err(VMError::DivisionByZero.into())
+                } else {
+                    Ok(Value::Float(a as f64 / b))
+                }
+            },
+            (Value::Float(a), Value::Integer(b)) => {
+                if b == 0 {
+                    Err(VMError::DivisionByZero.into())
+                } else {
+                    Ok(Value::Float(a / b as f64))
+                }
+            },
+            _ => Err(VMError::TypeMismatch("division".to_string()).into()),
         }
     }
 }
@@ -158,6 +246,38 @@ impl VM {
     pub fn drop_op(&mut self) -> Result<()> {
         self.pop().map(|_| ())
     }
+
+    /// Adds the top two items on the stack
+    pub fn add(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        let result = (a + b)?;
+        self.push(result)
+    }
+
+    /// Subtracts the top item from the second item on the stack
+    pub fn subtract(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        let result = (a - b)?;
+        self.push(result)
+    }
+
+    /// Multiplies the top two items on the stack
+    pub fn multiply(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        let result = (a * b)?;
+        self.push(result)
+    }
+
+    /// Divides the second item by the top item on the stack
+    pub fn divide(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        let result = (a / b)?;
+        self.push(result)
+    }
 }
 
 // Define the operations
@@ -181,6 +301,22 @@ pub fn drop_op(vm: &mut VM) -> Result<()> {
     vm.drop_op()
 }
 
+pub fn add(vm: &mut VM) -> Result<()> {
+    vm.add()
+}
+
+pub fn subtract(vm: &mut VM) -> Result<()> {
+    vm.subtract()
+}
+
+pub fn multiply(vm: &mut VM) -> Result<()> {
+    vm.multiply()
+}
+
+pub fn divide(vm: &mut VM) -> Result<()> {
+    vm.divide()
+}
+
 // Helper function to add an operation to the table and map
 fn add_op(op_table: &mut Vec<OpFn>, op_map: &mut HashMap<String, usize>, op: OpFn, name: &str) {
     let index = op_table.len();
@@ -198,6 +334,12 @@ pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
     add_op(&mut op_table, &mut op_map, swap, "swap");
     add_op(&mut op_table, &mut op_map, rot, "rot");
     add_op(&mut op_table, &mut op_map, drop_op, "drop");
+    
+    // Add arithmetic operations
+    add_op(&mut op_table, &mut op_map, add, "+");
+    add_op(&mut op_table, &mut op_map, subtract, "-");
+    add_op(&mut op_table, &mut op_map, multiply, "*");
+    add_op(&mut op_table, &mut op_map, divide, "/");
     
     (op_table, op_map)
 }
@@ -300,5 +442,69 @@ mod tests {
         
         vm.load_program(program);
         assert!(matches!(vm.run(), Err(Error::VMError(VMError::InvalidOpCode(_)))));
+    }
+
+    #[test]
+    fn test_arithmetic_operations() {
+        let mut vm = VM::new();
+        
+        // Test integer addition
+        vm.push(Value::Integer(3)).unwrap();
+        vm.push(Value::Integer(4)).unwrap();
+        vm.add().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(7)));
+
+        // Test float addition
+        vm.push(Value::Float(3.5)).unwrap();
+        vm.push(Value::Float(1.5)).unwrap();
+        vm.add().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Float(5.0)));
+
+        // Test mixed addition (integer + float)
+        vm.push(Value::Integer(2)).unwrap();
+        vm.push(Value::Float(1.5)).unwrap();
+        vm.add().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Float(3.5)));
+
+        // Test subtraction
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Integer(3)).unwrap();
+        vm.subtract().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(2)));
+
+        // Test multiplication
+        vm.push(Value::Integer(4)).unwrap();
+        vm.push(Value::Integer(3)).unwrap();
+        vm.multiply().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(12)));
+
+        // Test division
+        vm.push(Value::Integer(10)).unwrap();
+        vm.push(Value::Integer(2)).unwrap();
+        vm.divide().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Integer(5)));
+    }
+
+    #[test]
+    fn test_arithmetic_errors() {
+        let mut vm = VM::new();
+
+        // Test division by zero (integer)
+        vm.push(Value::Integer(10)).unwrap();
+        vm.push(Value::Integer(0)).unwrap();
+        assert!(matches!(vm.divide(), Err(Error::VMError(VMError::DivisionByZero))));
+
+        // Test division by zero (float)
+        vm.push(Value::Float(10.0)).unwrap();
+        vm.push(Value::Float(0.0)).unwrap();
+        assert!(matches!(vm.divide(), Err(Error::VMError(VMError::DivisionByZero))));
+
+        // Test type mismatch
+        vm.push(Value::Integer(1)).unwrap();
+        vm.push(Value::Boolean(true)).unwrap();
+        assert!(matches!(vm.add(), Err(Error::VMError(VMError::TypeMismatch(_)))));
+        
+        // Test stack underflow
+        assert!(matches!(VM::new().add(), Err(Error::VMError(VMError::StackUnderflow))));
     }
 }

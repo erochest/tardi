@@ -39,10 +39,14 @@ impl Compiler {
             TokenType::Integer(value) => self.compile_integer(value),
             TokenType::Float(value) => self.compile_float(value),
             TokenType::Boolean(value) => self.compile_boolean(value),
-            TokenType::Dup => self.compile_stack_op("dup"),
-            TokenType::Swap => self.compile_stack_op("swap"),
-            TokenType::Rot => self.compile_stack_op("rot"),
-            TokenType::Drop => self.compile_stack_op("drop"),
+            TokenType::Dup => self.compile_op("dup"),
+            TokenType::Swap => self.compile_op("swap"),
+            TokenType::Rot => self.compile_op("rot"),
+            TokenType::Drop => self.compile_op("drop"),
+            TokenType::Plus => self.compile_op("+"),
+            TokenType::Dash => self.compile_op("-"),
+            TokenType::Star => self.compile_op("*"),
+            TokenType::Slash => self.compile_op("/"),
             _ => Err(Error::CompilerError(CompilerError::UnsupportedToken(format!("{:?}", token)))),
         }
     }
@@ -74,7 +78,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn compile_stack_op(&mut self, op_name: &str) -> Result<()> {
+    fn compile_op(&mut self, op_name: &str) -> Result<()> {
         let op_index = self.program.get_op_index(op_name)
             .ok_or(Error::CompilerError(CompilerError::InvalidOperation(format!("{} operation not found", op_name))))?;
         self.program.add_instruction(op_index);
