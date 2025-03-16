@@ -1,102 +1,88 @@
 # Progress
 
 ## What Works
-- Project initialization
-- Basic project structure set up
-- Documentation started
-  - Project brief and memory bank files
-  - User-facing documentation for types and literals
-  - Language syntax decisions documented (comments, function definitions)
-- VM architecture decision made (Indirect Threading)
-- Library structure implemented
-  - Created src/lib.rs as the library entry point
-  - Moved error handling to the library
-  - Updated src/main.rs to use the library
-- Basic VM structure implemented
+- Project initialization and basic structure
+- Documentation started (project brief, memory bank, types and literals, language syntax decisions)
+- VM architecture with Indirect Threading (ITC)
+- Library structure (src/lib.rs, error handling, src/main.rs updates)
+- Basic VM structure:
   - Function pointer table for ITC implementation
   - Basic interpreter loop
-  - Stack operations (push/pop)
-  - Stack iteration and display from bottom to top
+  - Stack operations (push/pop, iteration, display)
   - Error handling system with custom VMError types
-  - Initial test suite using cargo-nextest
-  - Test infrastructure with line ending normalization
-- Scanner implementation started
-  - Token and TokenType structures created
-  - Scanner with iterator interface implemented
-  - Position tracking added
+- Scanner implementation:
+  - Token and TokenType structures
+  - Iterator interface
+  - Position tracking
   - Basic literal value scanning (integers, floats, scheme-style booleans)
   - Error handling for invalid number formats and unexpected characters
-  - Test suite for scanner functionality
-- New TDD-focused workflow implemented
+- Compiler implementation started:
+  - Basic structure for compiling integers, floats, and booleans
+  - Uses Program structure to generate bytecode
+- Program structure:
+  - Manages constants, instructions, and op_table
+  - Implements VMProgram trait
+- Test infrastructure:
+  - Initial test suite using cargo-nextest
   - Integration tests for major features
   - System-specific tests (Scanner, Compiler, VM)
-  - Emphasis on error case testing
-  - Regular documentation updates
+  - Line ending normalization
+- TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
-1. Complete Scanner implementation
-   - Add support for more token types (operators, identifiers, etc.)
-   - Implement error recovery for better error reporting
-2. Program structure
-   - Constants table
-   - Operation table
-   - Instruction format
-3. Compiler implementation
-   - Token consumption
-   - Constant pooling
-   - Literal handling
-4. VM updates for Program integration
-5. Stack manipulation operations
-6. Return stack, jumps, and operations for moving data between stacks
+1. Enhance Scanner:
+   - Support for operators and identifiers
+   - Extended number formats (binary, octal, hex, rationals, exponential notation)
+   - Error recovery for better reporting
+2. Expand Compiler:
+   - Support for operators
+   - Variable declaration and assignment
+   - Function declarations and calls
+   - Control flow structures (if/else, loops)
+3. Enhance VM:
+   - Arithmetic operations (add, sub, mul, div)
+   - Comparison operations (eq, lt, gt, etc.)
+   - Stack manipulation primitives (dup, swap, rot, drop)
+   - Variable management and function call operations
+4. Improve Program structure:
+   - Methods for easier instruction and constant addition
+   - Serialization/deserialization for programs
+5. Implement module system
+6. Develop basic standard library
 7. File and console IO operations
 8. Core datatype creation operations
-9. Basic operations on integers, floating point numbers, rationals
-10. Basic string operations
-11. Basic vector operations
-12. Basic hashtable operations
-13. FFI operations
-14. Green- and OS-threading operations
-15. Metaprogramming capabilities
-16. System initializer
+9. Advanced data structures (vectors, hashtables)
+10. FFI operations
+11. Concurrency (Green- and OS-threading operations)
+12. Metaprogramming capabilities
+13. System initializer
 
 ## Current Status
-- Implemented basic scanner functionality for literal values
-- Continuing work on compiler and scanner implementation
-- Planning Program structure for compiled code
-- Designing literal handling through constants table
-- Selected Indirect Threading (ITC) for VM implementation to balance performance and safety
-- Improved VM stack operations with consistent bottom-to-top iteration
-- Enhanced test infrastructure with line ending normalization
-- Adopted new TDD-focused workflow for development process
-- Increased emphasis on error case testing and documentation updates
+- Basic scanner, compiler, and VM functionality implemented
+- Program structure in place for managing bytecode
+- Continuing work on expanding language capabilities
+- Enhancing error handling and reporting across all components
+- Improving test coverage and maintaining TDD-focused workflow
 
 ## Known Issues
-- No significant issues at this early stage
+- No significant issues at this stage
 
 ## Upcoming Milestones
-1. Functional VM with basic operations
-   - ITC-based interpreter loop
-   - Function pointer table implementation
-   - Basic literal value support
-2. Working REPL for interactive testing
-3. File execution capability
-4. Basic standard library implementation
+1. Complete scanner enhancements
+2. Implement basic arithmetic and comparison operations
+3. Add support for variables and functions
+4. Implement control flow structures
+5. Working REPL for interactive testing
+6. File execution capability
+7. Basic module system
+8. Initial standard library implementation
 
 ## Long-term Goals
-- Error messages with better error handling
-- Conditionals
-- Packages and modules
-- Enums
-- Structs
-- Traits/protocols
-- Number conversions
-- Sets
-- Regex support
-- Persistent data types
-- Safe concurrency framework
-- Hindley-Milner type system
+- Comprehensive error handling and informative error messages
+- Full support for all planned language features (enums, structs, traits/protocols)
+- Advanced type system (possibly Hindley-Milner)
+- Performance optimization (possibly revisiting Direct Threading)
 - LLVM compiler frontend
-- Performance optimization (possibly revisiting Direct Threading if needed)
 
 ## Quality-of-Life Improvements (Planned)
 - Comprehensive documentation with tutorials
@@ -105,22 +91,18 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Implement remaining scanner components
-   - Add support for more token types (operators, identifiers, etc.)
-   - Implement error recovery for better error reporting
-   - Focus on error cases and edge conditions
-2. Implement Program structure
-   - Constants table management
-   - Operation table construction
-   - Instruction generation
-3. Implement compiler
-   - Token stream consumption
-   - Constant pooling
-   - Literal handling
-   - Ensure robust error handling
-4. Update VM to work with Program structure
-   - Add lit operation
-   - Modify VM to use Program object
-   - Implement comprehensive error checking
-5. Continue improving test coverage and infrastructure
-6. Regularly update documentation and memory bank files
+1. Enhance the Scanner:
+   - Add support for operators and identifiers
+   - Implement extended number formats
+   - Improve error recovery and reporting
+2. Expand the Compiler:
+   - Implement support for operators and variables
+   - Add function declaration and call support
+   - Implement control flow structures
+3. Enhance the VM:
+   - Add arithmetic and comparison operations
+   - Implement stack manipulation primitives
+   - Add variable management and function call operations
+4. Improve Program structure and serialization
+5. Begin work on the module system
+6. Continue improving test coverage and documentation

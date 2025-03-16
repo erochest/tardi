@@ -6,10 +6,12 @@ The Tardi language system consists of the following main components:
    - Indirect Threaded Code (ITC) implementation
    - Function pointer table for operation dispatch
    - Stack-based execution model
-2. Tokenizer/Scanner
+2. Scanner (Tokenizer)
 3. Compiler
-4. REPL (Read-Eval-Print Loop)
-5. File Executor
+4. Program Structure
+5. REPL (Read-Eval-Print Loop) (planned)
+6. File Executor (planned)
+7. Module System (planned)
 
 ## Key Technical Decisions
 1. Language Implementation: Rust
@@ -46,17 +48,17 @@ graph TD
     E --> G[Return Stack]
     H[REPL] --> A
     I[File Executor] --> A
+    J[Module System] --> A
+    J --> C
 ```
 
 ## Project Structure
 - `/src`: All source code
   - `main.rs`: Primary entrypoint for the executable
-  - `lib.rs`: Primary entrypoint for the library, re-exports error module
+  - `lib.rs`: Primary entrypoint for the library, re-exports modules
   - `error.rs`: Defines different errors and bundles them into one enum
   - `vm/`: Virtual machine implementation
-    - `mod.rs`: VM module definition
-    - `ops.rs`: Operation implementations
-    - `stack.rs`: Stack implementations
+    - `mod.rs`: VM module definition and core functionality
   - `compiler/`
     - `mod.rs`: Compiler implementation
     - `program.rs`: Program structure
@@ -89,6 +91,12 @@ graph TD
   - Custom error types for VM operations
   - Stack underflow/overflow protection
   - Type checking for operations
+- Operations
+  - Basic stack operations (push, pop)
+  - 'lit' operation for loading constants
+  - Arithmetic operations (planned)
+  - Comparison operations (planned)
+  - Stack manipulation primitives (planned)
 
 ## Error Handling
 - Custom error types defined in `error.rs`
