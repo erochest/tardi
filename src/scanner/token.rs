@@ -22,6 +22,18 @@ pub enum TokenType {
     Star,
     Slash,
 
+    // Comparison Operators
+    EqualEqual,   // ==
+    BangEqual,    // !=
+    Less,         // <
+    Greater,      // >
+    LessEqual,    // <=
+    GreaterEqual, // >=
+    Bang,         // !
+
+    // Words
+    Word(String),
+
     // Special tokens
     Error,
     Eof,

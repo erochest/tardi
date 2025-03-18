@@ -1,10 +1,9 @@
-
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use human_panic::setup_panic;
 use std::path::PathBuf;
 
-use tardi::{Result, Scanner, Compiler, VM};
+use tardi::{Compiler, Result, Scanner, VM};
 
 fn main() -> Result<()> {
     setup_panic!();

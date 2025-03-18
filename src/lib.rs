@@ -13,7 +13,7 @@ pub mod scanner;
 pub mod compiler;
 
 // Re-exports
+pub use compiler::Compiler;
 pub use error::Result;
 pub use scanner::Scanner;
-pub use compiler::Compiler;
-pub use vm::{VM, Value};
+pub use vm::{Value, VM};

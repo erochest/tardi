@@ -33,16 +33,15 @@
   - Added VM support for arithmetic operations
   - Added error handling for type mismatches and division by zero
   - Added comprehensive tests for arithmetic operations and error cases
+- Implemented comparison operators (==, !=, <, >, <=, >=, !):
+  - Added scanner support for comparison operators
+  - Added compiler implementation using basic operators and NOT
+  - Implemented VM operations for comparisons
+  - Added error handling for type mismatches
+  - Added comprehensive tests for comparison operations
 
 ## Next Steps
-1. Implement Comparison Operations:
-   - Scanner support for comparison operators
-   - Compiler implementation for comparisons
-   - VM operations for eq, lt, gt, etc.
-   - Error handling for comparison operations
-   - Integration tests for comparison functionality
-
-4. Add Variable Support:
+1. Add Variable Support:
    - Scanner support for identifiers
    - Compiler implementation for variable declaration/assignment
    - VM operations for variable management

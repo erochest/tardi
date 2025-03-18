@@ -1,7 +1,7 @@
-use crate::error::{Result, Error, VMError};
+use crate::error::{Error, Result, VMError};
 use std::collections::HashMap;
 use std::fmt;
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Div, Mul, Sub};
 
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM) -> Result<()>;
@@ -15,7 +15,7 @@ pub trait Program: 'static {
 }
 
 /// Enum representing different types of values that can be stored on the stack
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Integer(i64),
     Float(f64),
@@ -33,9 +33,34 @@ impl fmt::Display for Value {
                 } else {
                     write!(f, "{}", s)
                 }
-            },
+            }
             Value::Boolean(true) => write!(f, "#t"),
             Value::Boolean(false) => write!(f, "#f"),
+        }
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Integer(a), Value::Integer(b)) => a == b,
+            (Value::Float(a), Value::Float(b)) => a == b,
+            (Value::Integer(a), Value::Float(b)) => (*a as f64) == *b,
+            (Value::Float(a), Value::Integer(b)) => *a == (*b as f64),
+            (Value::Boolean(a), Value::Boolean(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Value::Integer(a), Value::Integer(b)) => a.partial_cmp(b),
+            (Value::Float(a), Value::Float(b)) => a.partial_cmp(b),
+            (Value::Integer(a), Value::Float(b)) => (*a as f64).partial_cmp(b),
+            (Value::Float(a), Value::Integer(b)) => a.partial_cmp(&(*b as f64)),
+            _ => None,
         }
     }
 }
@@ -93,28 +118,28 @@ impl Div for Value {
                 } else {
                     Ok(Value::Integer(a / b))
                 }
-            },
+            }
             (Value::Float(a), Value::Float(b)) => {
                 if b == 0.0 {
                     Err(VMError::DivisionByZero.into())
                 } else {
                     Ok(Value::Float(a / b))
                 }
-            },
+            }
             (Value::Integer(a), Value::Float(b)) => {
                 if b == 0.0 {
                     Err(VMError::DivisionByZero.into())
                 } else {
                     Ok(Value::Float(a as f64 / b))
                 }
-            },
+            }
             (Value::Float(a), Value::Integer(b)) => {
                 if b == 0 {
                     Err(VMError::DivisionByZero.into())
                 } else {
                     Ok(Value::Float(a / b as f64))
                 }
-            },
+            }
             _ => Err(VMError::TypeMismatch("division".to_string()).into()),
         }
     }
@@ -124,10 +149,10 @@ impl Div for Value {
 pub struct VM {
     /// The program being executed
     program: Option<Box<dyn Program>>,
-    
+
     /// Instruction pointer tracking the current position in the instruction stream
     ip: usize,
-    
+
     /// Data stack for operation arguments and results
     stack: Vec<Value>,
 }
@@ -167,11 +192,13 @@ impl VM {
             }
 
             // Get the next instruction and operation
-            let op_index = program.get_instruction(self.ip)
+            let op_index = program
+                .get_instruction(self.ip)
                 .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
-            let operation = program.get_op(op_index)
+            let operation = program
+                .get_op(op_index)
                 .ok_or(Error::VMError(VMError::InvalidOpCode(op_index)))?;
-            
+
             // Store the operation in a local variable
             let op = *operation;
             self.ip += 1;
@@ -204,12 +231,16 @@ impl VM {
 
     /// Executes the lit operation - loads a constant onto the stack
     pub fn lit(&mut self) -> Result<()> {
-        let program = self.program.as_ref().ok_or(Error::VMError(VMError::NoProgram))?;
-        
-        let const_index = program.get_instruction(self.ip)
+        let program = self
+            .program
+            .as_ref()
+            .ok_or(Error::VMError(VMError::NoProgram))?;
+
+        let const_index = program
+            .get_instruction(self.ip)
             .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
         self.ip += 1;
-        
+
         if let Some(value) = program.get_constant(const_index) {
             self.push(value.clone())
         } else {
@@ -278,6 +309,77 @@ impl VM {
         let result = (a / b)?;
         self.push(result)
     }
+
+    /// Compares if two values are equal
+    pub fn equal(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        if a.partial_cmp(&b).is_none() {
+            return Err(VMError::TypeMismatch("equality comparison".to_string()).into());
+        }
+        self.push(Value::Boolean(a == b))
+    }
+
+    /// Compares if two values are not equal
+    pub fn not_equal(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        if a.partial_cmp(&b).is_none() {
+            return Err(VMError::TypeMismatch("inequality comparison".to_string()).into());
+        }
+        self.push(Value::Boolean(a != b))
+    }
+
+    /// Compares if a is less than b
+    pub fn less(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        match a.partial_cmp(&b) {
+            Some(ordering) => self.push(Value::Boolean(ordering.is_lt())),
+            None => Err(VMError::TypeMismatch("less than comparison".to_string()).into()),
+        }
+    }
+
+    /// Compares if a is greater than b
+    pub fn greater(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        match a.partial_cmp(&b) {
+            Some(ordering) => self.push(Value::Boolean(ordering.is_gt())),
+            None => Err(VMError::TypeMismatch("greater than comparison".to_string()).into()),
+        }
+    }
+
+    /// Compares if a is less than or equal to b
+    pub fn less_equal(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        match a.partial_cmp(&b) {
+            Some(ordering) => self.push(Value::Boolean(ordering.is_le())),
+            None => Err(VMError::TypeMismatch("less than or equal comparison".to_string()).into()),
+        }
+    }
+
+    /// Compares if a is greater than or equal to b
+    pub fn greater_equal(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+        match a.partial_cmp(&b) {
+            Some(ordering) => self.push(Value::Boolean(ordering.is_ge())),
+            None => {
+                Err(VMError::TypeMismatch("greater than or equal comparison".to_string()).into())
+            }
+        }
+    }
+
+    /// Performs logical NOT operation on the top stack item
+    pub fn not(&mut self) -> Result<()> {
+        let value = self.pop()?;
+        match value {
+            Value::Boolean(b) => self.push(Value::Boolean(!b)),
+            _ => Err(VMError::TypeMismatch("logical NOT".to_string()).into()),
+        }
+    }
 }
 
 // Define the operations
@@ -328,20 +430,57 @@ fn add_op(op_table: &mut Vec<OpFn>, op_map: &mut HashMap<String, usize>, op: OpF
 pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
     let mut op_table = Vec::new();
     let mut op_map = HashMap::new();
-    
+
     add_op(&mut op_table, &mut op_map, lit, "lit");
     add_op(&mut op_table, &mut op_map, dup, "dup");
     add_op(&mut op_table, &mut op_map, swap, "swap");
     add_op(&mut op_table, &mut op_map, rot, "rot");
     add_op(&mut op_table, &mut op_map, drop_op, "drop");
-    
+
     // Add arithmetic operations
     add_op(&mut op_table, &mut op_map, add, "+");
     add_op(&mut op_table, &mut op_map, subtract, "-");
     add_op(&mut op_table, &mut op_map, multiply, "*");
     add_op(&mut op_table, &mut op_map, divide, "/");
-    
+
+    // Add comparison operations
+    add_op(&mut op_table, &mut op_map, equal, "==");
+    add_op(&mut op_table, &mut op_map, not_equal, "!=");
+    add_op(&mut op_table, &mut op_map, less, "<");
+    add_op(&mut op_table, &mut op_map, greater, ">");
+    add_op(&mut op_table, &mut op_map, less_equal, "<=");
+    add_op(&mut op_table, &mut op_map, greater_equal, ">=");
+    add_op(&mut op_table, &mut op_map, not, "!");
+
     (op_table, op_map)
+}
+
+pub fn not(vm: &mut VM) -> Result<()> {
+    vm.not()
+}
+
+pub fn equal(vm: &mut VM) -> Result<()> {
+    vm.equal()
+}
+
+pub fn not_equal(vm: &mut VM) -> Result<()> {
+    vm.not_equal()
+}
+
+pub fn less(vm: &mut VM) -> Result<()> {
+    vm.less()
+}
+
+pub fn greater(vm: &mut VM) -> Result<()> {
+    vm.greater()
+}
+
+pub fn less_equal(vm: &mut VM) -> Result<()> {
+    vm.less_equal()
+}
+
+pub fn greater_equal(vm: &mut VM) -> Result<()> {
+    vm.greater_equal()
 }
 
 #[cfg(test)]
@@ -375,13 +514,16 @@ mod tests {
     #[test]
     fn test_stack_operations() {
         let mut vm = VM::new();
-        
+
         // Test push and pop
         vm.push(Value::Integer(42)).unwrap();
         assert_eq!(vm.stack_size(), 1);
         let value = vm.pop().unwrap();
         assert!(matches!(value, Value::Integer(42)));
-        assert!(matches!(vm.pop(), Err(Error::VMError(VMError::StackUnderflow))));
+        assert!(matches!(
+            vm.pop(),
+            Err(Error::VMError(VMError::StackUnderflow))
+        ));
 
         // Test dup
         vm.push(Value::Integer(1)).unwrap();
@@ -416,16 +558,16 @@ mod tests {
     fn test_basic_vm_execution() {
         let mut vm = VM::new();
         let (op_table, _) = create_op_table();
-        
+
         let program = Box::new(TestProgram {
             instructions: vec![0, 0], // lit operation index followed by constant index
             constants: vec![Value::Integer(123)],
             op_table,
         });
-        
+
         vm.load_program(program);
         vm.run().unwrap();
-        
+
         // Verify the result
         let value = vm.pop().unwrap();
         assert!(matches!(value, Value::Integer(123)));
@@ -439,15 +581,18 @@ mod tests {
             constants: vec![],
             op_table: vec![],
         });
-        
+
         vm.load_program(program);
-        assert!(matches!(vm.run(), Err(Error::VMError(VMError::InvalidOpCode(_)))));
+        assert!(matches!(
+            vm.run(),
+            Err(Error::VMError(VMError::InvalidOpCode(_)))
+        ));
     }
 
     #[test]
     fn test_arithmetic_operations() {
         let mut vm = VM::new();
-        
+
         // Test integer addition
         vm.push(Value::Integer(3)).unwrap();
         vm.push(Value::Integer(4)).unwrap();
@@ -492,19 +637,107 @@ mod tests {
         // Test division by zero (integer)
         vm.push(Value::Integer(10)).unwrap();
         vm.push(Value::Integer(0)).unwrap();
-        assert!(matches!(vm.divide(), Err(Error::VMError(VMError::DivisionByZero))));
+        assert!(matches!(
+            vm.divide(),
+            Err(Error::VMError(VMError::DivisionByZero))
+        ));
 
         // Test division by zero (float)
         vm.push(Value::Float(10.0)).unwrap();
         vm.push(Value::Float(0.0)).unwrap();
-        assert!(matches!(vm.divide(), Err(Error::VMError(VMError::DivisionByZero))));
+        assert!(matches!(
+            vm.divide(),
+            Err(Error::VMError(VMError::DivisionByZero))
+        ));
 
         // Test type mismatch
         vm.push(Value::Integer(1)).unwrap();
         vm.push(Value::Boolean(true)).unwrap();
-        assert!(matches!(vm.add(), Err(Error::VMError(VMError::TypeMismatch(_)))));
-        
+        assert!(matches!(
+            vm.add(),
+            Err(Error::VMError(VMError::TypeMismatch(_)))
+        ));
+
         // Test stack underflow
-        assert!(matches!(VM::new().add(), Err(Error::VMError(VMError::StackUnderflow))));
+        assert!(matches!(
+            VM::new().add(),
+            Err(Error::VMError(VMError::StackUnderflow))
+        ));
+    }
+
+    #[test]
+    fn test_comparison_operations() {
+        let mut vm = VM::new();
+
+        // Test equal
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Integer(5)).unwrap();
+        vm.equal().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Integer(6)).unwrap();
+        vm.equal().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(false)));
+
+        // Test not equal
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Integer(6)).unwrap();
+        vm.not_equal().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        // Test less than
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Integer(6)).unwrap();
+        vm.less().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        // Test greater than
+        vm.push(Value::Integer(6)).unwrap();
+        vm.push(Value::Integer(5)).unwrap();
+        vm.greater().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        // Test less than or equal
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Integer(5)).unwrap();
+        vm.less_equal().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        // Test greater than or equal
+        vm.push(Value::Integer(6)).unwrap();
+        vm.push(Value::Integer(5)).unwrap();
+        vm.greater_equal().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        // Test comparison with different types
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Float(5.0)).unwrap();
+        vm.equal().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        // Test comparison error
+        vm.push(Value::Integer(5)).unwrap();
+        vm.push(Value::Boolean(true)).unwrap();
+        assert!(matches!(
+            vm.equal(),
+            Err(Error::VMError(VMError::TypeMismatch(_)))
+        ));
+
+        // Test NOT operation
+        vm.push(Value::Boolean(true)).unwrap();
+        vm.not().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(false)));
+
+        vm.push(Value::Boolean(false)).unwrap();
+        vm.not().unwrap();
+        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+
+        // Test NOT operation error
+        vm.push(Value::Integer(5)).unwrap();
+        assert!(matches!(
+            vm.not(),
+            Err(Error::VMError(VMError::TypeMismatch(_)))
+        ));
     }
 }

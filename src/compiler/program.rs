@@ -1,4 +1,4 @@
-use crate::vm::{Value, OpFn, Program as VMProgram};
+use crate::vm::{OpFn, Program as VMProgram, Value};
 use std::collections::HashMap;
 
 pub struct Program {
@@ -40,6 +40,22 @@ impl Program {
 
     pub fn get_op_index(&self, op_name: &str) -> Option<usize> {
         self.op_map.get(op_name).copied()
+    }
+
+    pub fn get_op_name(&self, op_code: usize) -> Option<String> {
+        self.op_map
+            .iter()
+            .filter(|(_, v)| **v == op_code)
+            .map(|(k, _)| k.to_string())
+            .next()
+    }
+
+    pub fn get_op_table_size(&self) -> usize {
+        self.op_table.len()
+    }
+
+    pub fn get_instructions(&self) -> &Vec<usize> {
+        &self.instructions
     }
 }
 

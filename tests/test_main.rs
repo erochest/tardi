@@ -56,11 +56,11 @@ fn validate_print_output(tardi_file: &Path, extension: &str, actual_output: &str
 
     if output_file.exists() {
         let expected = fs::read_to_string(output_file).unwrap();
-        
+
         // Normalize line endings to \n
         let expected_normalized = expected.replace("\r\n", "\n");
         let actual_normalized = actual_output.replace("\r\n", "\n");
-        
+
         assert_eq!(
             actual_normalized,
             expected_normalized,
