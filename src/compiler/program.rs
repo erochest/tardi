@@ -1,4 +1,5 @@
-use crate::vm::{OpFn, Program as VMProgram, Value};
+use crate::vm::{OpFn, Program as VMProgram};
+use crate::vm::value::Value;
 use std::collections::HashMap;
 
 pub struct Program {
