@@ -23,6 +23,7 @@ pub enum VMError {
     NoProgram,
     TypeMismatch(String),
     DivisionByZero,
+    BorrowError,
 }
 
 use Error::*;
@@ -48,6 +49,7 @@ impl fmt::Display for VMError {
             VMError::NoProgram => write!(f, "No program loaded"),
             VMError::TypeMismatch(op) => write!(f, "Type mismatch in {} operation", op),
             VMError::DivisionByZero => write!(f, "Division by zero"),
+            VMError::BorrowError => write!(f, "Borrow error"),
         }
     }
 }

@@ -1,10 +1,20 @@
 use crate::error::{Error, Result, VMError};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
+use std::rc::Rc;
 
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM) -> Result<()>;
+
+/// Shared value type for all values
+pub type SharedValue = Rc<RefCell<Value>>;
+
+/// Helper function to create a SharedValue
+pub fn shared(value: Value) -> SharedValue {
+    Rc::new(RefCell::new(value))
+}
 
 /// Trait for programs that can be executed by the VM
 pub trait Program: 'static {
@@ -154,7 +164,7 @@ pub struct VM {
     ip: usize,
 
     /// Data stack for operation arguments and results
-    stack: Vec<Value>,
+    stack: Vec<SharedValue>,
 }
 
 impl Default for VM {
@@ -165,8 +175,8 @@ impl Default for VM {
 
 impl VM {
     /// Returns an iterator over stack values from bottom to top
-    pub fn stack_iter(&self) -> impl Iterator<Item = &Value> {
-        self.stack.iter()
+    pub fn stack_iter(&self) -> impl Iterator<Item = Value> + '_ {
+        self.stack.iter().map(|shared| shared.borrow().clone())
     }
 
     /// Creates a new VM instance
@@ -210,8 +220,8 @@ impl VM {
         Ok(())
     }
 
-    /// Pushes a value onto the data stack
-    pub fn push(&mut self, value: Value) -> Result<()> {
+    /// Pushes a shared value onto the data stack
+    pub fn push(&mut self, value: SharedValue) -> Result<()> {
         if self.stack.len() >= 1024 {
             return Err(VMError::StackOverflow.into());
         }
@@ -219,8 +229,8 @@ impl VM {
         Ok(())
     }
 
-    /// Pops a value from the data stack
-    pub fn pop(&mut self) -> Result<Value> {
+    /// Pops a shared value from the data stack
+    pub fn pop(&mut self) -> Result<SharedValue> {
         self.stack.pop().ok_or(VMError::StackUnderflow.into())
     }
 
@@ -242,7 +252,7 @@ impl VM {
         self.ip += 1;
 
         if let Some(value) = program.get_constant(const_index) {
-            self.push(value.clone())
+            self.push(shared(value.clone()))
         } else {
             Err(Error::VMError(VMError::InvalidConstantIndex(const_index)))
         }
@@ -280,92 +290,92 @@ impl VM {
 
     /// Adds the top two items on the stack
     pub fn add(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         let result = (a + b)?;
-        self.push(result)
+        self.push(shared(result))
     }
 
     /// Subtracts the top item from the second item on the stack
     pub fn subtract(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         let result = (a - b)?;
-        self.push(result)
+        self.push(shared(result))
     }
 
     /// Multiplies the top two items on the stack
     pub fn multiply(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         let result = (a * b)?;
-        self.push(result)
+        self.push(shared(result))
     }
 
     /// Divides the second item by the top item on the stack
     pub fn divide(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         let result = (a / b)?;
-        self.push(result)
+        self.push(shared(result))
     }
 
     /// Compares if two values are equal
     pub fn equal(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         if a.partial_cmp(&b).is_none() {
             return Err(VMError::TypeMismatch("equality comparison".to_string()).into());
         }
-        self.push(Value::Boolean(a == b))
+        self.push(shared(Value::Boolean(a == b)))
     }
 
     /// Compares if two values are not equal
     pub fn not_equal(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         if a.partial_cmp(&b).is_none() {
             return Err(VMError::TypeMismatch("inequality comparison".to_string()).into());
         }
-        self.push(Value::Boolean(a != b))
+        self.push(shared(Value::Boolean(a != b)))
     }
 
     /// Compares if a is less than b
     pub fn less(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         match a.partial_cmp(&b) {
-            Some(ordering) => self.push(Value::Boolean(ordering.is_lt())),
+            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_lt()))),
             None => Err(VMError::TypeMismatch("less than comparison".to_string()).into()),
         }
     }
 
     /// Compares if a is greater than b
     pub fn greater(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         match a.partial_cmp(&b) {
-            Some(ordering) => self.push(Value::Boolean(ordering.is_gt())),
+            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_gt()))),
             None => Err(VMError::TypeMismatch("greater than comparison".to_string()).into()),
         }
     }
 
     /// Compares if a is less than or equal to b
     pub fn less_equal(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         match a.partial_cmp(&b) {
-            Some(ordering) => self.push(Value::Boolean(ordering.is_le())),
+            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_le()))),
             None => Err(VMError::TypeMismatch("less than or equal comparison".to_string()).into()),
         }
     }
 
     /// Compares if a is greater than or equal to b
     pub fn greater_equal(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
+        let b = self.pop()?.borrow().clone();
+        let a = self.pop()?.borrow().clone();
         match a.partial_cmp(&b) {
-            Some(ordering) => self.push(Value::Boolean(ordering.is_ge())),
+            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_ge()))),
             None => {
                 Err(VMError::TypeMismatch("greater than or equal comparison".to_string()).into())
             }
@@ -374,9 +384,9 @@ impl VM {
 
     /// Performs logical NOT operation on the top stack item
     pub fn not(&mut self) -> Result<()> {
-        let value = self.pop()?;
+        let value = self.pop()?.borrow().clone();
         match value {
-            Value::Boolean(b) => self.push(Value::Boolean(!b)),
+            Value::Boolean(b) => self.push(shared(Value::Boolean(!b))),
             _ => Err(VMError::TypeMismatch("logical NOT".to_string()).into()),
         }
     }
@@ -516,40 +526,40 @@ mod tests {
         let mut vm = VM::new();
 
         // Test push and pop
-        vm.push(Value::Integer(42)).unwrap();
+        vm.push(shared(Value::Integer(42))).unwrap();
         assert_eq!(vm.stack_size(), 1);
         let value = vm.pop().unwrap();
-        assert!(matches!(value, Value::Integer(42)));
+        assert!(matches!(*value.borrow(), Value::Integer(42)));
         assert!(matches!(
             vm.pop(),
             Err(Error::VMError(VMError::StackUnderflow))
         ));
 
         // Test dup
-        vm.push(Value::Integer(1)).unwrap();
+        vm.push(shared(Value::Integer(1))).unwrap();
         vm.dup().unwrap();
         assert_eq!(vm.stack_size(), 2);
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
 
         // Test swap
-        vm.push(Value::Integer(1)).unwrap();
-        vm.push(Value::Integer(2)).unwrap();
+        vm.push(shared(Value::Integer(1))).unwrap();
+        vm.push(shared(Value::Integer(2))).unwrap();
         vm.swap().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(2)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(2)));
 
         // Test rot
-        vm.push(Value::Integer(1)).unwrap();
-        vm.push(Value::Integer(2)).unwrap();
-        vm.push(Value::Integer(3)).unwrap();
+        vm.push(shared(Value::Integer(1))).unwrap();
+        vm.push(shared(Value::Integer(2))).unwrap();
+        vm.push(shared(Value::Integer(3))).unwrap();
         vm.rot().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(1)));
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(3)));
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(2)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(2)));
 
         // Test drop_op
-        vm.push(Value::Integer(42)).unwrap();
+        vm.push(shared(Value::Integer(42))).unwrap();
         vm.drop_op().unwrap();
         assert_eq!(vm.stack_size(), 0);
     }
@@ -570,7 +580,7 @@ mod tests {
 
         // Verify the result
         let value = vm.pop().unwrap();
-        assert!(matches!(value, Value::Integer(123)));
+        assert!(matches!(*value.borrow(), Value::Integer(123)));
     }
 
     #[test]
@@ -594,40 +604,40 @@ mod tests {
         let mut vm = VM::new();
 
         // Test integer addition
-        vm.push(Value::Integer(3)).unwrap();
-        vm.push(Value::Integer(4)).unwrap();
+        vm.push(shared(Value::Integer(3))).unwrap();
+        vm.push(shared(Value::Integer(4))).unwrap();
         vm.add().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(7)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(7)));
 
         // Test float addition
-        vm.push(Value::Float(3.5)).unwrap();
-        vm.push(Value::Float(1.5)).unwrap();
+        vm.push(shared(Value::Float(3.5))).unwrap();
+        vm.push(shared(Value::Float(1.5))).unwrap();
         vm.add().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Float(5.0)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Float(5.0)));
 
         // Test mixed addition (integer + float)
-        vm.push(Value::Integer(2)).unwrap();
-        vm.push(Value::Float(1.5)).unwrap();
+        vm.push(shared(Value::Integer(2))).unwrap();
+        vm.push(shared(Value::Float(1.5))).unwrap();
         vm.add().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Float(3.5)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Float(3.5)));
 
         // Test subtraction
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Integer(3)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Integer(3))).unwrap();
         vm.subtract().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(2)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(2)));
 
         // Test multiplication
-        vm.push(Value::Integer(4)).unwrap();
-        vm.push(Value::Integer(3)).unwrap();
+        vm.push(shared(Value::Integer(4))).unwrap();
+        vm.push(shared(Value::Integer(3))).unwrap();
         vm.multiply().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(12)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(12)));
 
         // Test division
-        vm.push(Value::Integer(10)).unwrap();
-        vm.push(Value::Integer(2)).unwrap();
+        vm.push(shared(Value::Integer(10))).unwrap();
+        vm.push(shared(Value::Integer(2))).unwrap();
         vm.divide().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Integer(5)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(5)));
     }
 
     #[test]
@@ -635,24 +645,24 @@ mod tests {
         let mut vm = VM::new();
 
         // Test division by zero (integer)
-        vm.push(Value::Integer(10)).unwrap();
-        vm.push(Value::Integer(0)).unwrap();
+        vm.push(shared(Value::Integer(10))).unwrap();
+        vm.push(shared(Value::Integer(0))).unwrap();
         assert!(matches!(
             vm.divide(),
             Err(Error::VMError(VMError::DivisionByZero))
         ));
 
         // Test division by zero (float)
-        vm.push(Value::Float(10.0)).unwrap();
-        vm.push(Value::Float(0.0)).unwrap();
+        vm.push(shared(Value::Float(10.0))).unwrap();
+        vm.push(shared(Value::Float(0.0))).unwrap();
         assert!(matches!(
             vm.divide(),
             Err(Error::VMError(VMError::DivisionByZero))
         ));
 
         // Test type mismatch
-        vm.push(Value::Integer(1)).unwrap();
-        vm.push(Value::Boolean(true)).unwrap();
+        vm.push(shared(Value::Integer(1))).unwrap();
+        vm.push(shared(Value::Boolean(true))).unwrap();
         assert!(matches!(
             vm.add(),
             Err(Error::VMError(VMError::TypeMismatch(_)))
@@ -670,71 +680,71 @@ mod tests {
         let mut vm = VM::new();
 
         // Test equal
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Integer(5)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
         vm.equal().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Integer(6)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Integer(6))).unwrap();
         vm.equal().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(false)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(false)));
 
         // Test not equal
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Integer(6)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Integer(6))).unwrap();
         vm.not_equal().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
         // Test less than
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Integer(6)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Integer(6))).unwrap();
         vm.less().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
         // Test greater than
-        vm.push(Value::Integer(6)).unwrap();
-        vm.push(Value::Integer(5)).unwrap();
+        vm.push(shared(Value::Integer(6))).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
         vm.greater().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
         // Test less than or equal
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Integer(5)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
         vm.less_equal().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
         // Test greater than or equal
-        vm.push(Value::Integer(6)).unwrap();
-        vm.push(Value::Integer(5)).unwrap();
+        vm.push(shared(Value::Integer(6))).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
         vm.greater_equal().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
         // Test comparison with different types
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Float(5.0)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Float(5.0))).unwrap();
         vm.equal().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
         // Test comparison error
-        vm.push(Value::Integer(5)).unwrap();
-        vm.push(Value::Boolean(true)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
+        vm.push(shared(Value::Boolean(true))).unwrap();
         assert!(matches!(
             vm.equal(),
             Err(Error::VMError(VMError::TypeMismatch(_)))
         ));
 
         // Test NOT operation
-        vm.push(Value::Boolean(true)).unwrap();
+        vm.push(shared(Value::Boolean(true))).unwrap();
         vm.not().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(false)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(false)));
 
-        vm.push(Value::Boolean(false)).unwrap();
+        vm.push(shared(Value::Boolean(false))).unwrap();
         vm.not().unwrap();
-        assert!(matches!(vm.pop().unwrap(), Value::Boolean(true)));
+        assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
         // Test NOT operation error
-        vm.push(Value::Integer(5)).unwrap();
+        vm.push(shared(Value::Integer(5))).unwrap();
         assert!(matches!(
             vm.not(),
             Err(Error::VMError(VMError::TypeMismatch(_)))

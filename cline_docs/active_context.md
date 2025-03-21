@@ -39,66 +39,65 @@
   - Implemented VM operations for comparisons
   - Added error handling for type mismatches
   - Added comprehensive tests for comparison operations
+- Implemented shared value system using Rc<RefCell<Value>>:
+  - Introduced SharedValue type alias and shared() helper function
+  - Modified existing Value handling to use Rc<RefCell<Value>>
+  - Updated stack operations to work with shared values
+  - Adjusted existing operations (arithmetic, comparison) to handle shared values
+  - Updated tests to verify shared value behavior
+  - Monitored performance impact and addressed issues as they arose
 
 ## Next Steps
-1. Implement Shared Values:
-   - Introduce SharedValue type alias and shared() helper function
-   - Modify existing Value handling to use Rc<RefCell<Value>>
-   - Update stack operations to work with shared values
-   - Adjust existing operations (arithmetic, comparison) to handle shared values
-   - Update tests to verify shared value behavior
-   - Monitor performance impact and address issues as they arise
-
-2. Implement Return Stack:
+1. Implement Return Stack:
    - Add return stack to VM
    - Implement basic return stack operations (>r, r>, r@)
    - Update tests for return stack functionality
 
-3. Add Character Values and Literals:
+2. Add Character Values and Literals:
    - Implement Value::Char(char)
    - Add support for character literals in scanner and compiler
    - Implement character escape sequences
    - Add tests for character handling
 
-4. Implement List Objects:
+3. Implement List Objects:
    - Add Value::List(Vec<Value>)
    - Implement basic list operations (<list>, append, prepend, concat, head)
    - Update tests for list functionality
 
-5. Add String Objects and Literals:
+4. Add String Objects and Literals:
    - Implement Value::String(String)
    - Add support for string literals in scanner and compiler
    - Implement basic string operations (<string>, >string, utf8>string, append, prepend, concat)
    - Add tests for string handling
 
-6. Implement Function and Lambda Objects:
+5. Implement Function and Lambda Objects:
    - Create Function struct and Value::Function variant
    - Implement basic function-related words (<function>, <lambda>, curry)
    - Add support for function compilation
    - Update tests for function and lambda functionality
 
-7. Add Comment Support:
+6. Add Comment Support:
    - Implement comment handling in scanner (// until end of line)
 
-8. Create Initialization Script:
+7. Create Initialization Script:
    - Implement script loading and execution
    - Create initial src/init.tardi script
 
-9. Implement Compiler Words:
+8. Implement Compiler Words:
    - Add compile word for lambda/function compilation
 
-10. Add Scanner/Parser Words:
+9. Add Scanner/Parser Words:
     - Implement scan-word, scan-string, scan-tokens, scan-values
 
-11. Implement Metaprogramming:
+10. Implement Metaprogramming:
     - Add support for MACRO definitions
     - Implement macro expansion during compilation
 
-12. Add Lambda and Function Literals:
+11. Add Lambda and Function Literals:
     - Implement syntax for lambda and function literals
     - Update scanner and compiler to handle these literals
 
-13. Regularly update documentation and memory bank files throughout the process
+12. Regularly update documentation and memory bank files throughout the process
 
 ## Active Decisions and Considerations
 - Using iterator pattern for scanner output

@@ -42,3 +42,8 @@ Scheme-style boolean literals:
 - All numeric literals can be preceded by a minus sign (-) for negative values
 - Comments are denoted by double slashes (//)
 - Semicolons (;) are reserved for function definitions (e.g., `: double 2 * ;`)
+
+## Implementation Details
+- All values in the VM are implemented as shared values using `Rc<RefCell<Value>>`
+- This shared value approach allows for efficient memory management and enables future features like complex data structures and closures
+- The shared value implementation is transparent to the end-user and doesn't affect the language syntax

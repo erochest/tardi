@@ -6,6 +6,7 @@
   - Project brief, memory bank, types and literals, language syntax decisions
   - Stack manipulation operations (docs/stack-manipulation.md)
   - Arithmetic operations (docs/arithmetic-operations.md)
+  - Comparison operators (docs/comparison-operators.md)
 - VM architecture with Indirect Threading (ITC)
 - Library structure (src/lib.rs, error handling, src/main.rs updates)
 - Basic VM structure:
@@ -34,6 +35,7 @@
   - Implementation of arithmetic operations (+, -, *, /) with type coercion
   - Implementation of comparison operations (==, !=, <, >, <=, >=, !)
   - Error handling for arithmetic and comparison operations (type mismatches, division by zero)
+  - Shared value system using Rc<RefCell<Value>> for efficient memory management
 - Test infrastructure:
   - Initial test suite using cargo-nextest
   - Integration tests for major features
@@ -42,30 +44,43 @@
   - Comprehensive tests for basic stack operations
   - Integration tests for arithmetic operations
   - Integration tests for comparison operations
+  - Tests for shared value behavior
 - TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
-1. Enhance Scanner:
-   - Extended number formats (binary, octal, hex, rationals, exponential notation)
-   - Error recovery for better reporting
-2. Expand Compiler:
-   - Variable declaration and assignment
+1. Implement Return Stack:
+   - Basic return stack operations (>r, r>, r@)
+   - Integration with existing VM structure
+2. Add Character Values and Literals:
+   - Character type and operations
+   - Unicode support
+3. Implement List Objects:
+   - Basic list operations
+   - List manipulation primitives
+4. Add String Objects and Literals:
+   - String type and operations
+   - String manipulation primitives
+5. Implement Function and Lambda Objects:
    - Function declarations and calls
-   - Control flow structures (if/else, loops)
-3. Enhance VM:
-   - Variable management and function call operations
-4. Improve Program structure:
-   - Methods for easier instruction and constant addition
-   - Serialization/deserialization for programs
-5. Implement module system
-6. Develop basic standard library
-7. File and console IO operations
-8. Core datatype creation operations
-9. Advanced data structures (vectors, hashtables)
-10. FFI operations
-11. Concurrency (Green- and OS-threading operations)
-12. Metaprogramming capabilities
-13. System initializer
+   - Lambda expressions
+6. Add Comment Support
+7. Create Initialization Script
+8. Implement Compiler Words
+9. Add Scanner/Parser Words
+10. Implement Metaprogramming
+11. Add Lambda and Function Literals
+12. Enhance Scanner:
+    - Extended number formats (binary, octal, hex, rationals, exponential notation)
+    - Error recovery for better reporting
+13. Improve Program structure:
+    - Methods for easier instruction and constant addition
+    - Serialization/deserialization for programs
+14. Implement module system
+15. Develop basic standard library
+16. File and console IO operations
+17. Advanced data structures (vectors, hashtables)
+18. FFI operations
+19. Concurrency (Green- and OS-threading operations)
 
 ## Current Status
 - Basic scanner, compiler, and VM functionality implemented
@@ -73,18 +88,20 @@
 - Basic stack operations (dup, swap, rot, drop) implemented across all components
 - Arithmetic operations (+, -, *, /) implemented with type coercion and error handling
 - Comparison operations (==, !=, <, >, <=, >=, !) implemented across all components
+- Shared value system implemented using Rc<RefCell<Value>>
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
 - Improving test coverage and maintaining TDD-focused workflow
 
 ## Known Issues
-- No significant issues at this stage
+- Potential performance overhead from shared values (to be benchmarked)
+- No significant functional issues at this stage
 
 ## Upcoming Milestones
-1. Complete scanner enhancements
-2. Implement basic arithmetic and comparison operations
-3. Add support for variables and functions
-4. Implement control flow structures
+1. Complete return stack implementation
+2. Add character and string support
+3. Implement list objects
+4. Add function and lambda support
 5. Working REPL for interactive testing
 6. File execution capability
 7. Basic module system
@@ -104,17 +121,15 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Enhance the Scanner:
-   - Implement extended number formats
-   - Improve error recovery and reporting
-2. Expand the Compiler:
-   - Add variable declaration and assignment support
-   - Add function declaration and call support
-   - Implement control flow structures
-3. Enhance the VM:
-   - Add variable management and function call operations
-4. Improve Program structure and serialization
-5. Begin work on the module system
-6. Continue improving test coverage and documentation:
-   - Create comparison-operators.md to document new operations
-   - Update stack-manipulation.md as new operations are added
+1. Implement Return Stack:
+   - Add return stack to VM
+   - Implement basic return stack operations
+   - Update tests for return stack functionality
+2. Add Character Values and Literals:
+   - Implement Value::Char variant
+   - Add character literal support
+   - Add escape sequence handling
+3. Begin List Objects implementation:
+   - Design list operations
+   - Implement basic list functionality
+4. Continue improving test coverage and documentation

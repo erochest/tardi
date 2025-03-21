@@ -1,4 +1,7 @@
 
+check:
+    cargo check
+
 test *FILTERS:
     cargo nextest run {{FILTERS}}
 
