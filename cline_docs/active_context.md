@@ -41,49 +41,64 @@
   - Added comprehensive tests for comparison operations
 
 ## Next Steps
-1. Add Variable Support:
-   - Scanner support for identifiers
-   - Compiler implementation for variable declaration/assignment
-   - VM operations for variable management
-   - Error handling for variable operations
-   - Integration tests for variable functionality
+1. Implement Shared Values:
+   - Introduce SharedValue type alias and shared() helper function
+   - Modify existing Value handling to use Rc<RefCell<Value>>
+   - Update stack operations to work with shared values
+   - Adjust existing operations (arithmetic, comparison) to handle shared values
+   - Update tests to verify shared value behavior
+   - Monitor performance impact and address issues as they arise
 
-5. Implement Function Support:
-   - Scanner support for function syntax
-   - Compiler implementation for function declarations/calls
-   - VM operations for function execution
-   - Error handling for function operations
-   - Integration tests for function functionality
+2. Implement Return Stack:
+   - Add return stack to VM
+   - Implement basic return stack operations (>r, r>, r@)
+   - Update tests for return stack functionality
 
-6. Add Control Flow Structures:
-   - Scanner support for if/else and loop syntax
-   - Compiler implementation for control flow
-   - VM operations for conditional execution and loops
-   - Error handling for control flow
-   - Integration tests for control flow functionality
+3. Add Character Values and Literals:
+   - Implement Value::Char(char)
+   - Add support for character literals in scanner and compiler
+   - Implement character escape sequences
+   - Add tests for character handling
 
-7. Implement Extended Number Formats:
-   - Scanner support for binary, octal, hex, rationals
-   - Compiler implementation for extended numbers
-   - VM operations for extended number types
-   - Error handling for number formats
-   - Integration tests for number format functionality
+4. Implement List Objects:
+   - Add Value::List(Vec<Value>)
+   - Implement basic list operations (<list>, append, prepend, concat, head)
+   - Update tests for list functionality
 
-8. Add Module System:
-   - Module syntax and loading
-   - Compiler support for modules
-   - VM support for module execution
-   - Error handling for module operations
-   - Integration tests for module functionality
+5. Add String Objects and Literals:
+   - Implement Value::String(String)
+   - Add support for string literals in scanner and compiler
+   - Implement basic string operations (<string>, >string, utf8>string, append, prepend, concat)
+   - Add tests for string handling
 
-9. Develop Basic Standard Library:
-   - Core utility functions
-   - Common operations library
-   - Standard data structure implementations
-   - Documentation and examples
-   - Integration tests for standard library
+6. Implement Function and Lambda Objects:
+   - Create Function struct and Value::Function variant
+   - Implement basic function-related words (<function>, <lambda>, curry)
+   - Add support for function compilation
+   - Update tests for function and lambda functionality
 
-10. Regularly update documentation and memory bank files
+7. Add Comment Support:
+   - Implement comment handling in scanner (// until end of line)
+
+8. Create Initialization Script:
+   - Implement script loading and execution
+   - Create initial src/init.tardi script
+
+9. Implement Compiler Words:
+   - Add compile word for lambda/function compilation
+
+10. Add Scanner/Parser Words:
+    - Implement scan-word, scan-string, scan-tokens, scan-values
+
+11. Implement Metaprogramming:
+    - Add support for MACRO definitions
+    - Implement macro expansion during compilation
+
+12. Add Lambda and Function Literals:
+    - Implement syntax for lambda and function literals
+    - Update scanner and compiler to handle these literals
+
+13. Regularly update documentation and memory bank files throughout the process
 
 ## Active Decisions and Considerations
 - Using iterator pattern for scanner output
@@ -101,3 +116,9 @@
 - Flexibility in adjusting the development plan as we progress
 - Following Forth-style word handling with whitespace-delimited words that can start with any character
 - Using helper functions to maintain consistent operation table management
+- Monitoring performance impact of shared values (Rc<RefCell<Value>>)
+- Postponing W register implementation until a specific use case arises
+- Keeping initial string and list operations minimal, with plans for future enhancements
+- Implementing features in the order presented in the function roadmap
+- Maintaining existing testing strategy (input/output tests + unit tests)
+- Planning for future enhancements such as traits/protocols and advanced iterators
