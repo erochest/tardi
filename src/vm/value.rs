@@ -21,6 +21,7 @@ pub enum Value {
     Boolean(bool),
     Char(char),
     List(Vec<SharedValue>),
+    String(String),
 }
 
 impl fmt::Display for Value {
@@ -52,6 +53,7 @@ impl fmt::Display for Value {
                 }
                 write!(f, " ]")
             }
+            Value::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
         }
     }
 }
@@ -68,6 +70,7 @@ impl PartialEq for Value {
             (Value::List(a), Value::List(b)) => {
                 a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| &*x.borrow() == &*y.borrow())
             }
+            (Value::String(a), Value::String(b)) => a == b,
             _ => false,
         }
     }
@@ -100,6 +103,7 @@ impl PartialOrd for Value {
                     other => other,
                 }
             }
+            (Value::String(a), Value::String(b)) => a.partial_cmp(b),
             _ => None,
         }
     }

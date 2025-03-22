@@ -1,0 +1,41 @@
+// Test creating an empty string
+<string> >string
+// Expected: "\"\""
+
+// Test converting values to strings
+42 >string
+// Expected: "42"
+
+3.14 >string
+// Expected: "3.14"
+
+#t >string
+// Expected: "#t"
+
+'A' >string
+// Expected: "A"
+
+// Test UTF-8 to string conversion
+<list>
+dup 72 swap append
+dup 101 swap append
+dup 108 swap append
+dup 108 swap append
+dup 111 swap append
+utf8>string
+// Expected: "Hello"
+
+// Test string concatenation
+"Hello, " "world!" string-concat
+// Expected: "Hello, world!"
+
+// Test empty string concatenation
+"" "test" string-concat
+// Expected: "test"
+
+"prefix" "" string-concat
+// Expected: "prefix"
+
+// Test multiple concatenations
+"a" "b" string-concat "c" string-concat "d" string-concat
+// Expected: "abcd"

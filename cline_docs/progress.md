@@ -53,10 +53,7 @@
 - TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
-1. Add String Objects and Literals:
-   - String type and operations
-   - String manipulation primitives
-5. Implement Function and Lambda Objects:
+1. Implement Function and Lambda Objects:
    - Function declarations and calls
    - Lambda expressions
 6. Add Comment Support
@@ -88,6 +85,8 @@
 - Shared value system implemented using Rc<RefCell<Value>>
 - Character values and literals implemented, including Unicode support
 - List operations (<list>, append, prepend, concat, split-head!) implemented across all components
+- String operations (<string>, >string, utf8>string, string-concat) implemented across all components
+- String literals (regular and triple-quoted) with escape sequence support
 - Comment support implemented with // line comments
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
@@ -98,13 +97,11 @@
 - No significant functional issues at this stage
 
 ## Upcoming Milestones
-1. Add character and string support
-3. Implement list objects
-4. Add function and lambda support
-5. Working REPL for interactive testing
-6. File execution capability
-7. Basic module system
-8. Initial standard library implementation
+1. Add function and lambda support
+2. Working REPL for interactive testing
+3. File execution capability
+4. Basic module system
+5. Initial standard library implementation
 
 ## Long-term Goals
 - Comprehensive error handling and informative error messages
@@ -120,7 +117,7 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Implement String Objects and Literals:
-   - Design string operations
-   - Implement basic string functionality
+1. Implement Function and Lambda Objects:
+   - Design function and lambda structures
+   - Implement basic function operations
 2. Continue improving test coverage and documentation

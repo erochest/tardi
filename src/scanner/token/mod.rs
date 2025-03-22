@@ -10,6 +10,7 @@ pub enum TokenType {
     Float(f64),
     Boolean(bool),
     Char(char),
+    String(String),
 
     // Stack Operations
     Dup,
@@ -46,6 +47,12 @@ pub enum TokenType {
     Prepend,     // prepend
     Concat,      // concat
     SplitHead,   // split-head!
+
+    // String Operations
+    CreateString,   // <string>
+    ToString,      // >string
+    Utf8ToString,  // utf8>string
+    StringConcat,  // string-concat
 
     // Special tokens
     Error,
@@ -104,6 +111,7 @@ impl TryFrom<Token> for Value {
             TokenType::Float(n) => Ok(Value::Float(n)),
             TokenType::Boolean(b) => Ok(Value::Boolean(b)),
             TokenType::Char(c) => Ok(Value::Char(c)),
+            TokenType::String(s) => Ok(Value::String(s)),
             _ => Err(ScannerError::InvalidLiteral(token.lexeme)),
         }
     }

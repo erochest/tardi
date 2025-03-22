@@ -17,6 +17,14 @@
 5. Review and adjust plans as needed
 
 ## Recent Changes
+- Implemented string objects and literals:
+  - Added Value::String variant
+  - Added scanner support for string literals (both regular and triple-quoted)
+  - Added compiler support for string literals and operations
+  - Added string operations (<string>, >string, utf8>string, string-concat)
+  - Added comprehensive tests for string functionality
+  - Created documentation in docs/string-operations.md
+
 - Implemented character values and literals:
   - Added Value::Char variant with support for Unicode characters
   - Added scanner support for character literals and escape sequences
@@ -71,13 +79,7 @@
   - Updated scanner to handle comments in various contexts
 
 ## Next Steps
-1. Add String Objects and Literals:
-   - Implement Value::String(String)
-   - Add support for string literals in scanner and compiler
-   - Implement basic string operations (<string>, >string, utf8>string, append, prepend, concat)
-   - Add tests for string handling
-
-5. Implement Function and Lambda Objects:
+1. Implement Function and Lambda Objects:
    - Create Function struct and Value::Function variant
    - Implement basic function-related words (<function>, <lambda>, curry)
    - Add support for function compilation

@@ -72,6 +72,11 @@ impl Compiler {
             TokenType::Prepend => self.compile_op("prepend"),
             TokenType::Concat => self.compile_op("concat"),
             TokenType::SplitHead => self.compile_op("split-head!"),
+            TokenType::String(value) => self.compile_string(value),
+            TokenType::CreateString => self.compile_op("<string>"),
+            TokenType::ToString => self.compile_op(">string"),
+            TokenType::Utf8ToString => self.compile_op("utf8>string"),
+            TokenType::StringConcat => self.compile_op("string-concat"),
             TokenType::Word(word) => Err(Error::CompilerError(CompilerError::UnsupportedToken(
                 format!("word: {}", word),
             ))),
@@ -122,6 +127,19 @@ impl Compiler {
 
     fn compile_char(&mut self, value: char) -> Result<()> {
         let const_index = self.program.add_constant(Value::Char(value));
+        let lit_index = self
+            .program
+            .get_op_index("lit")
+            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(
+                "lit operation not found".to_string(),
+            )))?;
+        self.program.add_instruction(lit_index);
+        self.program.add_instruction(const_index);
+        Ok(())
+    }
+
+    fn compile_string(&mut self, value: String) -> Result<()> {
+        let const_index = self.program.add_constant(Value::String(value));
         let lit_index = self
             .program
             .get_op_index("lit")

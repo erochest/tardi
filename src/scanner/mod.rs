@@ -64,61 +64,64 @@ impl<'a> Scanner<'a> {
         Ok(value)
     }
 
+    /// Processes an escape sequence in a string or character literal
+    fn process_escape_sequence(&mut self) -> Result<char, Error> {
+        match self.next_char() {
+            Some('n') => Ok('\n'),
+            Some('r') => Ok('\r'),
+            Some('t') => Ok('\t'),
+            Some('\\') => Ok('\\'),
+            Some('\'') => Ok('\''),
+            Some('"') => Ok('"'),
+            Some('u') => {
+                match self.peek() {
+                    Some('{') => {
+                        // Unicode escape \u{XXXX}
+                        self.next_char(); // consume '{'
+                        let value = self.scan_hex_digits(6)?;
+                        match self.next_char() {
+                            Some('}') => match char::from_u32(value) {
+                                Some(c) => Ok(c),
+                                None => Err(Error::ScannerError(
+                                    ScannerError::InvalidEscapeSequence(format!(
+                                        "Invalid Unicode codepoint: {}",
+                                        value
+                                    )),
+                                )),
+                            },
+                            _ => Err(Error::ScannerError(
+                                ScannerError::InvalidEscapeSequence(
+                                    "Expected closing '}'".to_string(),
+                                ),
+                            )),
+                        }
+                    }
+                    _ => {
+                        // ASCII escape \uXX
+                        let value = self.scan_hex_digits(2)?;
+                        if value > 0x7F {
+                            return Err(Error::ScannerError(
+                                ScannerError::InvalidEscapeSequence(format!(
+                                    "ASCII value out of range: {}",
+                                    value
+                                )),
+                            ));
+                        }
+                        Ok(char::from_u32(value).unwrap())
+                    }
+                }
+            }
+            Some(c) => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                format!("\\{}", c),
+            ))),
+            None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
+        }
+    }
+
     /// Scans a character literal
     fn scan_char(&mut self) -> Result<TokenType, Error> {
         match self.next_char() {
-            Some('\\') => {
-                // Handle escape sequences
-                match self.next_char() {
-                    Some('n') => Ok(TokenType::Char('\n')),
-                    Some('r') => Ok(TokenType::Char('\r')),
-                    Some('t') => Ok(TokenType::Char('\t')),
-                    Some('\\') => Ok(TokenType::Char('\\')),
-                    Some('\'') => Ok(TokenType::Char('\'')),
-                    Some('u') => {
-                        match self.peek() {
-                            Some('{') => {
-                                // Unicode escape \u{XXXX}
-                                self.next_char(); // consume '{'
-                                let value = self.scan_hex_digits(6)?;
-                                match self.next_char() {
-                                    Some('}') => match char::from_u32(value) {
-                                        Some(c) => Ok(TokenType::Char(c)),
-                                        None => Err(Error::ScannerError(
-                                            ScannerError::InvalidEscapeSequence(format!(
-                                                "Invalid Unicode codepoint: {}",
-                                                value
-                                            )),
-                                        )),
-                                    },
-                                    _ => Err(Error::ScannerError(
-                                        ScannerError::InvalidEscapeSequence(
-                                            "Expected closing '}'".to_string(),
-                                        ),
-                                    )),
-                                }
-                            }
-                            _ => {
-                                // ASCII escape \uXX
-                                let value = self.scan_hex_digits(2)?;
-                                if value > 0x7F {
-                                    return Err(Error::ScannerError(
-                                        ScannerError::InvalidEscapeSequence(format!(
-                                            "ASCII value out of range: {}",
-                                            value
-                                        )),
-                                    ));
-                                }
-                                Ok(TokenType::Char(char::from_u32(value).unwrap()))
-                            }
-                        }
-                    }
-                    Some(c) => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
-                        format!("\\{}", c),
-                    ))),
-                    None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
-                }
-            }
+            Some('\\') => self.process_escape_sequence().map(TokenType::Char),
             Some(c) => {
                 if c == '\'' {
                     Err(Error::ScannerError(ScannerError::InvalidLiteral(
@@ -130,6 +133,58 @@ impl<'a> Scanner<'a> {
             }
             None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
         }
+    }
+
+    /// Scans a string literal
+    fn scan_string(&mut self) -> Result<TokenType, Error> {
+        let mut string = String::new();
+
+        while let Some(c) = self.next_char() {
+            match c {
+                '"' => return Ok(TokenType::String(string)),
+                '\\' => {
+                    let escaped_char = self.process_escape_sequence()?;
+                    string.push(escaped_char);
+                }
+                _ => string.push(c),
+            }
+        }
+
+        Err(Error::ScannerError(ScannerError::UnterminatedString))
+    }
+
+    /// Scans a triple-quoted string literal
+    fn scan_long_string(&mut self) -> Result<TokenType, Error> {
+        // Consume the remaining two quotes
+        if self.next_char() != Some('"') || self.next_char() != Some('"') {
+            return Err(Error::ScannerError(ScannerError::InvalidLiteral(
+                "Expected triple quote".to_string(),
+            )));
+        }
+
+        let mut string = String::new();
+        let mut quote_count = 0;
+
+        while let Some(c) = self.next_char() {
+            match c {
+                '"' => {
+                    quote_count += 1;
+                    if quote_count == 3 {
+                        return Ok(TokenType::String(string));
+                    }
+                }
+                _ => {
+                    // Add any accumulated quotes if this isn't part of the closing sequence
+                    while quote_count > 0 {
+                        string.push('"');
+                        quote_count -= 1;
+                    }
+                    string.push(c);
+                }
+            }
+        }
+
+        Err(Error::ScannerError(ScannerError::UnterminatedString))
     }
 
     /// Advances the scanner state after consuming a character
@@ -295,6 +350,12 @@ impl<'a> Scanner<'a> {
             "concat" => TokenType::Concat,
             "split-head!" => TokenType::SplitHead,
 
+            // String operations
+            "<string>" => TokenType::CreateString,
+            ">string" => TokenType::ToString,
+            "utf8>string" => TokenType::Utf8ToString,
+            "string-concat" => TokenType::StringConcat,
+
             // If it's not a known operator or keyword, it's a word
             _ => TokenType::Word(word),
         }))
@@ -329,6 +390,19 @@ impl Iterator for Scanner<'_> {
                     }
                 }
                 char_result
+            }
+            '"' => {
+                // Check for triple quotes by peeking at the next two characters
+                let is_triple = {
+                    let mut chars = self.chars.clone();
+                    chars.next() == Some('"') && chars.next() == Some('"')
+                };
+                
+                if is_triple {
+                    self.scan_long_string()
+                } else {
+                    self.scan_string()
+                }
             }
             c => match self.scan_word(c) {
                 Ok(Some(w)) => Ok(w),

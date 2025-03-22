@@ -371,6 +371,61 @@ impl VM {
 
         self.push(head)
     }
+
+    /// Creates a new empty string and pushes it onto the stack
+    pub fn create_string(&mut self) -> Result<()> {
+        self.push(shared(Value::String(String::new())))
+    }
+
+    /// Converts a value to its string representation
+    pub fn to_string(&mut self) -> Result<()> {
+        let value = self.pop()?.borrow().clone();
+        self.push(shared(Value::String(value.to_string())))
+    }
+
+    /// Converts a list of UTF-8 byte values to a string
+    pub fn utf8_to_string(&mut self) -> Result<()> {
+        let list = self.pop()?;
+        let list_ref = list.borrow();
+        
+        if let Value::List(items) = &*list_ref {
+            let mut bytes = Vec::new();
+            for item in items {
+                match &*item.borrow() {
+                    Value::Integer(n) if *n >= 0 && *n <= 255 => bytes.push(*n as u8),
+                    _ => return Err(VMError::TypeMismatch("UTF-8 byte value".to_string()).into()),
+                }
+            }
+            
+            match String::from_utf8(bytes) {
+                Ok(s) => self.push(shared(Value::String(s))),
+                Err(_) => Err(VMError::TypeMismatch("invalid UTF-8 sequence".to_string()).into()),
+            }
+        } else {
+            Err(VMError::TypeMismatch("list of bytes".to_string()).into())
+        }
+    }
+
+    /// Concatenates two strings
+    pub fn string_concat(&mut self) -> Result<()> {
+        let b = self.pop()?;
+        let a = self.pop()?;
+
+        let result = {
+            let a_ref = a.borrow();
+            let b_ref = b.borrow();
+            match (&*a_ref, &*b_ref) {
+                (Value::String(s1), Value::String(s2)) => {
+                    let mut new_string = s1.clone();
+                    new_string.push_str(s2);
+                    Ok(new_string)
+                }
+                _ => Err(VMError::TypeMismatch("string concatenation".to_string())),
+            }
+        }?;
+
+        self.push(shared(Value::String(result)))
+    }
 }
 
 // Define the operations
@@ -455,6 +510,12 @@ pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
     add_op(&mut op_table, &mut op_map, concat, "concat");
     add_op(&mut op_table, &mut op_map, split_head, "split-head!");
 
+    // Add string operations
+    add_op(&mut op_table, &mut op_map, create_string, "<string>");
+    add_op(&mut op_table, &mut op_map, to_string, ">string");
+    add_op(&mut op_table, &mut op_map, utf8_to_string, "utf8>string");
+    add_op(&mut op_table, &mut op_map, string_concat, "string-concat");
+
     (op_table, op_map)
 }
 
@@ -517,6 +578,23 @@ pub fn concat(vm: &mut VM) -> Result<()> {
 
 pub fn split_head(vm: &mut VM) -> Result<()> {
     vm.split_head()
+}
+
+// String operations
+pub fn create_string(vm: &mut VM) -> Result<()> {
+    vm.create_string()
+}
+
+pub fn to_string(vm: &mut VM) -> Result<()> {
+    vm.to_string()
+}
+
+pub fn utf8_to_string(vm: &mut VM) -> Result<()> {
+    vm.utf8_to_string()
+}
+
+pub fn string_concat(vm: &mut VM) -> Result<()> {
+    vm.string_concat()
 }
 
 #[cfg(test)]
