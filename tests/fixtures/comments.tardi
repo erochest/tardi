@@ -1,0 +1,13 @@
+// This is a comment
+42 // This is a comment after a number
+// Empty comment
+// Comment with special chars: !@#$%^&*()
+<list> // Comment after list creation
+dup 1 swap append // Comment after append
+// Multiple
+// Comments
+// In a row
+dup // another comment
+2 swap // Comment
+append // Another comment
+// Final comment

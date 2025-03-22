@@ -7,6 +7,7 @@
   - Stack manipulation operations (docs/stack-manipulation.md)
   - Arithmetic operations (docs/arithmetic-operations.md)
   - Comparison operators (docs/comparison-operators.md)
+  - List operations (docs/list-operations.md)
 - VM architecture with Indirect Threading (ITC)
 - Library structure (src/lib.rs, error handling, src/main.rs updates)
 - Basic VM structure:
@@ -87,6 +88,7 @@
 - Shared value system implemented using Rc<RefCell<Value>>
 - Character values and literals implemented, including Unicode support
 - List operations (<list>, append, prepend, concat, split-head!) implemented across all components
+- Comment support implemented with // line comments
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
 - Improving test coverage and maintaining TDD-focused workflow

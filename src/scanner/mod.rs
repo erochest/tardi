@@ -39,12 +39,12 @@ impl<'a> Scanner<'a> {
     fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32, Error> {
         let mut value = 0u32;
         let mut count = 0;
-        
+
         while let Some(&c) = self.chars.peek() {
             if count >= max_len {
                 break;
             }
-            
+
             match c.to_digit(16) {
                 Some(digit) => {
                     value = value * 16 + digit;
@@ -54,13 +54,13 @@ impl<'a> Scanner<'a> {
                 None => break,
             }
         }
-        
+
         if count == 0 {
             return Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
                 "Expected hexadecimal digits".to_string(),
             )));
         }
-        
+
         Ok(value)
     }
 
@@ -84,22 +84,30 @@ impl<'a> Scanner<'a> {
                                 match self.next_char() {
                                     Some('}') => match char::from_u32(value) {
                                         Some(c) => Ok(TokenType::Char(c)),
-                                        None => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
-                                            format!("Invalid Unicode codepoint: {}", value),
-                                        ))),
+                                        None => Err(Error::ScannerError(
+                                            ScannerError::InvalidEscapeSequence(format!(
+                                                "Invalid Unicode codepoint: {}",
+                                                value
+                                            )),
+                                        )),
                                     },
-                                    _ => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
-                                        "Expected closing '}'".to_string(),
-                                    ))),
+                                    _ => Err(Error::ScannerError(
+                                        ScannerError::InvalidEscapeSequence(
+                                            "Expected closing '}'".to_string(),
+                                        ),
+                                    )),
                                 }
                             }
                             _ => {
                                 // ASCII escape \uXX
                                 let value = self.scan_hex_digits(2)?;
                                 if value > 0x7F {
-                                    return Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
-                                        format!("ASCII value out of range: {}", value),
-                                    )));
+                                    return Err(Error::ScannerError(
+                                        ScannerError::InvalidEscapeSequence(format!(
+                                            "ASCII value out of range: {}",
+                                            value
+                                        )),
+                                    ));
                                 }
                                 Ok(TokenType::Char(char::from_u32(value).unwrap()))
                             }
@@ -155,6 +163,15 @@ impl<'a> Scanner<'a> {
             }
             // Use next_char which handles both advancing and consuming
             self.next_char();
+        }
+    }
+
+    /// Skips to the end of the line
+    fn skip_eol(&mut self) {
+        while let Some(c) = self.next_char() {
+            if c == '\n' {
+                break;
+            }
         }
     }
 
@@ -226,7 +243,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a word (any sequence of non-whitespace characters)
-    fn scan_word(&mut self, first_char: char) -> Result<TokenType, Error> {
+    fn scan_word(&mut self, first_char: char) -> Result<Option<TokenType>, Error> {
         let mut word = String::from(first_char);
 
         // Scan the rest of the word
@@ -238,8 +255,13 @@ impl<'a> Scanner<'a> {
             self.next_char();
         }
 
+        if word.starts_with("//") {
+            self.skip_eol();
+            return Ok(None);
+        }
+
         // Check for keywords and operators
-        Ok(match word.as_str() {
+        Ok(Some(match word.as_str() {
             // Stack operations
             "dup" => TokenType::Dup,
             "swap" => TokenType::Swap,
@@ -275,7 +297,7 @@ impl<'a> Scanner<'a> {
 
             // If it's not a known operator or keyword, it's a word
             _ => TokenType::Word(word),
-        })
+        }))
     }
 }
 
@@ -308,7 +330,15 @@ impl Iterator for Scanner<'_> {
                 }
                 char_result
             }
-            c => self.scan_word(c),
+            c => match self.scan_word(c) {
+                Ok(Some(w)) => Ok(w),
+                Ok(None) => {
+                    return self.next();
+                }
+                Err(err) => {
+                    return Some(Err(err));
+                }
+            },
         };
 
         // Calculate token length

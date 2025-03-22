@@ -63,6 +63,12 @@
   - Updated VM to handle list operations
   - Added comprehensive tests for list functionality
   - Updated error handling for list operations
+- Implemented Comment Support:
+  - Added scanner support for line comments starting with //
+  - Comments are skipped during tokenization
+  - Added helper methods for end-of-line handling
+  - Added comprehensive tests for comment handling
+  - Updated scanner to handle comments in various contexts
 
 ## Next Steps
 1. Add String Objects and Literals:

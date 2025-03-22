@@ -323,7 +323,9 @@ fn test_scan_arithmetic_operators() {
 
     // Test "+"
     if let Some(Ok(token)) = scanner.next() {
-        assert!(matches!(token.token_type, TokenType::Plus));
+        if !matches!(token.token_type, TokenType::Plus) {
+            panic!("Expected Plus token, got {:?}", token.token_type);
+        }
         assert_eq!(token.line, 1);
         assert_eq!(token.column, 1);
         assert_eq!(token.length, 1);
@@ -350,7 +352,9 @@ fn test_scan_arithmetic_operators() {
 
     // Test "/"
     if let Some(Ok(token)) = scanner.next() {
-        assert!(matches!(token.token_type, TokenType::Slash));
+        if !matches!(token.token_type, TokenType::Slash) {
+            panic!("Expected Slash token, got {:?}", token.token_type);
+        }
         assert_eq!(token.lexeme, "/");
     } else {
         panic!("Failed to scan slash");
@@ -416,4 +420,37 @@ fn test_scan_comparison_operators_and_words() {
     } else {
         panic!("Failed to scan custom word");
     }
+}
+
+#[test]
+fn test_scan_comments() {
+    let mut scanner =
+        Scanner::new("42 // This is a comment\n<list> // Another comment\ndup // Final comment");
+
+    // Test "42"
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Integer(42)));
+        assert_eq!(token.lexeme, "42");
+    } else {
+        panic!("Failed to scan integer");
+    }
+
+    // Test "<list>"
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::CreateList));
+        assert_eq!(token.lexeme, "<list>");
+    } else {
+        panic!("Failed to scan <list>");
+    }
+
+    // Test "dup"
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Dup));
+        assert_eq!(token.lexeme, "dup");
+    } else {
+        panic!("Failed to scan dup");
+    }
+
+    // Ensure there are no more tokens
+    assert!(scanner.next().is_none());
 }
