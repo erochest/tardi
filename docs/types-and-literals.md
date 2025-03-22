@@ -1,49 +1,108 @@
-# Types and Literals
+# Types and Literals in Tardi
 
-## Basic Types
+Tardi supports several basic types and their corresponding literal representations. This document outlines the available types and how to use them in your Tardi programs.
 
-### Numbers
-- **Integers**: Whole numbers
-  ```
-  42    // integer
-  0     // zero
-  -17   // negative integer
-  ```
-  
-- **Floating Point**: Numbers with decimal points
-  ```
-  3.14  // float
-  2.0   // float with zero decimal
-  0.123 // float less than 1
-  ```
+## Supported Types
 
-  *Future number formats planned:*
-  - Binary numbers (0b prefix)
-  - Octal numbers (0o prefix)
-  - Hexadecimal numbers (0x prefix)
-  - Rational numbers (e.g., 3/4)
-  - Exponential notation (e.g., 1e-10)
-  - Floats with optional leading digit (e.g., .5)
+1. Integer
+2. Float
+3. Boolean
+4. Character
 
-### Booleans
-Scheme-style boolean literals:
+## Literal Representations
+
+### Integer Literals
+
+Integers are represented as whole numbers without a decimal point.
+
+Examples:
 ```
-#t    // true
-#f    // false
+42
+-17
+0
 ```
 
-## Special Values
-- **Error**: Represents an error condition
-- **EOF**: End of file marker
+### Float Literals
 
-## Notes
-- Numbers currently support basic decimal formats
-- More types and literals will be added as the language evolves
-- All numeric literals can be preceded by a minus sign (-) for negative values
-- Comments are denoted by double slashes (//)
-- Semicolons (;) are reserved for function definitions (e.g., `: double 2 * ;`)
+Floats are represented as numbers with a decimal point.
 
-## Implementation Details
-- All values in the VM are implemented as shared values using `Rc<RefCell<Value>>`
-- This shared value approach allows for efficient memory management and enables future features like complex data structures and closures
-- The shared value implementation is transparent to the end-user and doesn't affect the language syntax
+Examples:
+```
+3.14
+-0.5
+2.0
+```
+
+### Boolean Literals
+
+Booleans use Scheme-style notation:
+
+- `#t` for true
+- `#f` for false
+
+### Character Literals
+
+Characters are enclosed in single quotes.
+
+Examples:
+```
+'a'
+'Z'
+'5'
+'!'
+```
+
+#### Escape Sequences
+
+Tardi supports the following escape sequences for special characters:
+
+- `'\n'`: Newline
+- `'\r'`: Carriage return
+- `'\t'`: Tab
+- `'\''`: Single quote
+- `'\\'`: Backslash
+
+#### Unicode Characters
+
+Unicode characters can be represented in two ways:
+
+1. Directly as UTF-8 characters:
+   ```
+   '🦀'
+   '世'
+   '界'
+   ```
+
+2. Using Unicode escape sequences:
+   - `'\uXX'` for ASCII characters (where XX is a two-digit hexadecimal number)
+   - `'\u{XXXX}'` for Unicode code points (where XXXX is a 1-6 digit hexadecimal number)
+
+   Examples:
+   ```
+   '\u41'    // 'A'
+   '\u7A'    // 'z'
+   '\u{1F600}'  // '😀'
+   '\u{1F4A9}'  // '💩'
+   ```
+
+## Type Inference
+
+Tardi uses type inference to determine the type of a literal. You don't need to explicitly declare types; the language will infer them based on the literal representation.
+
+## Stack Effect
+
+When you use a literal in your Tardi program, it is pushed onto the stack. For example:
+
+```
+42 3.14 #t 'a'
+```
+
+This sequence will result in the following stack (from top to bottom):
+```
+'a'   (Character)
+#t    (Boolean)
+3.14  (Float)
+42    (Integer)
+```
+
+You can then use these values in subsequent operations or manipulate them using Tardi's built-in functions and operators.

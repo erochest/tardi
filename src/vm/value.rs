@@ -19,6 +19,7 @@ pub enum Value {
     Integer(i64),
     Float(f64),
     Boolean(bool),
+    Char(char),
 }
 
 impl fmt::Display for Value {
@@ -35,6 +36,14 @@ impl fmt::Display for Value {
             }
             Value::Boolean(true) => write!(f, "#t"),
             Value::Boolean(false) => write!(f, "#f"),
+            Value::Char(c) => match c {
+                '\n' => write!(f, "'\\n'"),
+                '\r' => write!(f, "'\\r'"),
+                '\t' => write!(f, "'\\t'"),
+                '\\' => write!(f, "'\\\\'"),
+                '\'' => write!(f, "'\\''"),
+                c => write!(f, "'{}'", c),
+            },
         }
     }
 }
@@ -47,6 +56,7 @@ impl PartialEq for Value {
             (Value::Integer(a), Value::Float(b)) => (*a as f64) == *b,
             (Value::Float(a), Value::Integer(b)) => *a == (*b as f64),
             (Value::Boolean(a), Value::Boolean(b)) => a == b,
+            (Value::Char(a), Value::Char(b)) => a == b,
             _ => false,
         }
     }
@@ -59,6 +69,8 @@ impl PartialOrd for Value {
             (Value::Float(a), Value::Float(b)) => a.partial_cmp(b),
             (Value::Integer(a), Value::Float(b)) => (*a as f64).partial_cmp(b),
             (Value::Float(a), Value::Integer(b)) => a.partial_cmp(&(*b as f64)),
+            (Value::Char(a), Value::Char(b)) => a.partial_cmp(b),
+            (Value::Boolean(a), Value::Boolean(b)) => a.partial_cmp(b),
             _ => None,
         }
     }
@@ -143,4 +155,3 @@ impl Div for Value {
         }
     }
 }
-

@@ -39,6 +39,7 @@ impl Compiler {
             TokenType::Integer(value) => self.compile_integer(value),
             TokenType::Float(value) => self.compile_float(value),
             TokenType::Boolean(value) => self.compile_boolean(value),
+            TokenType::Char(value) => self.compile_char(value),
             TokenType::Dup => self.compile_op("dup"),
             TokenType::Swap => self.compile_op("swap"),
             TokenType::Rot => self.compile_op("rot"),
@@ -103,6 +104,19 @@ impl Compiler {
 
     fn compile_boolean(&mut self, value: bool) -> Result<()> {
         let const_index = self.program.add_constant(Value::Boolean(value));
+        let lit_index = self
+            .program
+            .get_op_index("lit")
+            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(
+                "lit operation not found".to_string(),
+            )))?;
+        self.program.add_instruction(lit_index);
+        self.program.add_instruction(const_index);
+        Ok(())
+    }
+
+    fn compile_char(&mut self, value: char) -> Result<()> {
+        let const_index = self.program.add_constant(Value::Char(value));
         let lit_index = self
             .program
             .get_op_index("lit")

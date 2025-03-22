@@ -96,6 +96,106 @@ fn test_scan_integers() {
 }
 
 #[test]
+fn test_scan_character_literals() {
+    let mut scanner = Scanner::new("'a' '\\n' '\\t' '\\r' '\\'' '\\\\' '🦀' '\\u41' '\\u{1F600}'");
+
+    // Test 'a'
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('a')));
+        assert_eq!(token.lexeme, "'a'");
+    } else {
+        panic!("Failed to scan character 'a'");
+    }
+
+    // Test '\n'
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('\n')));
+        assert_eq!(token.lexeme, "'\\n'");
+    } else {
+        panic!("Failed to scan character '\\n'");
+    }
+
+    // Test '\t'
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('\t')));
+        assert_eq!(token.lexeme, "'\\t'");
+    } else {
+        panic!("Failed to scan character '\\t'");
+    }
+
+    // Test '\r'
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('\r')));
+        assert_eq!(token.lexeme, "'\\r'");
+    } else {
+        panic!("Failed to scan character '\\r'");
+    }
+
+    // Test '\''
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('\'')));
+        assert_eq!(token.lexeme, "'\\''");
+    } else {
+        panic!("Failed to scan character '\\''");
+    }
+
+    // Test '\\'
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('\\')));
+        assert_eq!(token.lexeme, "'\\\\'");
+    } else {
+        panic!("Failed to scan character '\\\\'");
+    }
+
+    // Test '🦀'
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('🦀')));
+        assert_eq!(token.lexeme, "'🦀'");
+    } else {
+        panic!("Failed to scan character '🦀'");
+    }
+
+    // Test '\u41' (ASCII 'A')
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('A')));
+        assert_eq!(token.lexeme, "'\\u41'");
+    } else {
+        panic!("Failed to scan character '\\u41'");
+    }
+
+    // Test '\u{1F600}' (Unicode emoji 😀)
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::Char('😀')));
+        assert_eq!(token.lexeme, "'\\u{1F600}'");
+    } else {
+        panic!("{}", "Failed to scan character '\\u{1F600}'");
+    }
+}
+
+#[test]
+fn test_invalid_character_literals() {
+    // Test unterminated character
+    let mut scanner = Scanner::new("'a");
+    assert!(scanner.next().unwrap().is_err());
+
+    // Test empty character literal
+    let mut scanner = Scanner::new("''");
+    assert!(scanner.next().unwrap().is_err());
+
+    // Test invalid escape sequence
+    let mut scanner = Scanner::new("'\\x'");
+    assert!(scanner.next().unwrap().is_err());
+
+    // Test invalid Unicode escape
+    let mut scanner = Scanner::new("'\\u{FFFFFFFF}'");
+    assert!(scanner.next().unwrap().is_err());
+
+    // Test invalid ASCII escape
+    let mut scanner = Scanner::new("'\\u80'");
+    assert!(scanner.next().unwrap().is_err());
+}
+
+#[test]
 fn test_scan_return_stack_operations() {
     let mut scanner = Scanner::new(">r r> r@");
 

@@ -50,10 +50,7 @@
 - TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
-1. Add Character Values and Literals:
-   - Character type and operations
-   - Unicode support
-3. Implement List Objects:
+1. Implement List Objects:
    - Basic list operations
    - List manipulation primitives
 4. Add String Objects and Literals:
@@ -89,6 +86,7 @@
 - Arithmetic operations (+, -, *, /) implemented with type coercion and error handling
 - Comparison operations (==, !=, <, >, <=, >=, !) implemented across all components
 - Shared value system implemented using Rc<RefCell<Value>>
+- Character values and literals implemented, including Unicode support
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
 - Improving test coverage and maintaining TDD-focused workflow
@@ -120,11 +118,7 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Add Character Values and Literals:
-   - Implement Value::Char variant
-   - Add character literal support
-   - Add escape sequence handling
-3. Begin List Objects implementation:
+1. Implement List Objects:
    - Design list operations
    - Implement basic list functionality
 4. Continue improving test coverage and documentation

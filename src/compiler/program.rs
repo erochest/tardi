@@ -30,6 +30,10 @@ impl Program {
         self.constants.len() - 1
     }
 
+    pub fn get_constant(&self, index: usize) -> Option<&Value> {
+        self.constants.get(index)
+    }
+
     pub fn add_instruction(&mut self, op_index: usize) {
         self.instructions.push(op_index);
     }

@@ -78,6 +78,8 @@ pub enum ScannerError {
     InvalidLiteral(String),
     UnexpectedCharacter(char),
     UnterminatedString,
+    UnterminatedChar,
+    InvalidEscapeSequence(String),
 }
 
 impl fmt::Display for ScannerError {
@@ -87,6 +89,8 @@ impl fmt::Display for ScannerError {
             ScannerError::InvalidLiteral(s) => write!(f, "Invalid literal: {}", s),
             ScannerError::UnexpectedCharacter(c) => write!(f, "Unexpected character: {}", c),
             ScannerError::UnterminatedString => write!(f, "Unterminated string"),
+            ScannerError::UnterminatedChar => write!(f, "Unterminated character literal"),
+            ScannerError::InvalidEscapeSequence(s) => write!(f, "Invalid escape sequence: {}", s),
         }
     }
 }

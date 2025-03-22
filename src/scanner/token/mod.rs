@@ -9,6 +9,7 @@ pub enum TokenType {
     Integer(i64),
     Float(f64),
     Boolean(bool),
+    Char(char),
 
     // Stack Operations
     Dup,
@@ -95,6 +96,7 @@ impl TryFrom<Token> for Value {
             TokenType::Integer(n) => Ok(Value::Integer(n)),
             TokenType::Float(n) => Ok(Value::Float(n)),
             TokenType::Boolean(b) => Ok(Value::Boolean(b)),
+            TokenType::Char(c) => Ok(Value::Char(c)),
             _ => Err(ScannerError::InvalidLiteral(token.lexeme)),
         }
     }

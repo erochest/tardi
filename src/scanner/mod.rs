@@ -35,6 +35,95 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    /// Scans hexadecimal digits up to the specified length
+    fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32, Error> {
+        let mut value = 0u32;
+        let mut count = 0;
+        
+        while let Some(&c) = self.chars.peek() {
+            if count >= max_len {
+                break;
+            }
+            
+            match c.to_digit(16) {
+                Some(digit) => {
+                    value = value * 16 + digit;
+                    self.next_char();
+                    count += 1;
+                }
+                None => break,
+            }
+        }
+        
+        if count == 0 {
+            return Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                "Expected hexadecimal digits".to_string(),
+            )));
+        }
+        
+        Ok(value)
+    }
+
+    /// Scans a character literal
+    fn scan_char(&mut self) -> Result<TokenType, Error> {
+        match self.next_char() {
+            Some('\\') => {
+                // Handle escape sequences
+                match self.next_char() {
+                    Some('n') => Ok(TokenType::Char('\n')),
+                    Some('r') => Ok(TokenType::Char('\r')),
+                    Some('t') => Ok(TokenType::Char('\t')),
+                    Some('\\') => Ok(TokenType::Char('\\')),
+                    Some('\'') => Ok(TokenType::Char('\'')),
+                    Some('u') => {
+                        match self.peek() {
+                            Some('{') => {
+                                // Unicode escape \u{XXXX}
+                                self.next_char(); // consume '{'
+                                let value = self.scan_hex_digits(6)?;
+                                match self.next_char() {
+                                    Some('}') => match char::from_u32(value) {
+                                        Some(c) => Ok(TokenType::Char(c)),
+                                        None => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                                            format!("Invalid Unicode codepoint: {}", value),
+                                        ))),
+                                    },
+                                    _ => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                                        "Expected closing '}'".to_string(),
+                                    ))),
+                                }
+                            }
+                            _ => {
+                                // ASCII escape \uXX
+                                let value = self.scan_hex_digits(2)?;
+                                if value > 0x7F {
+                                    return Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                                        format!("ASCII value out of range: {}", value),
+                                    )));
+                                }
+                                Ok(TokenType::Char(char::from_u32(value).unwrap()))
+                            }
+                        }
+                    }
+                    Some(c) => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                        format!("\\{}", c),
+                    ))),
+                    None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
+                }
+            }
+            Some(c) => {
+                if c == '\'' {
+                    Err(Error::ScannerError(ScannerError::InvalidLiteral(
+                        "Empty character literal".to_string(),
+                    )))
+                } else {
+                    Ok(TokenType::Char(c))
+                }
+            }
+            None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
+        }
+    }
+
     /// Advances the scanner state after consuming a character
     fn advance(&mut self, c: char) {
         self.offset += c.len_utf8();
@@ -202,6 +291,16 @@ impl Iterator for Scanner<'_> {
         let result = match c {
             '0'..='9' => self.scan_number(c),
             '#' => self.scan_boolean(),
+            '\'' => {
+                let char_result = self.scan_char();
+                if let Ok(TokenType::Char(_)) = char_result {
+                    // Consume the closing single quote
+                    if self.next_char() != Some('\'') {
+                        return Some(Err(Error::ScannerError(ScannerError::UnterminatedChar)));
+                    }
+                }
+                char_result
+            }
             c => self.scan_word(c),
         };
 

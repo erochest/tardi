@@ -17,6 +17,12 @@
 5. Review and adjust plans as needed
 
 ## Recent Changes
+- Implemented character values and literals:
+  - Added Value::Char variant with support for Unicode characters
+  - Added scanner support for character literals and escape sequences
+  - Added compiler support for character literals
+  - Added comprehensive tests for character handling
+  - Created documentation for character types and literals
 - Implemented basic compiler structure with support for integers, floats, and booleans
 - Created Program structure for managing constants, instructions, and op_table
 - Implemented VM with Indirect Threaded Code (ITC) and basic stack operations
@@ -52,13 +58,7 @@
   - Monitored performance impact and addressed issues as they arose
 
 ## Next Steps
-1. Add Character Values and Literals:
-   - Implement Value::Char(char)
-   - Add support for character literals in scanner and compiler
-   - Implement character escape sequences
-   - Add tests for character handling
-
-3. Implement List Objects:
+1. Implement List Objects:
    - Add Value::List(Vec<Value>)
    - Implement basic list operations (<list>, append, prepend, concat, head)
    - Update tests for list functionality
@@ -104,6 +104,9 @@
 - Separate error types for scanner, compiler, and VM phases
 - Return stack implemented with a maximum capacity of 1024 items
 - Return stack operations preserve the shared value system using Rc<RefCell<Value>>
+- Character literals support both direct UTF-8 input and escape sequences
+- Unicode support implemented via '\u{XXXX}' syntax for full Unicode range
+- ASCII characters can use simplified '\uXX' syntax
 - Indirect Threading (ITC) for VM implementation to balance performance and safety
 - May revisit Direct Threading in the future if performance becomes a critical concern
 - Using scheme-style #t and #f for boolean literals

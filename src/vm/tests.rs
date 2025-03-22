@@ -229,6 +229,66 @@ fn test_arithmetic_errors() {
 }
 
 #[test]
+fn test_character_operations() {
+    let mut vm = VM::new();
+
+    // Test basic character handling
+    vm.push(shared(Value::Char('a'))).unwrap();
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('a')));
+
+    // Test character literals in program execution
+    let (op_table, _) = create_op_table();
+    let program = Box::new(TestProgram {
+        instructions: vec![
+            0, 0,  // lit 'a'
+            0, 1,  // lit '\n'
+            0, 2,  // lit '🦀'
+        ],
+        constants: vec![
+            Value::Char('a'),
+            Value::Char('\n'),
+            Value::Char('🦀'),
+        ],
+        op_table,
+    });
+
+    vm.load_program(program);
+    vm.run().unwrap();
+
+    // Verify the characters were pushed onto the stack in the correct order
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('🦀')));
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('\n')));
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('a')));
+
+    // Test stack operations with characters
+    vm.push(shared(Value::Char('x'))).unwrap();
+    vm.push(shared(Value::Char('y'))).unwrap();
+    vm.dup().unwrap();
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('y')));
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('y')));
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('x')));
+
+    // Test comparison operations with characters
+    vm.push(shared(Value::Char('a'))).unwrap();
+    vm.push(shared(Value::Char('a'))).unwrap();
+    vm.equal().unwrap();
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
+
+    vm.push(shared(Value::Char('a'))).unwrap();
+    vm.push(shared(Value::Char('b'))).unwrap();
+    vm.less().unwrap();
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
+
+    // Test type mismatch with characters
+    vm.push(shared(Value::Char('a'))).unwrap();
+    vm.push(shared(Value::Integer(1))).unwrap();
+    assert!(matches!(
+        vm.equal(),
+        Err(Error::VMError(VMError::TypeMismatch(_)))
+    ));
+}
+
+#[test]
 fn test_comparison_operations() {
     let mut vm = VM::new();
 
