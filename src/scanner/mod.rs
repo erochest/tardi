@@ -157,6 +157,11 @@ impl<'a> Scanner<'a> {
             "rot" => TokenType::Rot,
             "drop" => TokenType::Drop,
 
+            // Return stack operations
+            ">r" => TokenType::ToR,
+            "r>" => TokenType::RFrom,
+            "r@" => TokenType::RFetch,
+
             // Arithmetic operators
             "+" => TokenType::Plus,
             "-" => TokenType::Dash,

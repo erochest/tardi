@@ -16,6 +16,11 @@ pub enum TokenType {
     Rot,
     Drop,
 
+    // Return Stack Operations
+    ToR,    // >r
+    RFrom,  // r>
+    RFetch, // r@
+
     // Arithmetic Operators
     Plus,
     Dash,

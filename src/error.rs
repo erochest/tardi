@@ -18,6 +18,8 @@ pub enum Error {
 pub enum VMError {
     StackUnderflow,
     StackOverflow,
+    ReturnStackUnderflow,
+    ReturnStackOverflow,
     InvalidOpCode(usize),
     InvalidConstantIndex(usize),
     NoProgram,
@@ -48,6 +50,8 @@ impl fmt::Display for VMError {
             VMError::NoProgram => write!(f, "No program loaded"),
             VMError::TypeMismatch(op) => write!(f, "Type mismatch in {} operation", op),
             VMError::DivisionByZero => write!(f, "Division by zero"),
+            VMError::ReturnStackUnderflow => write!(f, "Return stack underflow"),
+            VMError::ReturnStackOverflow => write!(f, "Return stack overflow"),
         }
     }
 }

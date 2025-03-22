@@ -36,6 +36,8 @@
   - Implementation of comparison operations (==, !=, <, >, <=, >=, !)
   - Error handling for arithmetic and comparison operations (type mismatches, division by zero)
   - Shared value system using Rc<RefCell<Value>> for efficient memory management
+  - Implementation of return stack operations (>r, r>, r@)
+  - Error handling for return stack operations (overflow, underflow)
 - Test infrastructure:
   - Initial test suite using cargo-nextest
   - Integration tests for major features
@@ -48,10 +50,7 @@
 - TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
-1. Implement Return Stack:
-   - Basic return stack operations (>r, r>, r@)
-   - Integration with existing VM structure
-2. Add Character Values and Literals:
+1. Add Character Values and Literals:
    - Character type and operations
    - Unicode support
 3. Implement List Objects:
@@ -86,6 +85,7 @@
 - Basic scanner, compiler, and VM functionality implemented
 - Program structure in place for managing bytecode
 - Basic stack operations (dup, swap, rot, drop) implemented across all components
+- Return stack operations (>r, r>, r@) implemented across all components
 - Arithmetic operations (+, -, *, /) implemented with type coercion and error handling
 - Comparison operations (==, !=, <, >, <=, >=, !) implemented across all components
 - Shared value system implemented using Rc<RefCell<Value>>
@@ -98,8 +98,7 @@
 - No significant functional issues at this stage
 
 ## Upcoming Milestones
-1. Complete return stack implementation
-2. Add character and string support
+1. Add character and string support
 3. Implement list objects
 4. Add function and lambda support
 5. Working REPL for interactive testing
@@ -121,11 +120,7 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Implement Return Stack:
-   - Add return stack to VM
-   - Implement basic return stack operations
-   - Update tests for return stack functionality
-2. Add Character Values and Literals:
+1. Add Character Values and Literals:
    - Implement Value::Char variant
    - Add character literal support
    - Add escape sequence handling

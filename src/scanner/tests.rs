@@ -96,6 +96,38 @@ fn test_scan_integers() {
 }
 
 #[test]
+fn test_scan_return_stack_operations() {
+    let mut scanner = Scanner::new(">r r> r@");
+
+    // Test ">r"
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::ToR));
+        assert_eq!(token.line, 1);
+        assert_eq!(token.column, 1);
+        assert_eq!(token.length, 2);
+        assert_eq!(token.lexeme, ">r");
+    } else {
+        panic!("Failed to scan >r");
+    }
+
+    // Test "r>"
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::RFrom));
+        assert_eq!(token.lexeme, "r>");
+    } else {
+        panic!("Failed to scan r>");
+    }
+
+    // Test "r@"
+    if let Some(Ok(token)) = scanner.next() {
+        assert!(matches!(token.token_type, TokenType::RFetch));
+        assert_eq!(token.lexeme, "r@");
+    } else {
+        panic!("Failed to scan r@");
+    }
+}
+
+#[test]
 fn test_scan_floats() {
     let mut scanner = Scanner::new("3.14 2.0 0.123");
 

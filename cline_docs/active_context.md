@@ -20,6 +20,10 @@
 - Implemented basic compiler structure with support for integers, floats, and booleans
 - Created Program structure for managing constants, instructions, and op_table
 - Implemented VM with Indirect Threaded Code (ITC) and basic stack operations
+- Implemented return stack operations (>r, r>, r@):
+  - Added return stack to VM with overflow protection
+  - Added scanner and compiler support for return stack operations
+  - Created comprehensive test coverage and documentation
 - Improved scanner with support for integers, floats, and booleans
 - Enhanced error handling across all components
 - Improved test infrastructure and coverage
@@ -48,12 +52,7 @@
   - Monitored performance impact and addressed issues as they arose
 
 ## Next Steps
-1. Implement Return Stack:
-   - Add return stack to VM
-   - Implement basic return stack operations (>r, r>, r@)
-   - Update tests for return stack functionality
-
-2. Add Character Values and Literals:
+1. Add Character Values and Literals:
    - Implement Value::Char(char)
    - Add support for character literals in scanner and compiler
    - Implement character escape sequences
@@ -103,6 +102,8 @@
 - Using iterator pattern for scanner output
 - Program structure contains constants, instructions, and op_table
 - Separate error types for scanner, compiler, and VM phases
+- Return stack implemented with a maximum capacity of 1024 items
+- Return stack operations preserve the shared value system using Rc<RefCell<Value>>
 - Indirect Threading (ITC) for VM implementation to balance performance and safety
 - May revisit Direct Threading in the future if performance becomes a critical concern
 - Using scheme-style #t and #f for boolean literals

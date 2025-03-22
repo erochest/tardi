@@ -43,6 +43,35 @@ fn test_compile_comparison_operators() -> Result<()> {
 }
 
 #[test]
+fn test_compile_return_stack_operations() -> Result<()> {
+    let program = compile("42 >r r@ r>")?;
+
+    let expected_ops = vec![
+        "lit", // Push 42
+        ">r",  // Move to return stack
+        "r@",  // Copy from return stack
+        "r>",  // Move from return stack
+    ];
+
+    let mut actual_ops = Vec::new();
+    let instructions = program.get_instructions();
+    let mut i = 0;
+    while i < instructions.len() {
+        let op = instructions[i];
+        let name = program.get_op_name(op).unwrap().to_string();
+        actual_ops.push(name.clone());
+        if name == "lit" {
+            i += 2;
+        } else {
+            i += 1;
+        }
+    }
+
+    assert_eq!(actual_ops, expected_ops);
+    Ok(())
+}
+
+#[test]
 fn test_compile_word() -> Result<()> {
     let result = compile("custom_word");
     assert!(result.is_err());

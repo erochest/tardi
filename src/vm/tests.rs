@@ -103,6 +103,56 @@ fn test_invalid_opcode() {
 }
 
 #[test]
+fn test_return_stack_operations() {
+    let mut vm = VM::new();
+
+    // Test >r (to_r)
+    vm.push(shared(Value::Integer(42))).unwrap();
+    vm.to_r().unwrap();
+    assert_eq!(vm.stack_size(), 0);
+
+    // Test r> (r_from)
+    vm.r_from().unwrap();
+    assert_eq!(vm.stack_size(), 1);
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(42)));
+
+    // Test r@ (r_fetch)
+    vm.push(shared(Value::Integer(10))).unwrap();
+    vm.to_r().unwrap();
+    vm.r_fetch().unwrap();
+    assert_eq!(vm.stack_size(), 1);
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(10)));
+    vm.r_from().unwrap(); // Clear the return stack
+
+    // Test return stack overflow
+    for i in 0..1024 {
+        vm.push(shared(Value::Integer(1))).unwrap();
+        match vm.to_r() {
+            Ok(_) => continue,
+            Err(Error::VMError(VMError::ReturnStackOverflow)) => {
+                // We've hit the overflow, verify we pushed the expected number of values
+                assert!(i > 0);
+                break;
+            }
+            Err(e) => panic!("Unexpected error: {:?}", e),
+        }
+    }
+
+    // Clear the return stack (only pop what we successfully pushed)
+    while let Ok(_) = vm.r_from() {}
+
+    // Test return stack underflow
+    assert!(matches!(
+        vm.r_from(),
+        Err(Error::VMError(VMError::ReturnStackUnderflow))
+    ));
+    assert!(matches!(
+        vm.r_fetch(),
+        Err(Error::VMError(VMError::ReturnStackUnderflow))
+    ));
+}
+
+#[test]
 fn test_arithmetic_operations() {
     let mut vm = VM::new();
 

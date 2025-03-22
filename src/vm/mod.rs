@@ -26,6 +26,9 @@ pub struct VM {
 
     /// Data stack for operation arguments and results
     stack: Vec<SharedValue>,
+
+    /// Return stack for control flow
+    return_stack: Vec<SharedValue>,
 }
 
 impl Default for VM {
@@ -46,6 +49,42 @@ impl VM {
             program: None,
             ip: 0,
             stack: Vec::new(),
+            return_stack: Vec::new(),
+        }
+    }
+
+    /// Pushes a shared value onto the return stack
+    pub fn push_return(&mut self, value: SharedValue) -> Result<()> {
+        if self.return_stack.len() >= 1024 {
+            return Err(VMError::ReturnStackOverflow.into());
+        }
+        self.return_stack.push(value);
+        Ok(())
+    }
+
+    /// Pops a shared value from the return stack
+    pub fn pop_return(&mut self) -> Result<SharedValue> {
+        self.return_stack.pop().ok_or(VMError::ReturnStackUnderflow.into())
+    }
+
+    /// Moves an item from the data stack to the return stack (>r operation)
+    pub fn to_r(&mut self) -> Result<()> {
+        let value = self.pop()?;
+        self.push_return(value)
+    }
+
+    /// Moves an item from the return stack to the data stack (r> operation)
+    pub fn r_from(&mut self) -> Result<()> {
+        let value = self.pop_return()?;
+        self.push(value)
+    }
+
+    /// Copies the top item from the return stack to the data stack (r@ operation)
+    pub fn r_fetch(&mut self) -> Result<()> {
+        if let Some(value) = self.return_stack.last() {
+            self.push(value.clone())
+        } else {
+            Err(VMError::ReturnStackUnderflow.into())
         }
     }
 
@@ -323,7 +362,24 @@ pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
     add_op(&mut op_table, &mut op_map, greater_equal, ">=");
     add_op(&mut op_table, &mut op_map, not, "!");
 
+    // Add return stack operations
+    add_op(&mut op_table, &mut op_map, to_r, ">r");
+    add_op(&mut op_table, &mut op_map, r_from, "r>");
+    add_op(&mut op_table, &mut op_map, r_fetch, "r@");
+
     (op_table, op_map)
+}
+
+pub fn to_r(vm: &mut VM) -> Result<()> {
+    vm.to_r()
+}
+
+pub fn r_from(vm: &mut VM) -> Result<()> {
+    vm.r_from()
+}
+
+pub fn r_fetch(vm: &mut VM) -> Result<()> {
+    vm.r_fetch()
 }
 
 pub fn not(vm: &mut VM) -> Result<()> {
