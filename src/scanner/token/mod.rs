@@ -40,6 +40,13 @@ pub enum TokenType {
     // Words
     Word(String),
 
+    // List Operations
+    CreateList,  // <list>
+    Append,      // append
+    Prepend,     // prepend
+    Concat,      // concat
+    SplitHead,   // split-head!
+
     // Special tokens
     Error,
     Eof,

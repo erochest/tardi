@@ -20,6 +20,7 @@ pub enum Value {
     Float(f64),
     Boolean(bool),
     Char(char),
+    List(Vec<SharedValue>),
 }
 
 impl fmt::Display for Value {
@@ -44,6 +45,13 @@ impl fmt::Display for Value {
                 '\'' => write!(f, "'\\''"),
                 c => write!(f, "'{}'", c),
             },
+            Value::List(list) => {
+                write!(f, "[")?;
+                for item in list.iter() {
+                    write!(f, " {}", item.borrow())?;
+                }
+                write!(f, " ]")
+            }
         }
     }
 }
@@ -57,6 +65,9 @@ impl PartialEq for Value {
             (Value::Float(a), Value::Integer(b)) => *a == (*b as f64),
             (Value::Boolean(a), Value::Boolean(b)) => a == b,
             (Value::Char(a), Value::Char(b)) => a == b,
+            (Value::List(a), Value::List(b)) => {
+                a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| &*x.borrow() == &*y.borrow())
+            }
             _ => false,
         }
     }
@@ -71,6 +82,24 @@ impl PartialOrd for Value {
             (Value::Float(a), Value::Integer(b)) => a.partial_cmp(&(*b as f64)),
             (Value::Char(a), Value::Char(b)) => a.partial_cmp(b),
             (Value::Boolean(a), Value::Boolean(b)) => a.partial_cmp(b),
+            (Value::List(a), Value::List(b)) => {
+                // First compare lengths
+                match a.len().partial_cmp(&b.len()) {
+                    Some(std::cmp::Ordering::Equal) => {
+                        // If lengths are equal, compare elements
+                        for (x, y) in a.iter().zip(b.iter()) {
+                            let x_val = &*x.borrow();
+                            let y_val = &*y.borrow();
+                            match x_val.partial_cmp(y_val) {
+                                Some(std::cmp::Ordering::Equal) => continue,
+                                other => return other,
+                            }
+                        }
+                        Some(std::cmp::Ordering::Equal)
+                    }
+                    other => other,
+                }
+            }
             _ => None,
         }
     }

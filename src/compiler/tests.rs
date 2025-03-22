@@ -1,7 +1,6 @@
 use super::*;
 use crate::compiler::program::Program;
 use crate::scanner::Scanner;
-use crate::vm::Program as VMProgram;
 
 use pretty_assertions::assert_eq;
 

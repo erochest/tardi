@@ -57,7 +57,7 @@ Here are the words I'd like to start implementing:
 - `append` ( x list  -- ) adds a value onto the end of a list
 - `prepend` ( x list -- ) adds on value onto the beginning of a list
 - `concat` ( list1 list2 -- list3 ) concatenates two lists
-- `head` ( list -- a ) removes the head from a list and pushes it onto a stack
+- `split-head!` ( list -- a ) removes the head from a list and pushes it onto a stack
 
 Lists will be stored in `Value::List(Vec<Value>)`
 

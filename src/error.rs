@@ -25,6 +25,7 @@ pub enum VMError {
     NoProgram,
     TypeMismatch(String),
     DivisionByZero,
+    EmptyList,
 }
 
 use Error::*;
@@ -52,6 +53,7 @@ impl fmt::Display for VMError {
             VMError::DivisionByZero => write!(f, "Division by zero"),
             VMError::ReturnStackUnderflow => write!(f, "Return stack underflow"),
             VMError::ReturnStackOverflow => write!(f, "Return stack overflow"),
+            VMError::EmptyList => write!(f, "Cannot split head of empty list"),
         }
     }
 }

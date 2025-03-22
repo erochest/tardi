@@ -1,0 +1,6 @@
+<list>
+<list> dup 42 swap append
+<list> dup 1 swap prepend
+<list> dup 1 swap append dup 2 swap append dup 3 swap append
+<list> dup 1 swap append dup 2 swap append <list> dup 3 swap append dup 4 swap append concat
+<list> dup 1 swap append dup 2 swap append dup split-head!

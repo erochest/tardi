@@ -64,7 +64,9 @@ impl VM {
 
     /// Pops a shared value from the return stack
     pub fn pop_return(&mut self) -> Result<SharedValue> {
-        self.return_stack.pop().ok_or(VMError::ReturnStackUnderflow.into())
+        self.return_stack
+            .pop()
+            .ok_or(VMError::ReturnStackUnderflow.into())
     }
 
     /// Moves an item from the data stack to the return stack (>r operation)
@@ -290,6 +292,85 @@ impl VM {
             _ => Err(VMError::TypeMismatch("logical NOT".to_string()).into()),
         }
     }
+
+    /// Creates a new empty list and pushes it onto the stack
+    pub fn create_list(&mut self) -> Result<()> {
+        self.push(shared(Value::List(Vec::new())))
+    }
+
+    /// Appends a value to the end of a list
+    pub fn append(&mut self) -> Result<()> {
+        let list = self.pop()?;
+        let value = self.pop()?;
+
+        {
+            let mut list_ref = list.borrow_mut();
+            if let Value::List(items) = &mut *list_ref {
+                items.push(value);
+                Ok(())
+            } else {
+                Err(VMError::TypeMismatch(format!("append to list: {}", list_ref)).into())
+            }
+        }
+    }
+
+    /// Prepends a value to the beginning of a list
+    pub fn prepend(&mut self) -> Result<()> {
+        let list = self.pop()?;
+        let value = self.pop()?;
+
+        {
+            let mut list_ref = list.borrow_mut();
+            if let Value::List(items) = &mut *list_ref {
+                items.insert(0, value);
+                Ok(())
+            } else {
+                Err(VMError::TypeMismatch(format!("prepend to list: {}", list_ref)).into())
+            }
+        }
+    }
+
+    /// Concatenates two lists
+    pub fn concat(&mut self) -> Result<()> {
+        let list2 = self.pop()?;
+        let list1 = self.pop()?;
+
+        let new_items = {
+            let list1_ref = list1.borrow();
+            let list2_ref = list2.borrow();
+            match (&*list1_ref, &*list2_ref) {
+                (Value::List(items1), Value::List(items2)) => {
+                    let mut new_items = items1.clone();
+                    new_items.extend(items2.iter().cloned());
+                    Ok(new_items)
+                }
+                _ => Err(Error::from(VMError::TypeMismatch(
+                    "concatenate lists".to_string(),
+                ))),
+            }
+        }?;
+
+        self.push(shared(Value::List(new_items)))
+    }
+
+    /// Removes and returns the first element of a list
+    pub fn split_head(&mut self) -> Result<()> {
+        let list = self.pop()?;
+
+        let head = {
+            let mut list_ref = list.borrow_mut();
+            if let Value::List(items) = &mut *list_ref {
+                if items.is_empty() {
+                    return Err(VMError::EmptyList.into());
+                }
+                items.remove(0)
+            } else {
+                return Err(VMError::TypeMismatch("split head of list".to_string()).into());
+            }
+        };
+
+        self.push(head)
+    }
 }
 
 // Define the operations
@@ -367,6 +448,13 @@ pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
     add_op(&mut op_table, &mut op_map, r_from, "r>");
     add_op(&mut op_table, &mut op_map, r_fetch, "r@");
 
+    // Add list operations
+    add_op(&mut op_table, &mut op_map, create_list, "<list>");
+    add_op(&mut op_table, &mut op_map, append, "append");
+    add_op(&mut op_table, &mut op_map, prepend, "prepend");
+    add_op(&mut op_table, &mut op_map, concat, "concat");
+    add_op(&mut op_table, &mut op_map, split_head, "split-head!");
+
     (op_table, op_map)
 }
 
@@ -408,6 +496,27 @@ pub fn less_equal(vm: &mut VM) -> Result<()> {
 
 pub fn greater_equal(vm: &mut VM) -> Result<()> {
     vm.greater_equal()
+}
+
+// List operations
+pub fn create_list(vm: &mut VM) -> Result<()> {
+    vm.create_list()
+}
+
+pub fn append(vm: &mut VM) -> Result<()> {
+    vm.append()
+}
+
+pub fn prepend(vm: &mut VM) -> Result<()> {
+    vm.prepend()
+}
+
+pub fn concat(vm: &mut VM) -> Result<()> {
+    vm.concat()
+}
+
+pub fn split_head(vm: &mut VM) -> Result<()> {
+    vm.split_head()
 }
 
 #[cfg(test)]

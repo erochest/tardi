@@ -266,6 +266,13 @@ impl<'a> Scanner<'a> {
             ">=" => TokenType::GreaterEqual,
             "!" => TokenType::Bang,
 
+            // List operations
+            "<list>" => TokenType::CreateList,
+            "append" => TokenType::Append,
+            "prepend" => TokenType::Prepend,
+            "concat" => TokenType::Concat,
+            "split-head!" => TokenType::SplitHead,
+
             // If it's not a known operator or keyword, it's a word
             _ => TokenType::Word(word),
         })

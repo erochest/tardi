@@ -38,6 +38,8 @@
   - Shared value system using Rc<RefCell<Value>> for efficient memory management
   - Implementation of return stack operations (>r, r>, r@)
   - Error handling for return stack operations (overflow, underflow)
+  - Implementation of list operations (<list>, append, prepend, concat, split-head!)
+  - Error handling for list operations (type mismatches, empty lists)
 - Test infrastructure:
   - Initial test suite using cargo-nextest
   - Integration tests for major features
@@ -50,10 +52,7 @@
 - TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
-1. Implement List Objects:
-   - Basic list operations
-   - List manipulation primitives
-4. Add String Objects and Literals:
+1. Add String Objects and Literals:
    - String type and operations
    - String manipulation primitives
 5. Implement Function and Lambda Objects:
@@ -87,6 +86,7 @@
 - Comparison operations (==, !=, <, >, <=, >=, !) implemented across all components
 - Shared value system implemented using Rc<RefCell<Value>>
 - Character values and literals implemented, including Unicode support
+- List operations (<list>, append, prepend, concat, split-head!) implemented across all components
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
 - Improving test coverage and maintaining TDD-focused workflow
@@ -118,7 +118,7 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Implement List Objects:
-   - Design list operations
-   - Implement basic list functionality
-4. Continue improving test coverage and documentation
+1. Implement String Objects and Literals:
+   - Design string operations
+   - Implement basic string functionality
+2. Continue improving test coverage and documentation

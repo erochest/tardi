@@ -67,6 +67,11 @@ impl Compiler {
                 self.compile_op("!")
             }
             TokenType::Bang => self.compile_op("!"),
+            TokenType::CreateList => self.compile_op("<list>"),
+            TokenType::Append => self.compile_op("append"),
+            TokenType::Prepend => self.compile_op("prepend"),
+            TokenType::Concat => self.compile_op("concat"),
+            TokenType::SplitHead => self.compile_op("split-head!"),
             TokenType::Word(word) => Err(Error::CompilerError(CompilerError::UnsupportedToken(
                 format!("word: {}", word),
             ))),
