@@ -39,12 +39,11 @@ impl Compiler {
     }
 
     fn compile_token(&mut self, token: Token) -> Result<()> {
-        // TODO: remove the catch-all branch once the dust has settled
         match token.token_type {
-            TokenType::Integer(value) => self.compile_integer(value),
-            TokenType::Float(value) => self.compile_float(value),
-            TokenType::Boolean(value) => self.compile_boolean(value),
-            TokenType::Char(value) => self.compile_char(value),
+            TokenType::Integer(value) => self.compile_constant(value),
+            TokenType::Float(value) => self.compile_constant(value),
+            TokenType::Boolean(value) => self.compile_constant(value),
+            TokenType::Char(value) => self.compile_constant(value),
             TokenType::Dup => self.compile_op("dup"),
             TokenType::Swap => self.compile_op("swap"),
             TokenType::Rot => self.compile_op("rot"),
@@ -77,7 +76,7 @@ impl Compiler {
             TokenType::Prepend => self.compile_op("prepend"),
             TokenType::Concat => self.compile_op("concat"),
             TokenType::SplitHead => self.compile_op("split-head!"),
-            TokenType::String(value) => self.compile_string(value),
+            TokenType::String(value) => self.compile_constant(value),
             TokenType::CreateString => self.compile_op("<string>"),
             TokenType::ToString => self.compile_op(">string"),
             TokenType::Utf8ToString => self.compile_op("utf8>string"),
@@ -91,63 +90,8 @@ impl Compiler {
         }
     }
 
-    // TODO: once we have From implementations for Value, we can make these one
-    // generic method
-
-    fn compile_integer(&mut self, value: i64) -> Result<()> {
-        let const_index = self.program.add_constant(Value::Integer(value));
-        let lit_index = self
-            .program
-            .get_op_index("lit")
-            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(
-                "lit operation not found".to_string(),
-            )))?;
-        self.program.add_instruction(lit_index);
-        self.program.add_instruction(const_index);
-        Ok(())
-    }
-
-    fn compile_float(&mut self, value: f64) -> Result<()> {
-        let const_index = self.program.add_constant(Value::Float(value));
-        let lit_index = self
-            .program
-            .get_op_index("lit")
-            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(
-                "lit operation not found".to_string(),
-            )))?;
-        self.program.add_instruction(lit_index);
-        self.program.add_instruction(const_index);
-        Ok(())
-    }
-
-    fn compile_boolean(&mut self, value: bool) -> Result<()> {
-        let const_index = self.program.add_constant(Value::Boolean(value));
-        let lit_index = self
-            .program
-            .get_op_index("lit")
-            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(
-                "lit operation not found".to_string(),
-            )))?;
-        self.program.add_instruction(lit_index);
-        self.program.add_instruction(const_index);
-        Ok(())
-    }
-
-    fn compile_char(&mut self, value: char) -> Result<()> {
-        let const_index = self.program.add_constant(Value::Char(value));
-        let lit_index = self
-            .program
-            .get_op_index("lit")
-            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(
-                "lit operation not found".to_string(),
-            )))?;
-        self.program.add_instruction(lit_index);
-        self.program.add_instruction(const_index);
-        Ok(())
-    }
-
-    fn compile_string(&mut self, value: String) -> Result<()> {
-        let const_index = self.program.add_constant(Value::String(value));
+    fn compile_constant<T: Into<Value>>(&mut self, value: T) -> Result<()> {
+        let const_index = self.program.add_constant(value.into());
         let lit_index = self
             .program
             .get_op_index("lit")

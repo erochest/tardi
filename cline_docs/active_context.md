@@ -17,6 +17,12 @@
 5. Review and adjust plans as needed
 
 ## Recent Changes
+- Improved type conversion patterns:
+  - Added From trait implementations for all Value variants (i64, f64, bool, char, String, Vec<SharedValue>)
+  - Refactored compiler to use generic compile_constant<T: Into<Value>> method
+  - Reduced code duplication in compiler implementation
+  - Improved maintainability by leveraging Rust's type system
+
 - Implemented string objects and literals:
   - Added Value::String variant
   - Added scanner support for string literals (both regular and triple-quoted)

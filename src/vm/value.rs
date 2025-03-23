@@ -13,7 +13,42 @@ pub fn shared(value: Value) -> SharedValue {
     Rc::new(RefCell::new(value))
 }
 
-// TODO: create From implementations for each of the contained values.
+// From implementations for each of the contained values
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Value::Integer(value)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Float(value)
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Boolean(value)
+    }
+}
+
+impl From<char> for Value {
+    fn from(value: char) -> Self {
+        Value::Char(value)
+    }
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::String(value)
+    }
+}
+
+impl From<Vec<SharedValue>> for Value {
+    fn from(value: Vec<SharedValue>) -> Self {
+        Value::List(value)
+    }
+}
 
 // TODO: add `Address` to this that points to a code address in instructions.
 

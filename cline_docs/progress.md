@@ -91,6 +91,10 @@
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
 - Improving test coverage and maintaining TDD-focused workflow
+- Improved type conversion patterns:
+  - From trait implementations for all Value variants
+  - Generic compile_constant<T: Into<Value>> method in compiler
+  - Reduced code duplication and improved maintainability
 
 ## Known Issues
 - Potential performance overhead from shared values (to be benchmarked)
