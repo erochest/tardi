@@ -70,7 +70,7 @@ fn test_stack_operations() {
 #[test]
 fn test_basic_vm_execution() {
     let mut vm = VM::new();
-    let (op_table, _) = create_op_table();
+    let op_table = create_op_table();
 
     let program = Box::new(TestProgram {
         instructions: vec![0, 0], // lit operation index followed by constant index
@@ -237,7 +237,7 @@ fn test_character_operations() {
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('a')));
 
     // Test character literals in program execution
-    let (op_table, _) = create_op_table();
+    let op_table = create_op_table();
     let program = Box::new(TestProgram {
         instructions: vec![
             0, 0, // lit 'a'

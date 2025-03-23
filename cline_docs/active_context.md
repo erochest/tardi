@@ -17,6 +17,14 @@
 5. Review and adjust plans as needed
 
 ## Recent Changes
+- Introduced OpCode enum for VM operations:
+  - Replaced string-based operation lookup with enum-based system
+  - Added From<OpCode> for usize and TryFrom<usize> for OpCode implementations
+  - Updated compiler to use OpCodes directly
+  - Preserved op_map for future function support
+  - Improved type safety and code clarity in VM implementation
+  - All tests passing with new OpCode system
+
 - Improved type conversion patterns:
   - Added From trait implementations for all Value variants (i64, f64, bool, char, String, Vec<SharedValue>)
   - Refactored compiler to use generic compile_constant<T: Into<Value>> method

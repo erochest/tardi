@@ -1,19 +1,6 @@
 use crate::vm::value::Value;
-use crate::vm::{OpFn, Program as VMProgram};
+use crate::vm::{OpCode, OpFn, Program as VMProgram};
 use std::collections::HashMap;
-
-// TODO:
-// If we introduce OpCodes, and those map to usize, then we can populate the
-// `op_table` mapping directly to those indices. User functions can be added
-// on top of that and managed using the `op_map`.
-//
-// This would also simplify `vm::create_op_table`, although it would have
-// to make sure it sets it up correctly, maybe by pre-allocating the ops
-// and then setting them using the `OpCode` instead of growing the table.
-//
-// Methods to add:
-// - add_op
-// - add_op_arg
 
 // TODO:
 // Most of this should be handled in the Compiler, not the Program,
@@ -66,21 +53,21 @@ impl Program {
         self.instructions.push(op_index);
     }
 
-    pub fn set_op_table(&mut self, op_table: Vec<OpFn>, op_map: HashMap<String, usize>) {
+    pub fn add_op(&mut self, op: OpCode) {
+        self.instructions.push(op.into());
+    }
+
+    pub fn add_op_arg(&mut self, op: OpCode, arg: usize) {
+        self.instructions.push(op.into());
+        self.instructions.push(arg);
+    }
+
+    pub fn set_op_table(&mut self, op_table: Vec<OpFn>) {
         self.op_table = op_table;
+    }
+
+    pub fn set_op_map(&mut self, op_map: HashMap<String, usize>) {
         self.op_map = op_map;
-    }
-
-    pub fn get_op_index(&self, op_name: &str) -> Option<usize> {
-        self.op_map.get(op_name).copied()
-    }
-
-    pub fn get_op_name(&self, op_code: usize) -> Option<String> {
-        self.op_map
-            .iter()
-            .filter(|(_, v)| **v == op_code)
-            .map(|(k, _)| k.to_string())
-            .next()
     }
 
     pub fn get_op_table_size(&self) -> usize {
@@ -89,6 +76,13 @@ impl Program {
 
     pub fn get_instructions(&self) -> &Vec<usize> {
         &self.instructions
+    }
+
+    pub fn get_op_name(&self, op_code: usize) -> Option<String> {
+        self.op_map
+            .iter()
+            .find(|(_, &index)| index == op_code)
+            .map(|(name, _)| name.clone())
     }
 }
 

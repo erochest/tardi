@@ -1,12 +1,14 @@
-use std::collections::HashMap;
-
 use crate::error::{Error, Result, VMError};
+
+pub mod ops;
+pub use self::ops::OpCode;
 
 pub mod value;
 use self::value::{shared, SharedValue, Value};
 
 // TODO: Make this an enum with BuiltIn (like below),
 // Lambda, and Fn
+
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM) -> Result<()>;
 
@@ -105,20 +107,19 @@ impl VM {
                 break;
             }
 
-            // Get the next instruction and operation
-            let op_index = program
+            // Get the next instruction (OpCode)
+            let op_code = program
                 .get_instruction(self.ip)
                 .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
-            let operation = program
-                .get_op(op_index)
-                .ok_or(Error::VMError(VMError::InvalidOpCode(op_index)))?;
-
-            // Store the operation in a local variable
-            let op = *operation;
             self.ip += 1;
 
+            // Get the operation from the op_table
+            let operation = program
+                .get_op(op_code)
+                .ok_or(Error::VMError(VMError::InvalidOpCode(op_code)))?;
+
             // Execute the operation
-            op(self)?;
+            operation(self)?;
         }
 
         Ok(())
@@ -468,58 +469,51 @@ pub fn divide(vm: &mut VM) -> Result<()> {
 }
 
 // Helper function to add an operation to the table and map
-// TODO: rename to `add_word`
-fn add_op(op_table: &mut Vec<OpFn>, op_map: &mut HashMap<String, usize>, op: OpFn, name: &str) {
-    let index = op_table.len();
+// Will be used when we implement function support
+// fn add_word(op_table: &mut Vec<OpFn>, op_map: &mut HashMap<String, usize>, op: OpFn, name: &str) {
+//     let index = op_table.len();
+//     op_table.push(op);
+//     op_map.insert(name.to_string(), index);
+// }
+
+fn push_op(op_table: &mut Vec<OpFn>, op: OpFn) {
     op_table.push(op);
-    op_map.insert(name.to_string(), index);
 }
 
 // Create the default operation table
-pub fn create_op_table() -> (Vec<OpFn>, HashMap<String, usize>) {
-    let mut op_table = Vec::new();
-    let mut op_map = HashMap::new();
+pub fn create_op_table() -> Vec<OpFn> {
+    let size = OpCode::StringConcat as usize + 1;
+    let mut op_table = Vec::with_capacity(size);
 
-    add_op(&mut op_table, &mut op_map, lit, "lit");
-    add_op(&mut op_table, &mut op_map, dup, "dup");
-    add_op(&mut op_table, &mut op_map, swap, "swap");
-    add_op(&mut op_table, &mut op_map, rot, "rot");
-    add_op(&mut op_table, &mut op_map, drop_op, "drop");
+    // Set up the operation table
+    push_op(&mut op_table, lit);
+    push_op(&mut op_table, dup);
+    push_op(&mut op_table, swap);
+    push_op(&mut op_table, rot);
+    push_op(&mut op_table, drop_op);
+    push_op(&mut op_table, add);
+    push_op(&mut op_table, subtract);
+    push_op(&mut op_table, multiply);
+    push_op(&mut op_table, divide);
+    push_op(&mut op_table, equal);
+    push_op(&mut op_table, not_equal);
+    push_op(&mut op_table, less);
+    push_op(&mut op_table, greater);
+    push_op(&mut op_table, not);
+    push_op(&mut op_table, to_r);
+    push_op(&mut op_table, r_from);
+    push_op(&mut op_table, r_fetch);
+    push_op(&mut op_table, create_list);
+    push_op(&mut op_table, append);
+    push_op(&mut op_table, prepend);
+    push_op(&mut op_table, concat);
+    push_op(&mut op_table, split_head);
+    push_op(&mut op_table, create_string);
+    push_op(&mut op_table, to_string);
+    push_op(&mut op_table, utf8_to_string);
+    push_op(&mut op_table, string_concat);
 
-    // Add arithmetic operations
-    add_op(&mut op_table, &mut op_map, add, "+");
-    add_op(&mut op_table, &mut op_map, subtract, "-");
-    add_op(&mut op_table, &mut op_map, multiply, "*");
-    add_op(&mut op_table, &mut op_map, divide, "/");
-
-    // Add comparison operations
-    add_op(&mut op_table, &mut op_map, equal, "==");
-    add_op(&mut op_table, &mut op_map, not_equal, "!=");
-    add_op(&mut op_table, &mut op_map, less, "<");
-    add_op(&mut op_table, &mut op_map, greater, ">");
-    add_op(&mut op_table, &mut op_map, less_equal, "<=");
-    add_op(&mut op_table, &mut op_map, greater_equal, ">=");
-    add_op(&mut op_table, &mut op_map, not, "!");
-
-    // Add return stack operations
-    add_op(&mut op_table, &mut op_map, to_r, ">r");
-    add_op(&mut op_table, &mut op_map, r_from, "r>");
-    add_op(&mut op_table, &mut op_map, r_fetch, "r@");
-
-    // Add list operations
-    add_op(&mut op_table, &mut op_map, create_list, "<list>");
-    add_op(&mut op_table, &mut op_map, append, "append");
-    add_op(&mut op_table, &mut op_map, prepend, "prepend");
-    add_op(&mut op_table, &mut op_map, concat, "concat");
-    add_op(&mut op_table, &mut op_map, split_head, "split-head!");
-
-    // Add string operations
-    add_op(&mut op_table, &mut op_map, create_string, "<string>");
-    add_op(&mut op_table, &mut op_map, to_string, ">string");
-    add_op(&mut op_table, &mut op_map, utf8_to_string, "utf8>string");
-    add_op(&mut op_table, &mut op_map, string_concat, "string-concat");
-
-    (op_table, op_map)
+    op_table
 }
 
 pub fn to_r(vm: &mut VM) -> Result<()> {

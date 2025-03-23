@@ -12,6 +12,7 @@ pub enum Error {
     VMError(VMError),
     ScannerError(ScannerError),
     CompilerError(CompilerError),
+    InvalidOpCode(usize),
 }
 
 #[derive(Debug)]
@@ -37,6 +38,7 @@ impl fmt::Display for Error {
             VMError(ref err) => err.fmt(f),
             ScannerError(ref err) => err.fmt(f),
             CompilerError(ref err) => err.fmt(f),
+            InvalidOpCode(code) => write!(f, "invalid op code: {}", code),
         }
     }
 }

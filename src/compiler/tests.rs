@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use super::*;
 use crate::compiler::program::Program;
 use crate::scanner::Scanner;
@@ -12,33 +14,58 @@ fn compile(input: &str) -> Result<Program> {
     compiler.compile(scanner)
 }
 
-#[test]
-fn test_compile_comparison_operators() -> Result<()> {
-    let program = compile("1 2 == 3 4 != 5 6 < 7 8 > 9 10 <= 11 12 >=")?;
-
-    let expected_ops = vec![
-        "lit", "lit", "==", // 1 2 ==
-        "lit", "lit", "==", "!", // 3 4 != (implemented as == !)
-        "lit", "lit", "<", // 5 6 <
-        "lit", "lit", ">", // 7 8 >
-        "lit", "lit", ">", "!", // 9 10 <= (implemented as > !)
-        "lit", "lit", "<", "!", // 11 12 >= (implemented as < !)
-    ];
+fn get_ops(program: &Program) -> Vec<OpCode> {
     let mut actual_ops = Vec::new();
     let instructions = program.get_instructions();
     let mut i = 0;
+
     while i < instructions.len() {
         let op = instructions[i];
-        let name = program.get_op_name(op).unwrap().to_string();
-        actual_ops.push(name.clone());
-        if name == "lit" {
+        let op = OpCode::try_from(op);
+        assert!(op.is_ok(), "error: {:?}", op);
+        let op = op.unwrap();
+        actual_ops.push(op);
+        if op == OpCode::Lit {
             i += 2;
         } else {
             i += 1;
         }
     }
 
+    actual_ops
+}
+
+#[test]
+fn test_compile_comparison_operators() -> Result<()> {
+    let program = compile("1 2 == 3 4 != 5 6 < 7 8 > 9 10 <= 11 12 >=")?;
+
+    let expected_ops = vec![
+        OpCode::Lit,
+        OpCode::Lit,
+        OpCode::Equal,
+        OpCode::Lit,
+        OpCode::Lit,
+        OpCode::Equal,
+        OpCode::Not,
+        OpCode::Lit,
+        OpCode::Lit,
+        OpCode::Less,
+        OpCode::Lit,
+        OpCode::Lit,
+        OpCode::Greater,
+        OpCode::Lit,
+        OpCode::Lit,
+        OpCode::Greater,
+        OpCode::Not,
+        OpCode::Lit,
+        OpCode::Lit,
+        OpCode::Less,
+        OpCode::Not,
+    ];
+    let actual_ops = get_ops(&program);
+
     assert_eq!(actual_ops, expected_ops);
+
     Ok(())
 }
 
@@ -46,26 +73,8 @@ fn test_compile_comparison_operators() -> Result<()> {
 fn test_compile_return_stack_operations() -> Result<()> {
     let program = compile("42 >r r@ r>")?;
 
-    let expected_ops = vec![
-        "lit", // Push 42
-        ">r",  // Move to return stack
-        "r@",  // Copy from return stack
-        "r>",  // Move from return stack
-    ];
-
-    let mut actual_ops = Vec::new();
-    let instructions = program.get_instructions();
-    let mut i = 0;
-    while i < instructions.len() {
-        let op = instructions[i];
-        let name = program.get_op_name(op).unwrap().to_string();
-        actual_ops.push(name.clone());
-        if name == "lit" {
-            i += 2;
-        } else {
-            i += 1;
-        }
-    }
+    let expected_ops = vec![OpCode::Lit, OpCode::ToR, OpCode::RFetch, OpCode::RFrom];
+    let actual_ops = get_ops(&program);
 
     assert_eq!(actual_ops, expected_ops);
     Ok(())
@@ -87,16 +96,16 @@ fn test_compile_word() -> Result<()> {
 fn test_compile_character_literals() -> Result<()> {
     let program = compile("'a' '\\n' '\\t' '\\r' '\\'' '\\\\' '🦀' '\\u41' '\\u{1F600}'")?;
 
-    let expected_ops = vec!["lit"; 9]; // One lit operation for each character
+    let expected_ops = vec![OpCode::Lit; 9]; // One lit operation for each character
 
     let mut actual_ops = Vec::new();
     let instructions = program.get_instructions();
     let mut i = 0;
     while i < instructions.len() {
         let op = instructions[i];
-        let name = program.get_op_name(op).unwrap().to_string();
-        actual_ops.push(name.clone());
-        if name == "lit" {
+        let op = OpCode::try_from(op).unwrap();
+        actual_ops.push(op);
+        if op == OpCode::Lit {
             // Verify the constant values
             let const_index = instructions[i + 1];
             let constant = program.get_constant(const_index).unwrap();

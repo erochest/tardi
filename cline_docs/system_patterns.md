@@ -76,14 +76,17 @@ graph TD
 - Error handling is part of the library and used by the binary
 
 ## VM Architecture
-- Indirect Threaded Code (ITC) implementation
+- Indirect Threaded Code (ITC) implementation with OpCode enum
+  - OpCode enum defines all available VM operations
   - Function pointer table stores operation implementations
-  - Instruction stream contains indices into function table
+  - Instruction stream contains OpCode values (converted to indices)
   - Basic interpreter loop:
     1. Fetch next operation index
-    2. Look up function pointer in table
+    2. Look up function pointer in table using OpCode mapping
     3. Execute operation
     4. Repeat
+  - Type-safe operation handling through OpCode enum
+  - Future extensibility for user-defined functions via op_map
 - Stack Management
   - Data stack for operation arguments and results
   - Return stack (planned) for control flow

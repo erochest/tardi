@@ -2,6 +2,10 @@
 
 ## What Works
 - Project initialization and basic structure
+- VM OpCode system:
+  - Enum-based operation codes with From/TryFrom implementations
+  - Type-safe operation handling in compiler and VM
+  - Future-proof design for function support
 - Documentation:
   - Project brief, memory bank, types and literals, language syntax decisions
   - Stack manipulation operations (docs/stack-manipulation.md)
@@ -77,6 +81,7 @@
 
 ## Current Status
 - Basic scanner, compiler, and VM functionality implemented
+- OpCode enum system implemented for type-safe operation handling
 - Program structure in place for managing bytecode
 - Basic stack operations (dup, swap, rot, drop) implemented across all components
 - Return stack operations (>r, r>, r@) implemented across all components
