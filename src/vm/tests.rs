@@ -139,7 +139,7 @@ fn test_return_stack_operations() {
     }
 
     // Clear the return stack (only pop what we successfully pushed)
-    while let Ok(_) = vm.r_from() {}
+    while vm.r_from().is_ok() {}
 
     // Test return stack underflow
     assert!(matches!(
@@ -240,15 +240,11 @@ fn test_character_operations() {
     let (op_table, _) = create_op_table();
     let program = Box::new(TestProgram {
         instructions: vec![
-            0, 0,  // lit 'a'
-            0, 1,  // lit '\n'
-            0, 2,  // lit '🦀'
+            0, 0, // lit 'a'
+            0, 1, // lit '\n'
+            0, 2, // lit '🦀'
         ],
-        constants: vec![
-            Value::Char('a'),
-            Value::Char('\n'),
-            Value::Char('🦀'),
-        ],
+        constants: vec![Value::Char('a'), Value::Char('\n'), Value::Char('🦀')],
         op_table,
     });
 

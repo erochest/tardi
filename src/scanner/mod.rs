@@ -82,30 +82,24 @@ impl<'a> Scanner<'a> {
                         match self.next_char() {
                             Some('}') => match char::from_u32(value) {
                                 Some(c) => Ok(c),
-                                None => Err(Error::ScannerError(
-                                    ScannerError::InvalidEscapeSequence(format!(
-                                        "Invalid Unicode codepoint: {}",
-                                        value
-                                    )),
-                                )),
+                                None => {
+                                    Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                                        format!("Invalid Unicode codepoint: {}", value),
+                                    )))
+                                }
                             },
-                            _ => Err(Error::ScannerError(
-                                ScannerError::InvalidEscapeSequence(
-                                    "Expected closing '}'".to_string(),
-                                ),
-                            )),
+                            _ => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                                "Expected closing '}'".to_string(),
+                            ))),
                         }
                     }
                     _ => {
                         // ASCII escape \uXX
                         let value = self.scan_hex_digits(2)?;
                         if value > 0x7F {
-                            return Err(Error::ScannerError(
-                                ScannerError::InvalidEscapeSequence(format!(
-                                    "ASCII value out of range: {}",
-                                    value
-                                )),
-                            ));
+                            return Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                                format!("ASCII value out of range: {}", value),
+                            )));
                         }
                         Ok(char::from_u32(value).unwrap())
                     }
@@ -397,7 +391,7 @@ impl Iterator for Scanner<'_> {
                     let mut chars = self.chars.clone();
                     chars.next() == Some('"') && chars.next() == Some('"')
                 };
-                
+
                 if is_triple {
                     self.scan_long_string()
                 } else {

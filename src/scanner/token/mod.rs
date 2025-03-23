@@ -42,17 +42,17 @@ pub enum TokenType {
     Word(String),
 
     // List Operations
-    CreateList,  // <list>
-    Append,      // append
-    Prepend,     // prepend
-    Concat,      // concat
-    SplitHead,   // split-head!
+    CreateList, // <list>
+    Append,     // append
+    Prepend,    // prepend
+    Concat,     // concat
+    SplitHead,  // split-head!
 
     // String Operations
-    CreateString,   // <string>
-    ToString,      // >string
-    Utf8ToString,  // utf8>string
-    StringConcat,  // string-concat
+    CreateString, // <string>
+    ToString,     // >string
+    Utf8ToString, // utf8>string
+    StringConcat, // string-concat
 
     // Special tokens
     Error,

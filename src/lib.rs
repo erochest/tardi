@@ -16,5 +16,5 @@ pub mod compiler;
 pub use compiler::Compiler;
 pub use error::Result;
 pub use scanner::Scanner;
-pub use vm::VM;
 pub use vm::value::Value;
+pub use vm::VM;

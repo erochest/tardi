@@ -75,7 +75,7 @@ impl PartialEq for Value {
                 a.len() == b.len()
                     && a.iter()
                         .zip(b.iter())
-                        .all(|(x, y)| &*x.borrow() == &*y.borrow())
+                        .all(|(x, y)| *x.borrow() == *y.borrow())
             }
             (Value::String(a), Value::String(b)) => a == b,
             _ => false,
