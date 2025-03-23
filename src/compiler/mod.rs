@@ -16,6 +16,11 @@ impl Default for Compiler {
     }
 }
 
+// TODO:
+// Methods to add:
+// - start_callable
+// - complete_callable
+
 impl Compiler {
     pub fn new() -> Self {
         let mut program = Program::new();
@@ -85,6 +90,9 @@ impl Compiler {
             ))),
         }
     }
+
+    // TODO: once we have From implementations for Value, we can make these one
+    // generic method
 
     fn compile_integer(&mut self, value: i64) -> Result<()> {
         let const_index = self.program.add_constant(Value::Integer(value));

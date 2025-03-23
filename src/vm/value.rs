@@ -13,6 +13,10 @@ pub fn shared(value: Value) -> SharedValue {
     Rc::new(RefCell::new(value))
 }
 
+// TODO: create From implementations for each of the contained values.
+
+// TODO: add `Address` to this that points to a code address in instructions.
+
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -68,7 +72,10 @@ impl PartialEq for Value {
             (Value::Boolean(a), Value::Boolean(b)) => a == b,
             (Value::Char(a), Value::Char(b)) => a == b,
             (Value::List(a), Value::List(b)) => {
-                a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| &*x.borrow() == &*y.borrow())
+                a.len() == b.len()
+                    && a.iter()
+                        .zip(b.iter())
+                        .all(|(x, y)| &*x.borrow() == &*y.borrow())
             }
             (Value::String(a), Value::String(b)) => a == b,
             _ => false,

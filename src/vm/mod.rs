@@ -5,6 +5,8 @@ use crate::error::{Error, Result, VMError};
 pub mod value;
 use self::value::{shared, SharedValue, Value};
 
+// TODO: Make this an enum with BuiltIn (like below),
+// Lambda, and Fn
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM) -> Result<()>;
 
@@ -387,7 +389,7 @@ impl VM {
     pub fn utf8_to_string(&mut self) -> Result<()> {
         let list = self.pop()?;
         let list_ref = list.borrow();
-        
+
         if let Value::List(items) = &*list_ref {
             let mut bytes = Vec::new();
             for item in items {
@@ -396,7 +398,7 @@ impl VM {
                     _ => return Err(VMError::TypeMismatch("UTF-8 byte value".to_string()).into()),
                 }
             }
-            
+
             match String::from_utf8(bytes) {
                 Ok(s) => self.push(shared(Value::String(s))),
                 Err(_) => Err(VMError::TypeMismatch("invalid UTF-8 sequence".to_string()).into()),
@@ -466,6 +468,7 @@ pub fn divide(vm: &mut VM) -> Result<()> {
 }
 
 // Helper function to add an operation to the table and map
+// TODO: rename to `add_word`
 fn add_op(op_table: &mut Vec<OpFn>, op_map: &mut HashMap<String, usize>, op: OpFn, name: &str) {
     let index = op_table.len();
     op_table.push(op);

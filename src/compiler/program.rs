@@ -1,6 +1,34 @@
-use crate::vm::{OpFn, Program as VMProgram};
 use crate::vm::value::Value;
+use crate::vm::{OpFn, Program as VMProgram};
 use std::collections::HashMap;
+
+// TODO:
+// If we introduce OpCodes, and those map to usize, then we can populate the
+// `op_table` mapping directly to those indices. User functions can be added
+// on top of that and managed using the `op_map`.
+//
+// This would also simplify `vm::create_op_table`, although it would have
+// to make sure it sets it up correctly, maybe by pre-allocating the ops
+// and then setting them using the `OpCode` instead of growing the table.
+//
+// Methods to add:
+// - add_op
+// - add_op_arg
+
+// TODO:
+// Most of this should be handled in the Compiler, not the Program,
+// - Create a stack of instruction vectors
+// - As new functions/lambdas are started, start a new instruction vector on
+//   the stack and for functions, pre-allocate them on the op_map and op_table
+// - As functions/lambdas are completed, pop them off the definition stack
+//   and append them to the global instructions vector. The method on
+//   Program that does this will return the pointer to the start of the
+//   function in the global vector
+// - the Compiler can use this to complete the function
+// - lambdas create an Address constant that gets loaded using `lit`
+//
+// Method to add:
+// - extend_instructions
 
 pub struct Program {
     constants: Vec<Value>,
