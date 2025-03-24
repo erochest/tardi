@@ -97,19 +97,65 @@ It spans multiple lines.
 
 ## Function and Lambda Objects
 
-Now we can start with function objects. These will be `Value` instances that contain a `Function` struct with these fields.
+Now we can start with function objects. These will be `Value` instances that contain a `Callable` enum with these fields.
 
-- `name` -- a string or word. If this is optional, we can use these structures for lambdas as well.
+The enum has two members. One is `Callable::BuiltIn(OpFn)`. The other is `Callable::Fn(Function)`. The `Function` struct, has these fields:
+
+- `name` -- a string or word. If this is optional, we can use these structures for lambdas as well
 - `words` -- the list of words that this was compiled from. this is mainly for printing later.
-- `instructions` -- depending on how we represent the instructions, this is either a pointer to the beginning of the instructions in the main VM instructions or its own instruction vector
+- `instructions` -- this is a pointer to the beginning of the instructions in the main VM instructions
 
 I think we'll need these words to start:
 
 - `<function>` ( name word-list -- function ) compiles and constructs the function and places it on the stack. This also installs it in the VM and compiler to be used by other code
-- `<lambda>` ( word-list -- lambda ) creates a lambda object.
-- `curry` ( word function -- ) prepends a word on the first of a lambda or function
+- `<lambda>` ( word-list -- lambda ) creates a lambda object, which is just a `Function` with the word omitted
 
-We may also want to define `append`, `prepend`, and `concat` for lambdas or functions.
+### Compilation
+
+Because lambdas may nest inside functions or even other lambdas, we don't want to just compile these straight. We'd need to add too many jumps.
+
+To get around this, we should have the compiler maintain a stack of functions/lambdas that it's compiling. Each item in the stack is a vector of instructions. When that function/lambda is finished, its instructions are popped from the stack and appended to the Program with the `extend_instructions` method, which returns the position of the first instruction in the new just added. When the program adds this, it first adds a jump over the function. So if you add the lambda op codes `lit 4 add return` when the program has 12 instructions, then the program would look like this from that point on:
+
+| pos | op     |
++-----+--------+
+|  13 | jump   |
+|  14 | 19     |
+|  15 | lit    |
+|  16 | 4      |
+|  17 | add    |
+|  18 | return |
+
+And `extend_instructions` would return `15`, since that's the beginning of the codes added.
+
+#### Compiling Functions
+
+Compiling functions happen in the `<function>` word. It follows these steps:
+
+1. Add a default `Function` in the `Program.op_table` and allocate one under its name in the `Program.op_map`. This should allow us to handle recursion.
+2. Create a new instruction vector on the compilation stack to add the instructions to.
+3. Compile the instructions in the body of the function.
+4. When finished, pop the instructions off the compilation stack and add it to the main instruction vector with `Program::extend_instructions`
+5. With the address for the function code, set the address for the function in the `op_table`.
+
+#### Compiling Lambdas
+
+1. Create a new instruction vector on the compilation stack to add the instructions to.
+2. Compile the instructions in the body of the function.
+3. When finished, pop the instructions off the compilation stack and add it to the main instruction vector with `Program::extend_instructions`
+4. Add the `Function` to the constants table and emit a `lit` opcode to retrieve it.
+
+### New Op Codes
+
+- `Call` -- This gets its argument, which is an index in the `op_table`. It retrieves that object and calls it either by calling the `OpFn` or jumping to its `Address`
+- `CallStack` -- This gets a lambda from the top of the stack and jumps to its `Address`
+- `Ip` -- This takes the current ip and pushes it to the top of the stack. Then `1 +` and `>r` can move the next position to the return stack
+- `Jump` -- This takes the next argument and jumps the IP to there.
+- `JumpStack` -- This takes the `Address` on top of the stack and jumps the IP to there.
+- `Return` -- This pops the top of the return stack and moves the IP to there
+
+### Executing Functions
+
+When the compiler compiles a word, it looks it up in the `op_map`. From there it gets its index in `op_table`, and it adds that as an argument to `Call`.
 
 ## Comments
 

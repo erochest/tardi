@@ -30,6 +30,13 @@ pub enum OpCode {
     ToString,
     Utf8ToString,
     StringConcat,
+    // Function-related operations
+    Call,       // Call a function by its index in the op_table
+    CallStack,  // Call a function from the stack
+    Return,     // Return from a function
+    Jump,       // Jump to a specific instruction
+    JumpStack,  // Jump to an instruction from the stack
+    Function,
 }
 
 impl From<OpCode> for usize {
@@ -69,6 +76,12 @@ impl TryFrom<usize> for OpCode {
             23 => Ok(OpCode::ToString),
             24 => Ok(OpCode::Utf8ToString),
             25 => Ok(OpCode::StringConcat),
+            26 => Ok(OpCode::Call),
+            27 => Ok(OpCode::CallStack),
+            28 => Ok(OpCode::Return),
+            29 => Ok(OpCode::Jump),
+            30 => Ok(OpCode::JumpStack),
+            31 => Ok(OpCode::Function),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

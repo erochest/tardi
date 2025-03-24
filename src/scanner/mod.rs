@@ -350,6 +350,11 @@ impl<'a> Scanner<'a> {
             "utf8>string" => TokenType::Utf8ToString,
             "string-concat" => TokenType::StringConcat,
 
+            // Function operations
+            "<function>" => TokenType::Function,
+            "<lambda>" => TokenType::Lambda,
+            "call" => TokenType::Call,
+
             // If it's not a known operator or keyword, it's a word
             _ => TokenType::Word(word),
         }))
@@ -375,6 +380,8 @@ impl Iterator for Scanner<'_> {
         let result = match c {
             '0'..='9' => self.scan_number(c),
             '#' => self.scan_boolean(),
+            '{' => Ok(TokenType::LeftCurly),
+            '}' => Ok(TokenType::RightCurly),
             '\'' => {
                 let char_result = self.scan_char();
                 if let Ok(TokenType::Char(_)) = char_result {

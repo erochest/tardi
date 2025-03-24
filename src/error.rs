@@ -27,6 +27,8 @@ pub enum VMError {
     TypeMismatch(String),
     DivisionByZero,
     EmptyList,
+    InvalidAddress(usize),
+    Exit,
 }
 
 use Error::*;
@@ -56,6 +58,8 @@ impl fmt::Display for VMError {
             VMError::ReturnStackUnderflow => write!(f, "Return stack underflow"),
             VMError::ReturnStackOverflow => write!(f, "Return stack overflow"),
             VMError::EmptyList => write!(f, "Cannot split head of empty list"),
+            VMError::InvalidAddress(addr) => write!(f, "Invalid address: {}", addr),
+            VMError::Exit => todo!(),
         }
     }
 }
@@ -112,7 +116,9 @@ impl From<ScannerError> for Error {
 pub enum CompilerError {
     UnsupportedToken(String),
     InvalidOperation(String),
-    // Add more compiler-specific errors as needed
+    UnmatchedBrace,
+    UndefinedWord(String),
+    InvalidFunction(String),
 }
 
 impl fmt::Display for CompilerError {
@@ -120,6 +126,9 @@ impl fmt::Display for CompilerError {
         match self {
             CompilerError::UnsupportedToken(s) => write!(f, "Unsupported token: {}", s),
             CompilerError::InvalidOperation(s) => write!(f, "Invalid operation: {}", s),
+            CompilerError::UnmatchedBrace => write!(f, "Unmatched closing brace"),
+            CompilerError::UndefinedWord(s) => write!(f, "Undefined word: {}", s),
+            CompilerError::InvalidFunction(s) => write!(f, "Invalid function: {}", s),
         }
     }
 }

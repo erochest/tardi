@@ -3,11 +3,13 @@ mod program;
 pub use self::program::Program;
 use crate::error::{CompilerError, Error, Result};
 use crate::scanner::{Token, TokenType};
+use crate::vm::value::{shared, Callable, Function, Value};
 use crate::vm::{create_op_table, OpCode};
-use crate::vm::value::Value;
 
 pub struct Compiler {
     program: Program,
+    /// Stack of words being collected for the current function/lambda
+    word_stack: Vec<Vec<String>>,
 }
 
 impl Default for Compiler {
@@ -16,18 +18,16 @@ impl Default for Compiler {
     }
 }
 
-// TODO:
-// Methods to add:
-// - start_callable
-// - complete_callable
-
 impl Compiler {
     pub fn new() -> Self {
         let mut program = Program::new();
         let op_table = create_op_table();
         program.set_op_table(op_table);
 
-        Compiler { program }
+        Compiler {
+            program,
+            word_stack: Vec::new(),
+        }
     }
 
     pub fn compile(&mut self, tokens: impl Iterator<Item = Result<Token>>) -> Result<Program> {
@@ -35,6 +35,7 @@ impl Compiler {
             let token = token_result?;
             self.compile_token(token)?;
         }
+        self.compile_op(OpCode::Return)?;
         Ok(self.program.clone())
     }
 
@@ -81,9 +82,33 @@ impl Compiler {
             TokenType::ToString => self.compile_op(OpCode::ToString),
             TokenType::Utf8ToString => self.compile_op(OpCode::Utf8ToString),
             TokenType::StringConcat => self.compile_op(OpCode::StringConcat),
-            TokenType::Word(word) => Err(Error::CompilerError(CompilerError::UnsupportedToken(
-                format!("word: {}", word),
-            ))),
+            TokenType::Function => self.compile_op(OpCode::Function),
+            TokenType::Call => self.compile_op(OpCode::CallStack),
+            TokenType::LeftCurly => {
+                // Start a new function compilation
+                self.program.start_function();
+                // Start collecting words for a new function/lambda
+                self.word_stack.push(Vec::new());
+                Ok(())
+            }
+            TokenType::RightCurly => {
+                // End the current function/lambda
+                if let Some(words) = self.word_stack.pop() {
+                    self.compile_lambda(words)
+                } else {
+                    Err(Error::CompilerError(CompilerError::UnmatchedBrace))
+                }
+            }
+            TokenType::Word(word) => {
+                // If we're collecting words for a function/lambda, add to the current word list
+                if let Some(words) = self.word_stack.last_mut() {
+                    words.push(word);
+                    Ok(())
+                } else {
+                    // Otherwise, treat as a function call
+                    self.compile_word_call(&word)
+                }
+            }
             _ => Err(Error::CompilerError(CompilerError::UnsupportedToken(
                 format!("{:?}", token),
             ))),
@@ -98,6 +123,54 @@ impl Compiler {
 
     fn compile_op(&mut self, op: OpCode) -> Result<()> {
         self.program.add_op(op);
+        Ok(())
+    }
+
+    /// Compiles a word as a function call
+    fn compile_word_call(&mut self, word: &str) -> Result<()> {
+        if let Some(&index) = self.program.get_op_map().get(word) {
+            // Right now this only handles non-recursive calls.
+            // TODO: to handle recursive calls, if the function doesn't
+            // have a valid address (say zero), then put the function's
+            // index on the stack and use CallStack.
+            self.program.add_op_arg(OpCode::Call, index);
+            Ok(())
+        } else {
+            Err(Error::CompilerError(CompilerError::UndefinedWord(
+                word.to_string(),
+            )))
+        }
+    }
+
+    /// Compiles a function definition
+    fn compile_function(&mut self) -> Result<()> {
+        // The Function opcode expects a name string and a lambda on the stack
+        self.program.add_op(OpCode::Function);
+        Ok(())
+    }
+
+    /// Compiles a lambda expression
+    fn compile_lambda(&mut self, words: Vec<String>) -> Result<()> {
+        // Add return instruction
+        self.program.add_op(OpCode::Return);
+
+        // End the function and get its start address
+        let start_addr = self.program.end_function();
+
+        // Create the Function object
+        let function = Function {
+            name: None,
+            words: words.clone(),
+            instructions: start_addr,
+        };
+
+        // Create a callable and add it to constants
+        let callable = Callable::Fn(function);
+        let const_index = self.program.add_constant(Value::Function(shared(callable)));
+
+        // Emit instruction to load the function
+        self.program.add_op_arg(OpCode::Lit, const_index);
+
         Ok(())
     }
 }

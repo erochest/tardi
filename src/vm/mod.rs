@@ -1,3 +1,5 @@
+use value::{Callable, Function, Shared};
+
 use crate::error::{Error, Result, VMError};
 
 pub mod ops;
@@ -16,8 +18,11 @@ pub type OpFn = fn(&mut VM) -> Result<()>;
 pub trait Program: 'static {
     fn get_instruction(&self, ip: usize) -> Option<usize>;
     fn get_constant(&self, index: usize) -> Option<&Value>;
-    fn get_op(&self, index: usize) -> Option<&OpFn>;
+    fn get_op(&self, index: usize) -> Option<Shared<Callable>>;
     fn instructions_len(&self) -> usize;
+    fn get_op_table_size(&self) -> usize;
+    fn add_to_op_table(&mut self, callable: Shared<Callable>) -> usize;
+    fn get_op_map(&self) -> &std::collections::HashMap<String, usize>;
 }
 
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
@@ -119,7 +124,17 @@ impl VM {
                 .ok_or(Error::VMError(VMError::InvalidOpCode(op_code)))?;
 
             // Execute the operation
-            operation(self)?;
+            let operation = operation.borrow();
+            match *operation {
+                Callable::BuiltIn(f) => match f(self) {
+                    Ok(()) => {}
+                    Err(Error::VMError(VMError::Exit)) => {
+                        break;
+                    }
+                    err => return err,
+                },
+                Callable::Fn(Function { instructions, .. }) => self.ip = instructions,
+            }
         }
 
         Ok(())
@@ -265,6 +280,7 @@ impl VM {
         }
     }
 
+    // TODO: clean these up and remove ones I'm not using
     /// Compares if a is less than or equal to b
     pub fn less_equal(&mut self) -> Result<()> {
         let b = self.pop()?.borrow().clone();
@@ -429,6 +445,124 @@ impl VM {
 
         self.push(shared(Value::String(result)))
     }
+
+    /// Calls a function by its index in the op_table
+    pub fn call(&mut self) -> Result<()> {
+        let program = self.program.as_ref().ok_or(VMError::NoProgram)?;
+        let fn_index = program
+            .get_instruction(self.ip)
+            .ok_or_else(|| VMError::InvalidAddress(self.ip))?;
+        self.ip += 1;
+
+        // Save the current IP on the return stack
+        self.push_return(shared(Value::Address(self.ip)))?;
+
+        // Jump to the function's code
+        self.ip = fn_index;
+        Ok(())
+    }
+
+    /// Calls a function from the stack
+    pub fn call_stack(&mut self) -> Result<()> {
+        let func = self.pop()?;
+        let func_ref = func.borrow();
+
+        match &*func_ref {
+            Value::Function(callable) => {
+                let callable_ref = callable.borrow();
+                match &*callable_ref {
+                    Callable::BuiltIn(op) => {
+                        // Execute built-in function directly
+                        op(self)?;
+                        Ok(())
+                    }
+                    Callable::Fn(function) => {
+                        // Save the current IP on the return stack
+                        self.push_return(shared(Value::Address(self.ip)))?;
+                        // Jump to the function's code
+                        self.ip = function.instructions;
+                        Ok(())
+                    }
+                }
+            }
+            _ => Err(VMError::TypeMismatch("function call".to_string()).into()),
+        }
+    }
+
+    /// Defines a named function
+    pub fn function(&mut self) -> Result<()> {
+        let lambda = self.pop()?;
+        let name = self.pop()?;
+
+        let name_str = match &*name.borrow() {
+            Value::String(s) => s.clone(),
+            _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
+        };
+
+        let function = match &*lambda.borrow() {
+            Value::Function(callable) => {
+                let mut callable = callable.borrow_mut();
+                match &mut *callable {
+                    Callable::Fn(ref mut f) => {
+                        f.name = Some(name_str.clone());
+                        f.clone()
+                    }
+                    _ => return Err(VMError::TypeMismatch("lambda".to_string()).into()),
+                }
+            }
+            _ => return Err(VMError::TypeMismatch("lambda".to_string()).into()),
+        };
+        let callable = shared(Callable::Fn(function));
+
+        // Add the function to the op_table
+        self.program
+            .as_mut()
+            .ok_or(VMError::NoProgram)?
+            .add_to_op_table(callable);
+
+        Ok(())
+    }
+
+    /// Returns from a function
+    pub fn return_op(&mut self) -> Result<()> {
+        if self.return_stack.is_empty() {
+            // TODO: not wild about using `VMError::Exit` for flow control here.
+            return Err(VMError::Exit.into());
+        }
+
+        let return_addr = self.pop_return()?;
+        let return_addr = return_addr.borrow();
+        match &*return_addr {
+            Value::Address(addr) => {
+                self.ip = *addr;
+                Ok(())
+            }
+            _ => Err(VMError::TypeMismatch("return address".to_string()).into()),
+        }
+    }
+
+    /// Jumps to a specific instruction
+    pub fn jump(&mut self) -> Result<()> {
+        let program = self.program.as_ref().ok_or(VMError::NoProgram)?;
+        let target = program
+            .get_instruction(self.ip)
+            .ok_or_else(|| VMError::InvalidAddress(self.ip))?;
+        self.ip = target;
+        Ok(())
+    }
+
+    /// Jumps to an instruction from the stack
+    pub fn jump_stack(&mut self) -> Result<()> {
+        let target = self.pop()?;
+        let target = target.borrow();
+        match &*target {
+            Value::Address(addr) => {
+                self.ip = *addr;
+                Ok(())
+            }
+            _ => Err(VMError::TypeMismatch("jump address".to_string()).into()),
+        }
+    }
 }
 
 // Define the operations
@@ -476,12 +610,12 @@ pub fn divide(vm: &mut VM) -> Result<()> {
 //     op_map.insert(name.to_string(), index);
 // }
 
-fn push_op(op_table: &mut Vec<OpFn>, op: OpFn) {
-    op_table.push(op);
+fn push_op(op_table: &mut Vec<Shared<Callable>>, op: OpFn) {
+    op_table.push(shared(Callable::BuiltIn(op)));
 }
 
 // Create the default operation table
-pub fn create_op_table() -> Vec<OpFn> {
+pub fn create_op_table() -> Vec<Shared<Callable>> {
     let size = OpCode::StringConcat as usize + 1;
     let mut op_table = Vec::with_capacity(size);
 
@@ -512,6 +646,12 @@ pub fn create_op_table() -> Vec<OpFn> {
     push_op(&mut op_table, to_string);
     push_op(&mut op_table, utf8_to_string);
     push_op(&mut op_table, string_concat);
+    push_op(&mut op_table, call);
+    push_op(&mut op_table, call_stack);
+    push_op(&mut op_table, return_op);
+    push_op(&mut op_table, jump);
+    push_op(&mut op_table, jump_stack);
+    push_op(&mut op_table, function);
 
     op_table
 }
@@ -592,6 +732,31 @@ pub fn utf8_to_string(vm: &mut VM) -> Result<()> {
 
 pub fn string_concat(vm: &mut VM) -> Result<()> {
     vm.string_concat()
+}
+
+// Function operations
+pub fn call(vm: &mut VM) -> Result<()> {
+    vm.call()
+}
+
+pub fn call_stack(vm: &mut VM) -> Result<()> {
+    vm.call_stack()
+}
+
+pub fn return_op(vm: &mut VM) -> Result<()> {
+    vm.return_op()
+}
+
+pub fn jump(vm: &mut VM) -> Result<()> {
+    vm.jump()
+}
+
+pub fn jump_stack(vm: &mut VM) -> Result<()> {
+    vm.jump_stack()
+}
+
+pub fn function(vm: &mut VM) -> Result<()> {
+    vm.function()
 }
 
 #[cfg(test)]

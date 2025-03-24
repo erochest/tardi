@@ -54,6 +54,15 @@ pub enum TokenType {
     Utf8ToString, // utf8>string
     StringConcat, // string-concat
 
+    // Function Operations
+    Function,     // <function>
+    Lambda,       // <lambda>
+    Call,         // call
+
+    // Delimiters
+    LeftCurly,    // {
+    RightCurly,   // }
+
     // Special tokens
     Error,
     Eof,

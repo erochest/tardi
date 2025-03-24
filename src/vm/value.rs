@@ -4,12 +4,48 @@ use std::ops::{Add, Div, Mul, Sub};
 use std::rc::Rc;
 
 use crate::error::{Result, VMError};
+use crate::vm::{OpFn, VM};
+
+/// Function structure for user-defined functions and lambdas
+#[derive(Debug, Clone)]
+pub struct Function {
+    /// Optional name (None for lambdas)
+    pub name: Option<String>,
+    /// List of words that make up the function body
+    pub words: Vec<String>,
+    /// Pointer to the beginning of instructions in the main VM instructions
+    pub instructions: usize,
+}
+
+/// Enum representing different types of callable objects
+#[derive(Debug, Clone)]
+pub enum Callable {
+    /// Built-in function implemented in Rust
+    BuiltIn(OpFn),
+    /// User-defined function or lambda
+    Fn(Function),
+}
+
+impl Callable {
+    pub fn call(&self, vm: &mut VM) -> Result<()> {
+        match self {
+            Callable::BuiltIn(f) => f(vm),
+            Callable::Fn(Function { instructions, .. }) => {
+                vm.ip = *instructions;
+                Ok(())
+            }
+        }
+    }
+}
+
+/// Shared type
+pub type Shared<T> = Rc<RefCell<T>>;
 
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
 
 /// Helper function to create a SharedValue
-pub fn shared(value: Value) -> SharedValue {
+pub fn shared<V>(value: V) -> Shared<V> {
     Rc::new(RefCell::new(value))
 }
 
@@ -50,8 +86,6 @@ impl From<Vec<SharedValue>> for Value {
     }
 }
 
-// TODO: add `Address` to this that points to a code address in instructions.
-
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -61,6 +95,10 @@ pub enum Value {
     Char(char),
     List(Vec<SharedValue>),
     String(String),
+    /// Function or lambda object
+    Function(Rc<RefCell<Callable>>),
+    /// Code address for jumps and returns
+    Address(usize),
 }
 
 impl fmt::Display for Value {
@@ -93,6 +131,17 @@ impl fmt::Display for Value {
                 write!(f, " ]")
             }
             Value::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
+            Value::Function(c) => {
+                let callable = c.borrow();
+                match &*callable {
+                    Callable::BuiltIn(_) => write!(f, "<built-in function>"),
+                    Callable::Fn(func) => match &func.name {
+                        Some(name) => write!(f, "<function {}>", name),
+                        None => write!(f, "<lambda>"),
+                    },
+                }
+            }
+            Value::Address(addr) => write!(f, "<address {}>", addr),
         }
     }
 }
@@ -113,6 +162,11 @@ impl PartialEq for Value {
                         .all(|(x, y)| *x.borrow() == *y.borrow())
             }
             (Value::String(a), Value::String(b)) => a == b,
+            (Value::Function(a), Value::Function(b)) => {
+                // Functions are equal if they point to the same memory location
+                Rc::ptr_eq(a, b)
+            }
+            (Value::Address(a), Value::Address(b)) => a == b,
             _ => false,
         }
     }
@@ -146,6 +200,8 @@ impl PartialOrd for Value {
                 }
             }
             (Value::String(a), Value::String(b)) => a.partial_cmp(b),
+            (Value::Function(_), Value::Function(_)) => None, // Functions cannot be ordered
+            (Value::Address(a), Value::Address(b)) => a.partial_cmp(b),
             _ => None,
         }
     }

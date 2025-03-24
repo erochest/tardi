@@ -61,6 +61,7 @@ fn test_compile_comparison_operators() -> Result<()> {
         OpCode::Lit,
         OpCode::Less,
         OpCode::Not,
+        OpCode::Return,
     ];
     let actual_ops = get_ops(&program);
 
@@ -73,7 +74,13 @@ fn test_compile_comparison_operators() -> Result<()> {
 fn test_compile_return_stack_operations() -> Result<()> {
     let program = compile("42 >r r@ r>")?;
 
-    let expected_ops = vec![OpCode::Lit, OpCode::ToR, OpCode::RFetch, OpCode::RFrom];
+    let expected_ops = vec![
+        OpCode::Lit,
+        OpCode::ToR,
+        OpCode::RFetch,
+        OpCode::RFrom,
+        OpCode::Return,
+    ];
     let actual_ops = get_ops(&program);
 
     assert_eq!(actual_ops, expected_ops);
@@ -84,8 +91,8 @@ fn test_compile_return_stack_operations() -> Result<()> {
 fn test_compile_word() -> Result<()> {
     let result = compile("custom_word");
     assert!(result.is_err());
-    if let Err(Error::CompilerError(CompilerError::UnsupportedToken(msg))) = result {
-        assert_eq!(msg, "word: custom_word");
+    if let Err(Error::CompilerError(CompilerError::UndefinedWord(msg))) = result {
+        assert_eq!(msg, "custom_word");
     } else {
         panic!("Expected UnsupportedToken error");
     }
@@ -96,7 +103,8 @@ fn test_compile_word() -> Result<()> {
 fn test_compile_character_literals() -> Result<()> {
     let program = compile("'a' '\\n' '\\t' '\\r' '\\'' '\\\\' '🦀' '\\u41' '\\u{1F600}'")?;
 
-    let expected_ops = vec![OpCode::Lit; 9]; // One lit operation for each character
+    let mut expected_ops = vec![OpCode::Lit; 9]; // One lit operation for each character
+    expected_ops.push(OpCode::Return);
 
     let mut actual_ops = Vec::new();
     let instructions = program.get_instructions();

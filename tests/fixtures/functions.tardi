@@ -1,0 +1,13 @@
+
+// lambda
+2 { 2 * } call
+
+// function
+// "triple" { 3 * } <function>
+
+// TODO: triple doesn't get added to the op_table until after the compile phase,
+// so these won't pass until we add in metaprogramming
+// 3 triple
+// dup triple
+
+// TODO: add recursion once we have conditionals

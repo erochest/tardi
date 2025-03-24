@@ -6,6 +6,10 @@
   - Enum-based operation codes with From/TryFrom implementations
   - Type-safe operation handling in compiler and VM
   - Future-proof design for function support
+- Function and Lambda support:
+  - Function declarations and calls
+  - Lambda expressions
+  - Jump operations for control flow
 - Documentation:
   - Project brief, memory bank, types and literals, language syntax decisions
   - Stack manipulation operations (docs/stack-manipulation.md)
@@ -57,9 +61,6 @@
 - TDD-focused workflow with emphasis on error case testing
 
 ## What's Left to Build
-1. Implement Function and Lambda Objects:
-   - Function declarations and calls
-   - Lambda expressions
 6. Add Comment Support
 7. Create Initialization Script
 8. Implement Compiler Words
@@ -93,6 +94,10 @@
 - String operations (<string>, >string, utf8>string, string-concat) implemented across all components
 - String literals (regular and triple-quoted) with escape sequence support
 - Comment support implemented with // line comments
+- Function and Lambda support implemented:
+  - Function declarations and calls
+  - Lambda expressions
+  - Jump operations for control flow
 - Continuing work on expanding language capabilities
 - Enhancing error handling and reporting across all components
 - Improving test coverage and maintaining TDD-focused workflow
@@ -106,9 +111,9 @@
 - No significant functional issues at this stage
 
 ## Upcoming Milestones
-1. Add function and lambda support
+1. Implement Compiler Words and Metaprogramming
 2. Working REPL for interactive testing
-3. File execution capability
+3. File execution capability with initialization script
 4. Basic module system
 5. Initial standard library implementation
 
@@ -126,7 +131,8 @@
 - Tree-sitter parser
 
 ## Next Steps
-1. Implement Function and Lambda Objects:
-   - Design function and lambda structures
-   - Implement basic function operations
-2. Continue improving test coverage and documentation
+1. Implement Compiler Words
+2. Create Initialization Script
+3. Add Scanner/Parser Words
+4. Implement Metaprogramming
+5. Continue improving test coverage and documentation

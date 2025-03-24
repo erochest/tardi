@@ -1,9 +1,13 @@
 use super::*;
+use crate::error::{Error, VMError};
+use crate::vm::value::{Callable, Function, Value};
+use std::collections::HashMap;
 
 struct TestProgram {
     instructions: Vec<usize>,
     constants: Vec<Value>,
-    op_table: Vec<OpFn>,
+    op_table: Vec<Shared<Callable>>,
+    op_map: HashMap<String, usize>,
 }
 
 impl Program for TestProgram {
@@ -15,12 +19,34 @@ impl Program for TestProgram {
         self.constants.get(index)
     }
 
-    fn get_op(&self, index: usize) -> Option<&OpFn> {
-        self.op_table.get(index)
+    fn get_op(&self, index: usize) -> Option<Shared<Callable>> {
+        self.op_table.get(index).cloned()
     }
 
     fn instructions_len(&self) -> usize {
         self.instructions.len()
+    }
+
+    fn get_op_table_size(&self) -> usize {
+        self.op_table.len()
+    }
+
+    fn get_op_map(&self) -> &std::collections::HashMap<String, usize> {
+        &self.op_map
+    }
+
+    fn add_to_op_table(&mut self, callable: Shared<Callable>) -> usize {
+        let index = self.op_table.len();
+
+        if let Callable::Fn(Function {
+            name: Some(ref n), ..
+        }) = *callable.borrow()
+        {
+            self.op_map.insert(n.clone(), index);
+        }
+        self.op_table.push(callable);
+
+        index
     }
 }
 
@@ -76,6 +102,7 @@ fn test_basic_vm_execution() {
         instructions: vec![0, 0], // lit operation index followed by constant index
         constants: vec![Value::Integer(123)],
         op_table,
+        op_map: HashMap::new(),
     });
 
     vm.load_program(program);
@@ -93,6 +120,7 @@ fn test_invalid_opcode() {
         instructions: vec![999], // Invalid opcode
         constants: vec![],
         op_table: vec![],
+        op_map: HashMap::new(),
     });
 
     vm.load_program(program);
@@ -100,6 +128,85 @@ fn test_invalid_opcode() {
         vm.run(),
         Err(Error::VMError(VMError::InvalidOpCode(_)))
     ));
+}
+
+#[test]
+fn test_function_and_lambda_operations() {
+    let mut vm = VM::new();
+    let op_table = create_op_table();
+
+    // Test lambda creation and execution
+    let lambda_program = Box::new(TestProgram {
+        instructions: vec![
+            0,
+            0,                          // lit (push lambda)
+            OpCode::CallStack as usize, // call the lambda
+            OpCode::Jump as usize,
+            11,
+            0,
+            1,
+            0,
+            2,
+            OpCode::Multiply as usize,
+            OpCode::Return as usize,
+        ],
+        constants: vec![
+            Value::Function(shared(Callable::Fn(Function {
+                name: None,
+                words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
+                instructions: 5, // Index where the lambda instructions start
+            }))),
+            Value::Integer(2),
+            Value::Integer(3),
+        ],
+        op_table: op_table.clone(),
+        op_map: HashMap::new(),
+    });
+
+    vm.load_program(lambda_program);
+    vm.run().unwrap();
+
+    // Verify the result of lambda execution (2 * 3 = 6)
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(6)));
+
+    // Test function definition and execution
+    let function_program = Box::new(TestProgram {
+        instructions: vec![
+            0,
+            0,
+            0,
+            1,
+            OpCode::Function as usize, // define the function
+            OpCode::Jump as usize,
+            11,
+            0,
+            2,
+            OpCode::Multiply as usize,
+            OpCode::Return as usize,
+            0,
+            3,
+            OpCode::Call as usize,
+            7,
+        ],
+        constants: vec![
+            Value::String("triple".to_string()),
+            Value::Function(shared(Callable::Fn(Function {
+                name: None,
+                words: vec!["3".to_string(), "*".to_string()],
+                instructions: 7, // Index where the function instructions start
+            }))),
+            Value::Integer(3),
+            Value::Integer(4),
+        ],
+        op_table,
+        op_map: HashMap::new(),
+    });
+
+    vm.load_program(function_program);
+    vm.run().unwrap();
+
+    // Verify the result of function execution (4 * 3 = 12)
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(12)));
 }
 
 #[test]
@@ -246,6 +353,7 @@ fn test_character_operations() {
         ],
         constants: vec![Value::Char('a'), Value::Char('\n'), Value::Char('🦀')],
         op_table,
+        op_map: HashMap::new(),
     });
 
     vm.load_program(program);
@@ -356,6 +464,127 @@ fn test_comparison_operations() {
     vm.push(shared(Value::Integer(5))).unwrap();
     assert!(matches!(
         vm.not(),
+        Err(Error::VMError(VMError::TypeMismatch(_)))
+    ));
+}
+
+#[test]
+fn test_function_and_lambda_errors() {
+    let mut vm = VM::new();
+
+    // Test calling a non-function value
+    vm.push(shared(Value::Integer(42))).unwrap();
+    assert!(matches!(
+        vm.call_stack(),
+        Err(Error::VMError(VMError::TypeMismatch(_)))
+    ));
+
+    // Test function definition with invalid name
+    vm.push(shared(Value::Integer(42))).unwrap(); // Invalid name (not a string)
+    vm.push(shared(Value::Function(shared(Callable::Fn(Function {
+        name: None,
+        words: vec!["2".to_string(), "*".to_string()],
+        instructions: 0,
+    })))))
+    .unwrap();
+    assert!(matches!(
+        vm.function(),
+        Err(Error::VMError(VMError::TypeMismatch(_)))
+    ));
+
+    // Test function definition with invalid lambda
+    vm.push(shared(Value::String("test".to_string()))).unwrap();
+    vm.push(shared(Value::Integer(42))).unwrap(); // Invalid lambda
+    assert!(matches!(
+        vm.function(),
+        Err(Error::VMError(VMError::TypeMismatch(_)))
+    ));
+
+    // Test calling without a program loaded
+    let mut vm = VM::new();
+    assert!(matches!(vm.call(), Err(Error::VMError(VMError::NoProgram))));
+
+    // Test return operation with empty return stack
+    assert!(matches!(vm.return_op(), Err(Error::VMError(VMError::Exit))));
+
+    // Test return operation with invalid return address
+    vm.push_return(shared(Value::Integer(42))).unwrap(); // Not an address
+    assert!(matches!(
+        vm.return_op(),
+        Err(Error::VMError(VMError::TypeMismatch(_)))
+    ));
+}
+
+#[test]
+fn test_jump_operations() {
+    let mut vm = VM::new();
+    let op_table = create_op_table();
+
+    // Test basic jump
+    let jump_program = Box::new(TestProgram {
+        instructions: vec![
+            0,
+            0, // lit 1
+            OpCode::Jump as usize,
+            6, // jump to position 5
+            0,
+            1, // lit 2 (skipped)
+            0,
+            2, // lit 3
+            OpCode::Return as usize,
+        ],
+        constants: vec![Value::Integer(1), Value::Integer(2), Value::Integer(3)],
+        op_table: op_table.clone(),
+        op_map: HashMap::new(),
+    });
+
+    vm.load_program(jump_program);
+    vm.run().unwrap();
+
+    // Should have pushed 1 and 3, skipping 2
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
+
+    // Test jump_stack
+    let jump_stack_program = Box::new(TestProgram {
+        instructions: vec![
+            0,
+            0, // lit 1
+            0,
+            1, // lit address(7)
+            OpCode::JumpStack as usize,
+            0,
+            2, // lit 2 (skipped)
+            0,
+            3, // lit 3
+        ],
+        constants: vec![
+            Value::Integer(1),
+            Value::Address(7),
+            Value::Integer(2),
+            Value::Integer(3),
+        ],
+        op_table,
+        op_map: HashMap::new(),
+    });
+
+    vm.load_program(jump_stack_program);
+    vm.run().unwrap();
+
+    // Should have pushed 1 and 3, skipping 2
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
+
+    // Test jump errors
+    let mut vm = VM::new();
+
+    // Test jump without program
+    assert!(matches!(vm.jump(), Err(Error::VMError(VMError::NoProgram))));
+
+    // Test jump_stack with invalid address type
+    vm.push(shared(Value::Integer(42))).unwrap(); // Not an address
+    assert!(matches!(
+        vm.jump_stack(),
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 }

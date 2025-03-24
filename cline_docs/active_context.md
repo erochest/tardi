@@ -17,6 +17,15 @@
 5. Review and adjust plans as needed
 
 ## Recent Changes
+- Implemented Function and Lambda Objects:
+  - Added Function struct and Value::Function variant with Callable enum
+  - Implemented function declarations and calls
+  - Added lambda expression support
+  - Implemented jump operations for control flow
+  - Added comprehensive tests for function and lambda operations
+  - Added error handling for function-related operations
+  - Created test fixtures for function and lambda functionality
+
 - Introduced OpCode enum for VM operations:
   - Replaced string-based operation lookup with enum-based system
   - Added From<OpCode> for usize and TryFrom<usize> for OpCode implementations
@@ -93,13 +102,7 @@
   - Updated scanner to handle comments in various contexts
 
 ## Next Steps
-1. Implement Function and Lambda Objects:
-   - Create Function struct and Value::Function variant
-   - Implement basic function-related words (<function>, <lambda>, curry)
-   - Add support for function compilation
-   - Update tests for function and lambda functionality
-
-6. Add Comment Support:
+1. Add Comment Support:
    - Implement comment handling in scanner (// until end of line)
 
 7. Create Initialization Script:
@@ -123,6 +126,15 @@
 12. Regularly update documentation and memory bank files throughout the process
 
 ## Active Decisions and Considerations
+- Function and Lambda implementation decisions:
+  - Functions are stored as Value::Function with Callable enum
+  - Lambdas are functions without names
+  - Using return stack for function call management
+  - Jump operations handle control flow
+  - Function compilation maintains a stack of functions/lambdas
+  - Functions can be defined and called at runtime
+  - Error handling for type mismatches and invalid operations
+
 - Using iterator pattern for scanner output
 - Program structure contains constants, instructions, and op_table
 - Separate error types for scanner, compiler, and VM phases
