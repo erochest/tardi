@@ -55,13 +55,13 @@ pub enum TokenType {
     StringConcat, // string-concat
 
     // Function Operations
-    Function,     // <function>
-    Lambda,       // <lambda>
-    Call,         // call
+    Function, // <function>
+    Lambda,   // <lambda>
+    Call,     // call
 
     // Delimiters
-    LeftCurly,    // {
-    RightCurly,   // }
+    LeftCurly,  // {
+    RightCurly, // }
 
     // Special tokens
     Error,

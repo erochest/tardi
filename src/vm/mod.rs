@@ -451,7 +451,7 @@ impl VM {
         let program = self.program.as_ref().ok_or(VMError::NoProgram)?;
         let fn_index = program
             .get_instruction(self.ip)
-            .ok_or_else(|| VMError::InvalidAddress(self.ip))?;
+            .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip += 1;
 
         // Save the current IP on the return stack
@@ -546,7 +546,7 @@ impl VM {
         let program = self.program.as_ref().ok_or(VMError::NoProgram)?;
         let target = program
             .get_instruction(self.ip)
-            .ok_or_else(|| VMError::InvalidAddress(self.ip))?;
+            .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip = target;
         Ok(())
     }

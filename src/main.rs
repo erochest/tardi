@@ -3,7 +3,7 @@ use clap_verbosity_flag::Verbosity;
 use human_panic::setup_panic;
 use std::path::PathBuf;
 
-use tardi::{Compiler, Result, Scanner, VM};
+use tardi::Result;
 
 fn main() -> Result<()> {
     setup_panic!();

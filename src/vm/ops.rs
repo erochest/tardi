@@ -31,11 +31,11 @@ pub enum OpCode {
     Utf8ToString,
     StringConcat,
     // Function-related operations
-    Call,       // Call a function by its index in the op_table
-    CallStack,  // Call a function from the stack
-    Return,     // Return from a function
-    Jump,       // Jump to a specific instruction
-    JumpStack,  // Jump to an instruction from the stack
+    Call,      // Call a function by its index in the op_table
+    CallStack, // Call a function from the stack
+    Return,    // Return from a function
+    Jump,      // Jump to a specific instruction
+    JumpStack, // Jump to an instruction from the stack
     Function,
 }
 
