@@ -12,6 +12,8 @@ pub mod scanner;
 /// Compiler implementation
 pub mod compiler;
 
+use std::path::PathBuf;
+
 // Re-exports
 pub use compiler::Compiler;
 pub use error::Result;
