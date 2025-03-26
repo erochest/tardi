@@ -20,12 +20,8 @@ impl Default for Compiler {
 
 impl Compiler {
     pub fn new() -> Self {
-        let mut program = Program::new();
-        let op_table = create_op_table();
-        program.set_op_table(op_table);
-
         Compiler {
-            program,
+            program: Program::with_builtins(),
             word_stack: Vec::new(),
         }
     }

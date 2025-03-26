@@ -1,5 +1,5 @@
 use crate::vm::value::{Callable, Function, Shared, Value};
-use crate::vm::{OpCode, Program as VMProgram};
+use crate::vm::{create_op_table, OpCode, Program as VMProgram};
 use std::collections::HashMap;
 
 pub struct Program {
@@ -26,6 +26,28 @@ impl Program {
             op_map: HashMap::new(),
             function_stack: Vec::new(),
         }
+    }
+
+    pub fn from_parameters(
+        constants: Vec<Value>,
+        instructions: Vec<usize>,
+        op_table: Vec<Shared<Callable>>,
+        op_map: HashMap<String, usize>,
+    ) -> Self {
+        Program {
+            constants,
+            instructions,
+            op_table,
+            op_map,
+            function_stack: Vec::new(),
+        }
+    }
+
+    pub fn with_builtins() -> Self {
+        let mut program = Self::new();
+        let op_table = create_op_table();
+        program.set_op_table(op_table);
+        program
     }
 
     /// Starts a new function definition by pushing a new Vec<usize> onto the function_stack
