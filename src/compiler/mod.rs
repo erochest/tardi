@@ -4,7 +4,9 @@ pub use self::program::Program;
 use crate::error::{CompilerError, Error, Result};
 use crate::scanner::{Token, TokenType};
 use crate::vm::value::{shared, Callable, Function, Value};
-use crate::vm::{create_op_table, OpCode};
+use crate::vm::OpCode;
+
+use super::Compile;
 
 pub struct Compiler {
     program: Program,
@@ -24,15 +26,6 @@ impl Compiler {
             program: Program::with_builtins(),
             word_stack: Vec::new(),
         }
-    }
-
-    pub fn compile(&mut self, tokens: impl Iterator<Item = Result<Token>>) -> Result<Program> {
-        for token_result in tokens {
-            let token = token_result?;
-            self.compile_token(token)?;
-        }
-        self.compile_op(OpCode::Return)?;
-        Ok(self.program.clone())
     }
 
     fn compile_token(&mut self, token: Token) -> Result<()> {
@@ -168,6 +161,17 @@ impl Compiler {
         self.program.add_op_arg(OpCode::Lit, const_index);
 
         Ok(())
+    }
+}
+
+impl Compile for Compiler {
+    fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Program> {
+        let tokens: Result<Vec<Token>> = tokens.into_iter().collect();
+        for token in tokens? {
+            self.compile_token(token)?;
+        }
+        self.compile_op(OpCode::Return)?;
+        Ok(self.program.clone())
     }
 }
 

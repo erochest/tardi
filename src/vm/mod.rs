@@ -1,6 +1,9 @@
 use value::{Callable, Function, Shared};
 
-use crate::error::{Error, Result, VMError};
+use crate::{
+    compiler::Program,
+    error::{Error, Result, VMError},
+};
 
 pub mod ops;
 pub use self::ops::OpCode;
@@ -8,27 +11,18 @@ pub use self::ops::OpCode;
 pub mod value;
 use self::value::{shared, SharedValue, Value};
 
+use super::Execute;
+
 // TODO: Make this an enum with BuiltIn (like below),
 // Lambda, and Fn
 
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM) -> Result<()>;
 
-/// Trait for programs that can be executed by the VM
-pub trait Program: 'static {
-    fn get_instruction(&self, ip: usize) -> Option<usize>;
-    fn get_constant(&self, index: usize) -> Option<&Value>;
-    fn get_op(&self, index: usize) -> Option<Shared<Callable>>;
-    fn instructions_len(&self) -> usize;
-    fn get_op_table_size(&self) -> usize;
-    fn add_to_op_table(&mut self, callable: Shared<Callable>) -> usize;
-    fn get_op_map(&self) -> &std::collections::HashMap<String, usize>;
-}
-
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
 pub struct VM {
     /// The program being executed
-    program: Option<Box<dyn Program>>,
+    program: Shared<Program>,
 
     /// Instruction pointer tracking the current position in the instruction stream
     ip: usize,
@@ -40,22 +34,11 @@ pub struct VM {
     return_stack: Vec<SharedValue>,
 }
 
-impl Default for VM {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl VM {
-    /// Returns an iterator over stack values from bottom to top
-    pub fn stack_iter(&self) -> impl Iterator<Item = Value> + '_ {
-        self.stack.iter().map(|shared| shared.borrow().clone())
-    }
-
     /// Creates a new VM instance
-    pub fn new() -> Self {
+    pub fn new(program: Shared<Program>) -> Self {
         VM {
-            program: None,
+            program,
             ip: 0,
             stack: Vec::new(),
             return_stack: Vec::new(),
@@ -99,47 +82,6 @@ impl VM {
         }
     }
 
-    /// Loads a program into the VM
-    pub fn load_program(&mut self, program: Box<dyn Program>) {
-        self.program = Some(program);
-        self.ip = 0;
-    }
-
-    /// Runs the VM, executing all instructions in the instruction stream
-    pub fn run(&mut self) -> Result<()> {
-        while let Some(program) = &self.program {
-            if self.ip >= program.instructions_len() {
-                break;
-            }
-
-            // Get the next instruction (OpCode)
-            let op_code = program
-                .get_instruction(self.ip)
-                .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
-            self.ip += 1;
-
-            // Get the operation from the op_table
-            let operation = program
-                .get_op(op_code)
-                .ok_or(Error::VMError(VMError::InvalidOpCode(op_code)))?;
-
-            // Execute the operation
-            let operation = operation.borrow();
-            match *operation {
-                Callable::BuiltIn(f) => match f(self) {
-                    Ok(()) => {}
-                    Err(Error::VMError(VMError::Exit)) => {
-                        break;
-                    }
-                    err => return err,
-                },
-                Callable::Fn(Function { instructions, .. }) => self.ip = instructions,
-            }
-        }
-
-        Ok(())
-    }
-
     /// Pushes a shared value onto the data stack
     pub fn push(&mut self, value: SharedValue) -> Result<()> {
         if self.stack.len() >= 1024 {
@@ -161,21 +103,23 @@ impl VM {
 
     /// Executes the lit operation - loads a constant onto the stack
     pub fn lit(&mut self) -> Result<()> {
-        let program = self
+        let const_index = self
             .program
-            .as_ref()
-            .ok_or(Error::VMError(VMError::NoProgram))?;
-
-        let const_index = program
+            .borrow()
             .get_instruction(self.ip)
             .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
         self.ip += 1;
 
-        if let Some(value) = program.get_constant(const_index) {
-            self.push(shared(value.clone()))
-        } else {
-            Err(Error::VMError(VMError::InvalidConstantIndex(const_index)))
-        }
+        let value = {
+            if let Some(value) = self.program.borrow().get_constant(const_index) {
+                shared(value.clone())
+            } else {
+                return Err(Error::VMError(VMError::InvalidConstantIndex(const_index)));
+            }
+        };
+        self.push(value)?;
+
+        Ok(())
     }
 
     /// Duplicates the top item on the stack
@@ -448,8 +392,9 @@ impl VM {
 
     /// Calls a function by its index in the op_table
     pub fn call(&mut self) -> Result<()> {
-        let program = self.program.as_ref().ok_or(VMError::NoProgram)?;
-        let fn_index = program
+        let fn_index = self
+            .program
+            .borrow()
             .get_instruction(self.ip)
             .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip += 1;
@@ -515,10 +460,7 @@ impl VM {
         let callable = shared(Callable::Fn(function));
 
         // Add the function to the op_table
-        self.program
-            .as_mut()
-            .ok_or(VMError::NoProgram)?
-            .add_to_op_table(callable);
+        self.program.borrow_mut().add_to_op_table(callable);
 
         Ok(())
     }
@@ -543,7 +485,7 @@ impl VM {
 
     /// Jumps to a specific instruction
     pub fn jump(&mut self) -> Result<()> {
-        let program = self.program.as_ref().ok_or(VMError::NoProgram)?;
+        let program = self.program.borrow();
         let target = program
             .get_instruction(self.ip)
             .ok_or(VMError::InvalidAddress(self.ip))?;
@@ -562,6 +504,52 @@ impl VM {
             }
             _ => Err(VMError::TypeMismatch("jump address".to_string()).into()),
         }
+    }
+}
+
+impl Execute for VM {
+    /// Returns an iterator over stack values from bottom to top
+    fn stack(&self) -> Vec<Value> {
+        self.stack
+            .iter()
+            .map(|shared| shared.borrow().clone())
+            .collect()
+    }
+
+    /// Runs the VM, executing all instructions in the instruction stream
+    fn run(&mut self) -> Result<()> {
+        while self.ip < self.program.borrow().instructions_len() {
+            // Get the next instruction (OpCode)
+            let op_code = self
+                .program
+                .borrow()
+                .get_instruction(self.ip)
+                .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
+
+            self.ip += 1;
+
+            // Get the operation from the op_table
+            let operation = self
+                .program
+                .borrow()
+                .get_op(op_code)
+                .ok_or(Error::VMError(VMError::InvalidOpCode(op_code)))?;
+
+            // Execute the operation
+            let operation = operation.borrow();
+            match *operation {
+                Callable::BuiltIn(f) => match f(self) {
+                    Ok(()) => {}
+                    Err(Error::VMError(VMError::Exit)) => {
+                        return Ok(());
+                    }
+                    err => return err,
+                },
+                Callable::Fn(Function { instructions, .. }) => self.ip = instructions,
+            }
+        }
+
+        Ok(())
     }
 }
 

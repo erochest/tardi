@@ -3,15 +3,17 @@ use std::convert::TryFrom;
 use super::*;
 use crate::compiler::program::Program;
 use crate::scanner::Scanner;
+use crate::Scan;
 
 use pretty_assertions::assert_eq;
 
 // TODO: more tests
 
 fn compile(input: &str) -> Result<Program> {
-    let scanner = Scanner::new(input);
+    let mut scanner = Scanner::new();
     let mut compiler = Compiler::new();
-    compiler.compile(scanner)
+    let tokens = Scan::scan(&mut scanner, input);
+    compiler.compile(tokens)
 }
 
 fn get_ops(program: &Program) -> Vec<OpCode> {

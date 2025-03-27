@@ -1,17 +1,21 @@
 mod token;
 pub use token::{Token, TokenType};
 
-use crate::error::{Error, ScannerError};
-use std::iter::Peekable;
-use std::str::Chars;
+use super::Scan;
+
+use crate::error::{Error, Result, ScannerError};
+use std::result;
 
 /// Scanner that converts source text into a stream of tokens
-pub struct Scanner<'a> {
+pub struct Scanner {
     /// Source text being scanned
-    source: &'a str,
+    source: String,
 
-    /// Iterator over source characters
-    chars: Peekable<Chars<'a>>,
+    /// Vector of source characters
+    chars: Vec<char>,
+
+    /// Index of current character.
+    index: usize,
 
     /// Current line number (1-based)
     line: usize,
@@ -23,12 +27,15 @@ pub struct Scanner<'a> {
     offset: usize,
 }
 
-impl<'a> Scanner<'a> {
+impl Scanner {
     /// Creates a new Scanner for the given source text
-    pub fn new(source: &'a str) -> Self {
+    pub fn new() -> Self {
+        let source = String::new();
+        let chars = vec![];
         Scanner {
             source,
-            chars: source.chars().peekable(),
+            chars,
+            index: 0,
             line: 1,
             column: 1,
             offset: 0,
@@ -36,11 +43,11 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans hexadecimal digits up to the specified length
-    fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32, Error> {
+    fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32> {
         let mut value = 0u32;
         let mut count = 0;
 
-        while let Some(&c) = self.chars.peek() {
+        while let Some(&c) = self.chars.get(self.index) {
             if count >= max_len {
                 break;
             }
@@ -65,7 +72,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Processes an escape sequence in a string or character literal
-    fn process_escape_sequence(&mut self) -> Result<char, Error> {
+    fn process_escape_sequence(&mut self) -> Result<char> {
         match self.next_char() {
             Some('n') => Ok('\n'),
             Some('r') => Ok('\r'),
@@ -113,7 +120,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a character literal
-    fn scan_char(&mut self) -> Result<TokenType, Error> {
+    fn scan_char(&mut self) -> Result<TokenType> {
         match self.next_char() {
             Some('\\') => self.process_escape_sequence().map(TokenType::Char),
             Some(c) => {
@@ -130,7 +137,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a string literal
-    fn scan_string(&mut self) -> Result<TokenType, Error> {
+    fn scan_string(&mut self) -> Result<TokenType> {
         let mut string = String::new();
 
         while let Some(c) = self.next_char() {
@@ -148,7 +155,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a triple-quoted string literal
-    fn scan_long_string(&mut self) -> Result<TokenType, Error> {
+    fn scan_long_string(&mut self) -> Result<TokenType> {
         // Consume the remaining two quotes
         if self.next_char() != Some('"') || self.next_char() != Some('"') {
             return Err(Error::ScannerError(ScannerError::InvalidLiteral(
@@ -194,12 +201,13 @@ impl<'a> Scanner<'a> {
 
     /// Peeks at the next character without consuming it
     fn peek(&mut self) -> Option<char> {
-        self.chars.peek().copied()
+        self.chars.get(self.index).copied()
     }
 
     /// Consumes and returns the next character
     fn next_char(&mut self) -> Option<char> {
-        let c = self.chars.next()?;
+        let c = *self.chars.get(self.index)?;
+        self.index += 1;
         self.advance(c);
         Some(c)
     }
@@ -225,7 +233,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a number (integer or float)
-    fn scan_number(&mut self, first_digit: char) -> Result<TokenType, Error> {
+    fn scan_number(&mut self, first_digit: char) -> Result<TokenType> {
         let mut number = String::from(first_digit);
         let mut is_float = false;
 
@@ -281,7 +289,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a potential boolean value
-    fn scan_boolean(&mut self) -> Result<TokenType, Error> {
+    fn scan_boolean(&mut self) -> Result<TokenType> {
         match self.next_char() {
             Some('t') => Ok(TokenType::Boolean(true)),
             Some('f') => Ok(TokenType::Boolean(false)),
@@ -292,7 +300,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Scans a word (any sequence of non-whitespace characters)
-    fn scan_word(&mut self, first_char: char) -> Result<Option<TokenType>, Error> {
+    fn scan_word(&mut self, first_char: char) -> Result<Option<TokenType>> {
         let mut word = String::from(first_char);
 
         // Scan the rest of the word
@@ -361,8 +369,22 @@ impl<'a> Scanner<'a> {
     }
 }
 
-impl Iterator for Scanner<'_> {
-    type Item = Result<Token, Error>;
+impl Default for Scanner {
+    fn default() -> Self {
+        Scanner::new()
+    }
+}
+
+impl Scan for Scanner {
+    fn scan(&mut self, input: &str) -> Vec<Result<Token>> {
+        self.source = input.to_string();
+        self.chars = self.source.chars().collect();
+        self.into_iter().collect()
+    }
+}
+
+impl Iterator for Scanner {
+    type Item = result::Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Skip any whitespace before the next token
@@ -394,10 +416,8 @@ impl Iterator for Scanner<'_> {
             }
             '"' => {
                 // Check for triple quotes by peeking at the next two characters
-                let is_triple = {
-                    let mut chars = self.chars.clone();
-                    chars.next() == Some('"') && chars.next() == Some('"')
-                };
+                let is_triple = self.chars.get(self.index) == Some(&'"')
+                    && self.chars.get(self.index + 1) == Some(&'"');
 
                 if is_triple {
                     self.scan_long_string()

@@ -3,56 +3,10 @@ use crate::error::{Error, VMError};
 use crate::vm::value::{Callable, Function, Value};
 use std::collections::HashMap;
 
-struct TestProgram {
-    instructions: Vec<usize>,
-    constants: Vec<Value>,
-    op_table: Vec<Shared<Callable>>,
-    op_map: HashMap<String, usize>,
-}
-
-impl Program for TestProgram {
-    fn get_instruction(&self, ip: usize) -> Option<usize> {
-        self.instructions.get(ip).copied()
-    }
-
-    fn get_constant(&self, index: usize) -> Option<&Value> {
-        self.constants.get(index)
-    }
-
-    fn get_op(&self, index: usize) -> Option<Shared<Callable>> {
-        self.op_table.get(index).cloned()
-    }
-
-    fn instructions_len(&self) -> usize {
-        self.instructions.len()
-    }
-
-    fn get_op_table_size(&self) -> usize {
-        self.op_table.len()
-    }
-
-    fn get_op_map(&self) -> &std::collections::HashMap<String, usize> {
-        &self.op_map
-    }
-
-    fn add_to_op_table(&mut self, callable: Shared<Callable>) -> usize {
-        let index = self.op_table.len();
-
-        if let Callable::Fn(Function {
-            name: Some(ref n), ..
-        }) = *callable.borrow()
-        {
-            self.op_map.insert(n.clone(), index);
-        }
-        self.op_table.push(callable);
-
-        index
-    }
-}
-
 #[test]
 fn test_stack_operations() {
-    let mut vm = VM::new();
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test push and pop
     vm.push(shared(Value::Integer(42))).unwrap();
@@ -95,17 +49,15 @@ fn test_stack_operations() {
 
 #[test]
 fn test_basic_vm_execution() {
-    let mut vm = VM::new();
     let op_table = create_op_table();
-
-    let program = Box::new(TestProgram {
-        instructions: vec![0, 0], // lit operation index followed by constant index
-        constants: vec![Value::Integer(123)],
+    let program = Program::from_parameters(
+        vec![Value::Integer(123)],
+        vec![0, 0], // lit operation index followed by constant index
         op_table,
-        op_map: HashMap::new(),
-    });
+        HashMap::new(),
+    );
+    let mut vm = VM::new(shared(program));
 
-    vm.load_program(program);
     vm.run().unwrap();
 
     // Verify the result
@@ -115,15 +67,14 @@ fn test_basic_vm_execution() {
 
 #[test]
 fn test_invalid_opcode() {
-    let mut vm = VM::new();
-    let program = Box::new(TestProgram {
-        instructions: vec![999], // Invalid opcode
-        constants: vec![],
-        op_table: vec![],
-        op_map: HashMap::new(),
-    });
+    let program = Program::from_parameters(
+        vec![],
+        vec![999], // Invalid opcode
+        vec![],
+        HashMap::new(),
+    );
+    let mut vm = VM::new(shared(program));
 
-    vm.load_program(program);
     assert!(matches!(
         vm.run(),
         Err(Error::VMError(VMError::InvalidOpCode(_)))
@@ -132,12 +83,20 @@ fn test_invalid_opcode() {
 
 #[test]
 fn test_function_and_lambda_operations() {
-    let mut vm = VM::new();
     let op_table = create_op_table();
 
     // Test lambda creation and execution
-    let lambda_program = Box::new(TestProgram {
-        instructions: vec![
+    let lambda_program = Program::from_parameters(
+        vec![
+            Value::Function(shared(Callable::Fn(Function {
+                name: None,
+                words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
+                instructions: 5, // Index where the lambda instructions start
+            }))),
+            Value::Integer(2),
+            Value::Integer(3),
+        ],
+        vec![
             0,
             0,                          // lit (push lambda)
             OpCode::CallStack as usize, // call the lambda
@@ -150,28 +109,29 @@ fn test_function_and_lambda_operations() {
             OpCode::Multiply as usize,
             OpCode::Return as usize,
         ],
-        constants: vec![
-            Value::Function(shared(Callable::Fn(Function {
-                name: None,
-                words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
-                instructions: 5, // Index where the lambda instructions start
-            }))),
-            Value::Integer(2),
-            Value::Integer(3),
-        ],
-        op_table: op_table.clone(),
-        op_map: HashMap::new(),
-    });
+        op_table.clone(),
+        HashMap::new(),
+    );
 
-    vm.load_program(lambda_program);
+    let mut vm = VM::new(shared(lambda_program));
     vm.run().unwrap();
 
     // Verify the result of lambda execution (2 * 3 = 6)
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(6)));
 
     // Test function definition and execution
-    let function_program = Box::new(TestProgram {
-        instructions: vec![
+    let function_program = Program::from_parameters(
+        vec![
+            Value::String("triple".to_string()),
+            Value::Function(shared(Callable::Fn(Function {
+                name: None,
+                words: vec!["3".to_string(), "*".to_string()],
+                instructions: 7, // Index where the function instructions start
+            }))),
+            Value::Integer(3),
+            Value::Integer(4),
+        ],
+        vec![
             0,
             0,
             0,
@@ -188,21 +148,11 @@ fn test_function_and_lambda_operations() {
             OpCode::Call as usize,
             7,
         ],
-        constants: vec![
-            Value::String("triple".to_string()),
-            Value::Function(shared(Callable::Fn(Function {
-                name: None,
-                words: vec!["3".to_string(), "*".to_string()],
-                instructions: 7, // Index where the function instructions start
-            }))),
-            Value::Integer(3),
-            Value::Integer(4),
-        ],
         op_table,
-        op_map: HashMap::new(),
-    });
+        HashMap::new(),
+    );
 
-    vm.load_program(function_program);
+    let mut vm = VM::new(shared(function_program));
     vm.run().unwrap();
 
     // Verify the result of function execution (4 * 3 = 12)
@@ -211,7 +161,8 @@ fn test_function_and_lambda_operations() {
 
 #[test]
 fn test_return_stack_operations() {
-    let mut vm = VM::new();
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test >r (to_r)
     vm.push(shared(Value::Integer(42))).unwrap();
@@ -261,7 +212,8 @@ fn test_return_stack_operations() {
 
 #[test]
 fn test_arithmetic_operations() {
-    let mut vm = VM::new();
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test integer addition
     vm.push(shared(Value::Integer(3))).unwrap();
@@ -302,7 +254,8 @@ fn test_arithmetic_operations() {
 
 #[test]
 fn test_arithmetic_errors() {
-    let mut vm = VM::new();
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test division by zero (integer)
     vm.push(shared(Value::Integer(10))).unwrap();
@@ -329,15 +282,18 @@ fn test_arithmetic_errors() {
     ));
 
     // Test stack underflow
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
     assert!(matches!(
-        VM::new().add(),
+        vm.add(),
         Err(Error::VMError(VMError::StackUnderflow))
     ));
 }
 
 #[test]
 fn test_character_operations() {
-    let mut vm = VM::new();
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test basic character handling
     vm.push(shared(Value::Char('a'))).unwrap();
@@ -345,24 +301,30 @@ fn test_character_operations() {
 
     // Test character literals in program execution
     let op_table = create_op_table();
-    let program = Box::new(TestProgram {
-        instructions: vec![
+    let program = Program::from_parameters(
+        vec![Value::Char('a'), Value::Char('\n'), Value::Char('🦀')],
+        vec![
             0, 0, // lit 'a'
             0, 1, // lit '\n'
             0, 2, // lit '🦀'
         ],
-        constants: vec![Value::Char('a'), Value::Char('\n'), Value::Char('🦀')],
         op_table,
-        op_map: HashMap::new(),
-    });
+        HashMap::new(),
+    );
 
-    vm.load_program(program);
+    let mut vm = VM::new(shared(program));
     vm.run().unwrap();
 
     // Verify the characters were pushed onto the stack in the correct order
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('🦀')));
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('\n')));
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('a')));
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Char('🦀')), "stack top: {:?}", top);
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Char('\n')), "stack top: {:?}", top);
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Char('a')), "stack top: {:?}", top);
 
     // Test stack operations with characters
     vm.push(shared(Value::Char('x'))).unwrap();
@@ -394,7 +356,8 @@ fn test_character_operations() {
 
 #[test]
 fn test_comparison_operations() {
-    let mut vm = VM::new();
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test equal
     vm.push(shared(Value::Integer(5))).unwrap();
@@ -470,7 +433,8 @@ fn test_comparison_operations() {
 
 #[test]
 fn test_function_and_lambda_errors() {
-    let mut vm = VM::new();
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test calling a non-function value
     vm.push(shared(Value::Integer(42))).unwrap();
@@ -501,8 +465,8 @@ fn test_function_and_lambda_errors() {
     ));
 
     // Test calling without a program loaded
-    let mut vm = VM::new();
-    assert!(matches!(vm.call(), Err(Error::VMError(VMError::NoProgram))));
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test return operation with empty return stack
     assert!(matches!(vm.return_op(), Err(Error::VMError(VMError::Exit))));
@@ -517,12 +481,11 @@ fn test_function_and_lambda_errors() {
 
 #[test]
 fn test_jump_operations() {
-    let mut vm = VM::new();
-    let op_table = create_op_table();
-
     // Test basic jump
-    let jump_program = Box::new(TestProgram {
-        instructions: vec![
+    let op_table = create_op_table();
+    let jump_program = Program::from_parameters(
+        vec![Value::Integer(1), Value::Integer(2), Value::Integer(3)],
+        vec![
             0,
             0, // lit 1
             OpCode::Jump as usize,
@@ -533,12 +496,11 @@ fn test_jump_operations() {
             2, // lit 3
             OpCode::Return as usize,
         ],
-        constants: vec![Value::Integer(1), Value::Integer(2), Value::Integer(3)],
-        op_table: op_table.clone(),
-        op_map: HashMap::new(),
-    });
+        op_table.clone(),
+        HashMap::new(),
+    );
+    let mut vm = VM::new(shared(jump_program));
 
-    vm.load_program(jump_program);
     vm.run().unwrap();
 
     // Should have pushed 1 and 3, skipping 2
@@ -546,8 +508,14 @@ fn test_jump_operations() {
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
 
     // Test jump_stack
-    let jump_stack_program = Box::new(TestProgram {
-        instructions: vec![
+    let jump_stack_program = Program::from_parameters(
+        vec![
+            Value::Integer(1),
+            Value::Address(7),
+            Value::Integer(2),
+            Value::Integer(3),
+        ],
+        vec![
             0,
             0, // lit 1
             0,
@@ -558,17 +526,11 @@ fn test_jump_operations() {
             0,
             3, // lit 3
         ],
-        constants: vec![
-            Value::Integer(1),
-            Value::Address(7),
-            Value::Integer(2),
-            Value::Integer(3),
-        ],
         op_table,
-        op_map: HashMap::new(),
-    });
+        HashMap::new(),
+    );
 
-    vm.load_program(jump_stack_program);
+    let mut vm = VM::new(shared(jump_stack_program));
     vm.run().unwrap();
 
     // Should have pushed 1 and 3, skipping 2
@@ -576,10 +538,8 @@ fn test_jump_operations() {
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
 
     // Test jump errors
-    let mut vm = VM::new();
-
-    // Test jump without program
-    assert!(matches!(vm.jump(), Err(Error::VMError(VMError::NoProgram))));
+    let program = Program::default();
+    let mut vm = VM::new(shared(program));
 
     // Test jump_stack with invalid address type
     vm.push(shared(Value::Integer(42))).unwrap(); // Not an address
