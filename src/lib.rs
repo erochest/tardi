@@ -1,4 +1,4 @@
-//! Tardi programming language implementation
+//! Tardi environmentming language implementation
 
 /// Re-export error types
 pub mod error;
@@ -12,11 +12,13 @@ pub mod scanner;
 /// Compiler implementation
 pub mod compiler;
 
+pub mod env;
+
 use std::path::PathBuf;
 
 // Re-exports
 pub use compiler::Compiler;
-use compiler::Program;
+pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
 use scanner::Token;
@@ -32,11 +34,11 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
     // when scanner gets MACRO: what needs to happen?
     // - it needs to read the MACRO definition immediately
     // - it hands those to the compiler
-    // - it adds a function to the Program under that name, with an `immediate` flag set
+    // - it adds a function to the Environment under that name, with an `immediate` flag set
     // when it then reads the macro token
     // - it takes the tokens so far and passes the token, them, and itself to `VM::run_macro`
     // - `run_macro' places the token vector on the stack runs the macro word
-    // - it allows the function to modify the program and the token vector on the stack
+    // - it allows the function to modify the environment and the token vector on the stack
 
     let mut tardi = Tardi::default();
     tardi.execute_str(source)?;
@@ -44,10 +46,10 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
 
     // let scanner = Scanner::new(&source);
     // let mut compiler = Compiler::new();
-    // let program = compiler.compile(scanner)?;
+    // let environment = compiler.compile(scanner)?;
 
     // let mut vm = VM::new();
-    // vm.load_program(Box::new(program));
+    // vm.load_environment(Box::new(environment));
     // vm.run()?;
 
     if print_stack {
@@ -65,7 +67,7 @@ pub trait Scan {
 }
 
 pub trait Compile {
-    fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Program>;
+    fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Environment>;
 }
 
 pub trait Execute {
@@ -75,7 +77,7 @@ pub trait Execute {
 
 pub struct Tardi {
     input: Option<String>,
-    program: Shared<Program>,
+    environment: Shared<Environment>,
     scanner: Box<dyn Scan>,
     compiler: Box<dyn Compile>,
     executor: Box<dyn Execute>,
@@ -83,16 +85,16 @@ pub struct Tardi {
 
 impl Tardi {
     pub fn new(
-        program: Shared<Program>,
+        environment: Shared<Environment>,
         scanner: Box<dyn Scan>,
         compiler: Box<dyn Compile>,
         executor: Box<dyn Execute>,
     ) -> Self {
         // TODO: this doesn't feel like the right place for this.
-        program.borrow_mut().set_op_table(create_op_table());
+        environment.borrow_mut().set_op_table(create_op_table());
         Tardi {
             input: None,
-            program,
+            environment,
             scanner,
             compiler,
             executor,
@@ -100,11 +102,11 @@ impl Tardi {
     }
 
     pub fn execute_str(&mut self, input: String) -> Result<()> {
-        // TODO: have everything work on the one Program created first
+        // TODO: have everything work on the one Environment created first
         self.input = Some(input);
         let tokens = self.scanner.scan(self.input.as_ref().unwrap());
-        // TODO: how does Compile have access to the program?
-        *self.program.borrow_mut() = self.compiler.compile(tokens)?;
+        // TODO: how does Compile have access to the environment?
+        *self.environment.borrow_mut() = self.compiler.compile(tokens)?;
         self.executor.run()?;
         Ok(())
     }
@@ -116,11 +118,11 @@ impl Tardi {
 
 impl Default for Tardi {
     fn default() -> Tardi {
-        let program = shared(Program::default());
+        let environment = shared(Environment::default());
         let scanner = Box::new(Scanner::default());
         let compiler = Box::new(Compiler::default());
-        let executor = Box::new(VM::new(program.clone()));
-        Tardi::new(program, scanner, compiler, executor)
+        let executor = Box::new(VM::new(environment.clone()));
+        Tardi::new(environment, scanner, compiler, executor)
     }
 }
 

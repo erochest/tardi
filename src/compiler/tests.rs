@@ -1,24 +1,23 @@
 use std::convert::TryFrom;
 
 use super::*;
-use crate::compiler::program::Program;
 use crate::scanner::Scanner;
-use crate::Scan;
+use crate::{Environment, Scan};
 
 use pretty_assertions::assert_eq;
 
 // TODO: more tests
 
-fn compile(input: &str) -> Result<Program> {
+fn compile(input: &str) -> Result<Environment> {
     let mut scanner = Scanner::new();
     let mut compiler = Compiler::new();
     let tokens = Scan::scan(&mut scanner, input);
     compiler.compile(tokens)
 }
 
-fn get_ops(program: &Program) -> Vec<OpCode> {
+fn get_ops(environment: &Environment) -> Vec<OpCode> {
     let mut actual_ops = Vec::new();
-    let instructions = program.get_instructions();
+    let instructions = environment.get_instructions();
     let mut i = 0;
 
     while i < instructions.len() {
@@ -39,7 +38,7 @@ fn get_ops(program: &Program) -> Vec<OpCode> {
 
 #[test]
 fn test_compile_comparison_operators() -> Result<()> {
-    let program = compile("1 2 == 3 4 != 5 6 < 7 8 > 9 10 <= 11 12 >=")?;
+    let environment = compile("1 2 == 3 4 != 5 6 < 7 8 > 9 10 <= 11 12 >=")?;
 
     let expected_ops = vec![
         OpCode::Lit,
@@ -65,7 +64,7 @@ fn test_compile_comparison_operators() -> Result<()> {
         OpCode::Not,
         OpCode::Return,
     ];
-    let actual_ops = get_ops(&program);
+    let actual_ops = get_ops(&environment);
 
     assert_eq!(actual_ops, expected_ops);
 
@@ -74,7 +73,7 @@ fn test_compile_comparison_operators() -> Result<()> {
 
 #[test]
 fn test_compile_return_stack_operations() -> Result<()> {
-    let program = compile("42 >r r@ r>")?;
+    let environment = compile("42 >r r@ r>")?;
 
     let expected_ops = vec![
         OpCode::Lit,
@@ -83,7 +82,7 @@ fn test_compile_return_stack_operations() -> Result<()> {
         OpCode::RFrom,
         OpCode::Return,
     ];
-    let actual_ops = get_ops(&program);
+    let actual_ops = get_ops(&environment);
 
     assert_eq!(actual_ops, expected_ops);
     Ok(())
@@ -103,13 +102,13 @@ fn test_compile_word() -> Result<()> {
 
 #[test]
 fn test_compile_character_literals() -> Result<()> {
-    let program = compile("'a' '\\n' '\\t' '\\r' '\\'' '\\\\' '🦀' '\\u41' '\\u{1F600}'")?;
+    let environment = compile("'a' '\\n' '\\t' '\\r' '\\'' '\\\\' '🦀' '\\u41' '\\u{1F600}'")?;
 
     let mut expected_ops = vec![OpCode::Lit; 9]; // One lit operation for each character
     expected_ops.push(OpCode::Return);
 
     let mut actual_ops = Vec::new();
-    let instructions = program.get_instructions();
+    let instructions = environment.get_instructions();
     let mut i = 0;
     while i < instructions.len() {
         let op = instructions[i];
@@ -118,7 +117,7 @@ fn test_compile_character_literals() -> Result<()> {
         if op == OpCode::Lit {
             // Verify the constant values
             let const_index = instructions[i + 1];
-            let constant = program.get_constant(const_index).unwrap();
+            let constant = environment.get_constant(const_index).unwrap();
             match (i / 2, constant) {
                 (0, Value::Char('a')) => (),
                 (1, Value::Char('\n')) => (),

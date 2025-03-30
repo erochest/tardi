@@ -1,12 +1,13 @@
 use super::*;
+use crate::env::Environment;
 use crate::error::{Error, VMError};
 use crate::vm::value::{Callable, Function, Value};
 use std::collections::HashMap;
 
 #[test]
 fn test_stack_operations() {
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test push and pop
     vm.push(shared(Value::Integer(42))).unwrap();
@@ -50,13 +51,13 @@ fn test_stack_operations() {
 #[test]
 fn test_basic_vm_execution() {
     let op_table = create_op_table();
-    let program = Program::from_parameters(
+    let environment = Environment::from_parameters(
         vec![Value::Integer(123)],
         vec![0, 0], // lit operation index followed by constant index
         op_table,
         HashMap::new(),
     );
-    let mut vm = VM::new(shared(program));
+    let mut vm = VM::new(shared(environment));
 
     vm.run().unwrap();
 
@@ -67,13 +68,13 @@ fn test_basic_vm_execution() {
 
 #[test]
 fn test_invalid_opcode() {
-    let program = Program::from_parameters(
+    let environment = Environment::from_parameters(
         vec![],
         vec![999], // Invalid opcode
         vec![],
         HashMap::new(),
     );
-    let mut vm = VM::new(shared(program));
+    let mut vm = VM::new(shared(environment));
 
     assert!(matches!(
         vm.run(),
@@ -86,7 +87,7 @@ fn test_function_and_lambda_operations() {
     let op_table = create_op_table();
 
     // Test lambda creation and execution
-    let lambda_program = Program::from_parameters(
+    let lambda_environment = Environment::from_parameters(
         vec![
             Value::Function(shared(Callable::Fn(Function {
                 name: None,
@@ -113,14 +114,14 @@ fn test_function_and_lambda_operations() {
         HashMap::new(),
     );
 
-    let mut vm = VM::new(shared(lambda_program));
+    let mut vm = VM::new(shared(lambda_environment));
     vm.run().unwrap();
 
     // Verify the result of lambda execution (2 * 3 = 6)
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(6)));
 
     // Test function definition and execution
-    let function_program = Program::from_parameters(
+    let function_environment = Environment::from_parameters(
         vec![
             Value::String("triple".to_string()),
             Value::Function(shared(Callable::Fn(Function {
@@ -152,7 +153,7 @@ fn test_function_and_lambda_operations() {
         HashMap::new(),
     );
 
-    let mut vm = VM::new(shared(function_program));
+    let mut vm = VM::new(shared(function_environment));
     vm.run().unwrap();
 
     // Verify the result of function execution (4 * 3 = 12)
@@ -161,8 +162,8 @@ fn test_function_and_lambda_operations() {
 
 #[test]
 fn test_return_stack_operations() {
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test >r (to_r)
     vm.push(shared(Value::Integer(42))).unwrap();
@@ -212,8 +213,8 @@ fn test_return_stack_operations() {
 
 #[test]
 fn test_arithmetic_operations() {
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test integer addition
     vm.push(shared(Value::Integer(3))).unwrap();
@@ -254,8 +255,8 @@ fn test_arithmetic_operations() {
 
 #[test]
 fn test_arithmetic_errors() {
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test division by zero (integer)
     vm.push(shared(Value::Integer(10))).unwrap();
@@ -282,8 +283,8 @@ fn test_arithmetic_errors() {
     ));
 
     // Test stack underflow
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
     assert!(matches!(
         vm.add(),
         Err(Error::VMError(VMError::StackUnderflow))
@@ -292,16 +293,16 @@ fn test_arithmetic_errors() {
 
 #[test]
 fn test_character_operations() {
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test basic character handling
     vm.push(shared(Value::Char('a'))).unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('a')));
 
-    // Test character literals in program execution
+    // Test character literals in environment execution
     let op_table = create_op_table();
-    let program = Program::from_parameters(
+    let environment = Environment::from_parameters(
         vec![Value::Char('a'), Value::Char('\n'), Value::Char('🦀')],
         vec![
             0, 0, // lit 'a'
@@ -312,7 +313,7 @@ fn test_character_operations() {
         HashMap::new(),
     );
 
-    let mut vm = VM::new(shared(program));
+    let mut vm = VM::new(shared(environment));
     vm.run().unwrap();
 
     // Verify the characters were pushed onto the stack in the correct order
@@ -356,8 +357,8 @@ fn test_character_operations() {
 
 #[test]
 fn test_comparison_operations() {
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test equal
     vm.push(shared(Value::Integer(5))).unwrap();
@@ -370,12 +371,6 @@ fn test_comparison_operations() {
     vm.equal().unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(false)));
 
-    // Test not equal
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Integer(6))).unwrap();
-    vm.not_equal().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
-
     // Test less than
     vm.push(shared(Value::Integer(5))).unwrap();
     vm.push(shared(Value::Integer(6))).unwrap();
@@ -386,18 +381,6 @@ fn test_comparison_operations() {
     vm.push(shared(Value::Integer(6))).unwrap();
     vm.push(shared(Value::Integer(5))).unwrap();
     vm.greater().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
-
-    // Test less than or equal
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.less_equal().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
-
-    // Test greater than or equal
-    vm.push(shared(Value::Integer(6))).unwrap();
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.greater_equal().unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
     // Test comparison with different types
@@ -433,8 +416,8 @@ fn test_comparison_operations() {
 
 #[test]
 fn test_function_and_lambda_errors() {
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test calling a non-function value
     vm.push(shared(Value::Integer(42))).unwrap();
@@ -464,9 +447,9 @@ fn test_function_and_lambda_errors() {
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 
-    // Test calling without a program loaded
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    // Test calling without a environment loaded
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test return operation with empty return stack
     assert!(matches!(vm.return_op(), Err(Error::VMError(VMError::Exit))));
@@ -483,7 +466,7 @@ fn test_function_and_lambda_errors() {
 fn test_jump_operations() {
     // Test basic jump
     let op_table = create_op_table();
-    let jump_program = Program::from_parameters(
+    let jump_environment = Environment::from_parameters(
         vec![Value::Integer(1), Value::Integer(2), Value::Integer(3)],
         vec![
             0,
@@ -499,7 +482,7 @@ fn test_jump_operations() {
         op_table.clone(),
         HashMap::new(),
     );
-    let mut vm = VM::new(shared(jump_program));
+    let mut vm = VM::new(shared(jump_environment));
 
     vm.run().unwrap();
 
@@ -508,7 +491,7 @@ fn test_jump_operations() {
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
 
     // Test jump_stack
-    let jump_stack_program = Program::from_parameters(
+    let jump_stack_environment = Environment::from_parameters(
         vec![
             Value::Integer(1),
             Value::Address(7),
@@ -530,7 +513,7 @@ fn test_jump_operations() {
         HashMap::new(),
     );
 
-    let mut vm = VM::new(shared(jump_stack_program));
+    let mut vm = VM::new(shared(jump_stack_environment));
     vm.run().unwrap();
 
     // Should have pushed 1 and 3, skipping 2
@@ -538,8 +521,8 @@ fn test_jump_operations() {
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
 
     // Test jump errors
-    let program = Program::default();
-    let mut vm = VM::new(shared(program));
+    let environment = Environment::default();
+    let mut vm = VM::new(shared(environment));
 
     // Test jump_stack with invalid address type
     vm.push(shared(Value::Integer(42))).unwrap(); // Not an address

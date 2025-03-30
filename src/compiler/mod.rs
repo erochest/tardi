@@ -1,15 +1,13 @@
-mod program;
-
-pub use self::program::Program;
 use crate::error::{CompilerError, Error, Result};
 use crate::scanner::{Token, TokenType};
 use crate::vm::value::{shared, Callable, Function, Value};
 use crate::vm::OpCode;
+use crate::Environment;
 
 use super::Compile;
 
 pub struct Compiler {
-    program: Program,
+    environment: Environment,
     /// Stack of words being collected for the current function/lambda
     word_stack: Vec<Vec<String>>,
 }
@@ -23,7 +21,7 @@ impl Default for Compiler {
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
-            program: Program::with_builtins(),
+            environment: Environment::with_builtins(),
             word_stack: Vec::new(),
         }
     }
@@ -75,7 +73,7 @@ impl Compiler {
             TokenType::Call => self.compile_op(OpCode::CallStack),
             TokenType::LeftCurly => {
                 // Start a new function compilation
-                self.program.start_function();
+                self.environment.start_function();
                 // Start collecting words for a new function/lambda
                 self.word_stack.push(Vec::new());
                 Ok(())
@@ -105,24 +103,24 @@ impl Compiler {
     }
 
     fn compile_constant<T: Into<Value>>(&mut self, value: T) -> Result<()> {
-        let const_index = self.program.add_constant(value.into());
-        self.program.add_op_arg(OpCode::Lit, const_index);
+        let const_index = self.environment.add_constant(value.into());
+        self.environment.add_op_arg(OpCode::Lit, const_index);
         Ok(())
     }
 
     fn compile_op(&mut self, op: OpCode) -> Result<()> {
-        self.program.add_op(op);
+        self.environment.add_op(op);
         Ok(())
     }
 
     /// Compiles a word as a function call
     fn compile_word_call(&mut self, word: &str) -> Result<()> {
-        if let Some(&index) = self.program.get_op_map().get(word) {
+        if let Some(&index) = self.environment.get_op_map().get(word) {
             // Right now this only handles non-recursive calls.
             // TODO: to handle recursive calls, if the function doesn't
             // have a valid address (say zero), then put the function's
             // index on the stack and use CallStack.
-            self.program.add_op_arg(OpCode::Call, index);
+            self.environment.add_op_arg(OpCode::Call, index);
             Ok(())
         } else {
             Err(Error::CompilerError(CompilerError::UndefinedWord(
@@ -134,17 +132,17 @@ impl Compiler {
     /// Compiles a function definition
     fn compile_function(&mut self) -> Result<()> {
         // The Function opcode expects a name string and a lambda on the stack
-        self.program.add_op(OpCode::Function);
+        self.environment.add_op(OpCode::Function);
         Ok(())
     }
 
     /// Compiles a lambda expression
     fn compile_lambda(&mut self, words: Vec<String>) -> Result<()> {
         // Add return instruction
-        self.program.add_op(OpCode::Return);
+        self.environment.add_op(OpCode::Return);
 
         // End the function and get its start address
-        let start_addr = self.program.end_function();
+        let start_addr = self.environment.end_function();
 
         // Create the Function object
         let function = Function {
@@ -155,23 +153,25 @@ impl Compiler {
 
         // Create a callable and add it to constants
         let callable = Callable::Fn(function);
-        let const_index = self.program.add_constant(Value::Function(shared(callable)));
+        let const_index = self
+            .environment
+            .add_constant(Value::Function(shared(callable)));
 
         // Emit instruction to load the function
-        self.program.add_op_arg(OpCode::Lit, const_index);
+        self.environment.add_op_arg(OpCode::Lit, const_index);
 
         Ok(())
     }
 }
 
 impl Compile for Compiler {
-    fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Program> {
+    fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Environment> {
         let tokens: Result<Vec<Token>> = tokens.into_iter().collect();
         for token in tokens? {
             self.compile_token(token)?;
         }
         self.compile_op(OpCode::Return)?;
-        Ok(self.program.clone())
+        Ok(self.environment.clone())
     }
 }
 

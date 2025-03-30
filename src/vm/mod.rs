@@ -1,9 +1,7 @@
 use value::{Callable, Function, Shared};
 
-use crate::{
-    compiler::Program,
-    error::{Error, Result, VMError},
-};
+use crate::env::Environment;
+use crate::error::{Error, Result, VMError};
 
 pub mod ops;
 pub use self::ops::OpCode;
@@ -13,16 +11,13 @@ use self::value::{shared, SharedValue, Value};
 
 use super::Execute;
 
-// TODO: Make this an enum with BuiltIn (like below),
-// Lambda, and Fn
-
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM) -> Result<()>;
 
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
 pub struct VM {
-    /// The program being executed
-    program: Shared<Program>,
+    /// The environment being executed
+    environment: Shared<Environment>,
 
     /// Instruction pointer tracking the current position in the instruction stream
     ip: usize,
@@ -36,9 +31,9 @@ pub struct VM {
 
 impl VM {
     /// Creates a new VM instance
-    pub fn new(program: Shared<Program>) -> Self {
+    pub fn new(environment: Shared<Environment>) -> Self {
         VM {
-            program,
+            environment,
             ip: 0,
             stack: Vec::new(),
             return_stack: Vec::new(),
@@ -104,14 +99,14 @@ impl VM {
     /// Executes the lit operation - loads a constant onto the stack
     pub fn lit(&mut self) -> Result<()> {
         let const_index = self
-            .program
+            .environment
             .borrow()
             .get_instruction(self.ip)
             .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
         self.ip += 1;
 
         let value = {
-            if let Some(value) = self.program.borrow().get_constant(const_index) {
+            if let Some(value) = self.environment.borrow().get_constant(const_index) {
                 shared(value.clone())
             } else {
                 return Err(Error::VMError(VMError::InvalidConstantIndex(const_index)));
@@ -194,16 +189,6 @@ impl VM {
         self.push(shared(Value::Boolean(a == b)))
     }
 
-    /// Compares if two values are not equal
-    pub fn not_equal(&mut self) -> Result<()> {
-        let b = self.pop()?.borrow().clone();
-        let a = self.pop()?.borrow().clone();
-        if a.partial_cmp(&b).is_none() {
-            return Err(VMError::TypeMismatch("inequality comparison".to_string()).into());
-        }
-        self.push(shared(Value::Boolean(a != b)))
-    }
-
     /// Compares if a is less than b
     pub fn less(&mut self) -> Result<()> {
         let b = self.pop()?.borrow().clone();
@@ -221,29 +206,6 @@ impl VM {
         match a.partial_cmp(&b) {
             Some(ordering) => self.push(shared(Value::Boolean(ordering.is_gt()))),
             None => Err(VMError::TypeMismatch("greater than comparison".to_string()).into()),
-        }
-    }
-
-    // TODO: clean these up and remove ones I'm not using
-    /// Compares if a is less than or equal to b
-    pub fn less_equal(&mut self) -> Result<()> {
-        let b = self.pop()?.borrow().clone();
-        let a = self.pop()?.borrow().clone();
-        match a.partial_cmp(&b) {
-            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_le()))),
-            None => Err(VMError::TypeMismatch("less than or equal comparison".to_string()).into()),
-        }
-    }
-
-    /// Compares if a is greater than or equal to b
-    pub fn greater_equal(&mut self) -> Result<()> {
-        let b = self.pop()?.borrow().clone();
-        let a = self.pop()?.borrow().clone();
-        match a.partial_cmp(&b) {
-            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_ge()))),
-            None => {
-                Err(VMError::TypeMismatch("greater than or equal comparison".to_string()).into())
-            }
         }
     }
 
@@ -393,7 +355,7 @@ impl VM {
     /// Calls a function by its index in the op_table
     pub fn call(&mut self) -> Result<()> {
         let fn_index = self
-            .program
+            .environment
             .borrow()
             .get_instruction(self.ip)
             .ok_or(VMError::InvalidAddress(self.ip))?;
@@ -460,7 +422,7 @@ impl VM {
         let callable = shared(Callable::Fn(function));
 
         // Add the function to the op_table
-        self.program.borrow_mut().add_to_op_table(callable);
+        self.environment.borrow_mut().add_to_op_table(callable);
 
         Ok(())
     }
@@ -485,8 +447,8 @@ impl VM {
 
     /// Jumps to a specific instruction
     pub fn jump(&mut self) -> Result<()> {
-        let program = self.program.borrow();
-        let target = program
+        let environment = self.environment.borrow();
+        let target = environment
             .get_instruction(self.ip)
             .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip = target;
@@ -518,10 +480,10 @@ impl Execute for VM {
 
     /// Runs the VM, executing all instructions in the instruction stream
     fn run(&mut self) -> Result<()> {
-        while self.ip < self.program.borrow().instructions_len() {
+        while self.ip < self.environment.borrow().instructions_len() {
             // Get the next instruction (OpCode)
             let op_code = self
-                .program
+                .environment
                 .borrow()
                 .get_instruction(self.ip)
                 .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
@@ -530,7 +492,7 @@ impl Execute for VM {
 
             // Get the operation from the op_table
             let operation = self
-                .program
+                .environment
                 .borrow()
                 .get_op(op_code)
                 .ok_or(Error::VMError(VMError::InvalidOpCode(op_code)))?;
@@ -618,7 +580,6 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
     push_op(&mut op_table, multiply);
     push_op(&mut op_table, divide);
     push_op(&mut op_table, equal);
-    push_op(&mut op_table, not_equal);
     push_op(&mut op_table, less);
     push_op(&mut op_table, greater);
     push_op(&mut op_table, not);
@@ -664,24 +625,12 @@ pub fn equal(vm: &mut VM) -> Result<()> {
     vm.equal()
 }
 
-pub fn not_equal(vm: &mut VM) -> Result<()> {
-    vm.not_equal()
-}
-
 pub fn less(vm: &mut VM) -> Result<()> {
     vm.less()
 }
 
 pub fn greater(vm: &mut VM) -> Result<()> {
     vm.greater()
-}
-
-pub fn less_equal(vm: &mut VM) -> Result<()> {
-    vm.less_equal()
-}
-
-pub fn greater_equal(vm: &mut VM) -> Result<()> {
-    vm.greater_equal()
 }
 
 // List operations

@@ -2,10 +2,8 @@ use crate::vm::value::{Callable, Function, Shared, Value};
 use crate::vm::{create_op_table, OpCode};
 use std::collections::HashMap;
 
-// TODO: Rename to `Environment`
-// TODO: hoist several of these to the top layer of modules
 // TODO: move `function_stack` and methods to `Compiler`
-pub struct Program {
+pub struct Environment {
     /// Stack of instruction vectors for compiling functions/lambdas
     function_stack: Vec<Vec<usize>>,
     constants: Vec<Value>,
@@ -14,15 +12,15 @@ pub struct Program {
     op_map: HashMap<String, usize>,
 }
 
-impl Default for Program {
+impl Default for Environment {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Program {
+impl Environment {
     pub fn new() -> Self {
-        Program {
+        Environment {
             constants: Vec::new(),
             instructions: Vec::new(),
             op_table: Vec::new(),
@@ -37,7 +35,7 @@ impl Program {
         op_table: Vec<Shared<Callable>>,
         op_map: HashMap<String, usize>,
     ) -> Self {
-        Program {
+        Environment {
             constants,
             instructions,
             op_table,
@@ -47,10 +45,10 @@ impl Program {
     }
 
     pub fn with_builtins() -> Self {
-        let mut program = Self::new();
+        let mut env = Self::new();
         let op_table = create_op_table();
-        program.set_op_table(op_table);
-        program
+        env.set_op_table(op_table);
+        env
     }
 
     /// Starts a new function definition by pushing a new Vec<usize> onto the function_stack
@@ -173,11 +171,11 @@ impl Program {
     }
 }
 
-// We can't derive Clone for Program because OpFn (function pointers) don't implement Clone
+// We can't derive Clone for env because OpFn (function pointers) don't implement Clone
 // Instead, we implement Clone manually, copying the function pointers directly
-impl Clone for Program {
+impl Clone for Environment {
     fn clone(&self) -> Self {
-        Program {
+        Environment {
             function_stack: vec![],
             constants: self.constants.clone(),
             instructions: self.instructions.clone(),
