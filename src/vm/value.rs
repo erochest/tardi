@@ -14,7 +14,7 @@ pub struct Function {
     /// List of words that make up the function body
     pub words: Vec<String>,
     /// Pointer to the beginning of instructions in the main VM instructions
-    pub instructions: usize,
+    pub ip: usize,
 }
 
 /// Enum representing different types of callable objects
@@ -30,7 +30,9 @@ impl Callable {
     pub fn call(&self, vm: &mut VM) -> Result<()> {
         match self {
             Callable::BuiltIn(f) => f(vm),
-            Callable::Fn(Function { instructions, .. }) => {
+            Callable::Fn(Function {
+                ip: instructions, ..
+            }) => {
                 vm.ip = *instructions;
                 Ok(())
             }

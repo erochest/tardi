@@ -92,7 +92,7 @@ fn test_function_and_lambda_operations() {
             Value::Function(shared(Callable::Fn(Function {
                 name: None,
                 words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
-                instructions: 5, // Index where the lambda instructions start
+                ip: 5, // Index where the lambda instructions start
             }))),
             Value::Integer(2),
             Value::Integer(3),
@@ -127,7 +127,7 @@ fn test_function_and_lambda_operations() {
             Value::Function(shared(Callable::Fn(Function {
                 name: None,
                 words: vec!["3".to_string(), "*".to_string()],
-                instructions: 7, // Index where the function instructions start
+                ip: 7, // Index where the function instructions start
             }))),
             Value::Integer(3),
             Value::Integer(4),
@@ -431,7 +431,7 @@ fn test_function_and_lambda_errors() {
     vm.push(shared(Value::Function(shared(Callable::Fn(Function {
         name: None,
         words: vec!["2".to_string(), "*".to_string()],
-        instructions: 0,
+        ip: 0,
     })))))
     .unwrap();
     assert!(matches!(

@@ -387,7 +387,7 @@ impl VM {
                         // Save the current IP on the return stack
                         self.push_return(shared(Value::Address(self.ip)))?;
                         // Jump to the function's code
-                        self.ip = function.instructions;
+                        self.ip = function.ip;
                         Ok(())
                     }
                 }
@@ -507,7 +507,9 @@ impl Execute for VM {
                     }
                     err => return err,
                 },
-                Callable::Fn(Function { instructions, .. }) => self.ip = instructions,
+                Callable::Fn(Function {
+                    ip: instructions, ..
+                }) => self.ip = instructions,
             }
         }
 

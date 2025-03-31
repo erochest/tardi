@@ -1,21 +1,13 @@
+use crate::vm::create_op_table;
 use crate::vm::value::{Callable, Function, Shared, Value};
-use crate::vm::{create_op_table, OpCode};
 use std::collections::HashMap;
 
-// TODO: move `function_stack` and methods to `Compiler`
+#[derive(Default)]
 pub struct Environment {
-    /// Stack of instruction vectors for compiling functions/lambdas
-    function_stack: Vec<Vec<usize>>,
     constants: Vec<Value>,
     instructions: Vec<usize>,
     op_table: Vec<Shared<Callable>>,
     op_map: HashMap<String, usize>,
-}
-
-impl Default for Environment {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl Environment {
@@ -25,7 +17,6 @@ impl Environment {
             instructions: Vec::new(),
             op_table: Vec::new(),
             op_map: HashMap::new(),
-            function_stack: Vec::new(),
         }
     }
 
@@ -40,7 +31,6 @@ impl Environment {
             instructions,
             op_table,
             op_map,
-            function_stack: Vec::new(),
         }
     }
 
@@ -51,61 +41,18 @@ impl Environment {
         env
     }
 
-    /// Starts a new function definition by pushing a new Vec<usize> onto the function_stack
-    pub fn start_function(&mut self) -> usize {
-        self.function_stack.push(Vec::new());
-        self.function_stack.len() - 1
-    }
-
-    /// Ends a function definition by popping the top Vec<usize> from function_stack,
-    /// appending it to the main instructions, and returning the start index
-    pub fn end_function(&mut self) -> usize {
-        if let Some(function_instructions) = self.function_stack.pop() {
-            self.extend_instructions(function_instructions)
-        } else {
-            // If there's no function being defined, return current instruction pointer
-            self.instructions.len()
-        }
-    }
-
-    /// Adds a jump over the new instructions, appends the instructions to the main
-    /// instruction vector, and returns the start index
+    /// Appends the instructions to the main instruction vector, and returns the
+    /// start index.
     pub fn extend_instructions(&mut self, mut instructions: Vec<usize>) -> usize {
-        // Add a jump instruction to skip over the function code
-        let jump_target = self.instructions.len() + 2 + instructions.len();
-        self.add_op_arg(OpCode::Jump, jump_target);
-
-        // Store the start position of the function
         let function_start = self.instructions.len();
-
-        // Add the function instructions
         self.instructions.append(&mut instructions);
-
-        // Return the start position
         function_start
     }
 
     /// Adds an instruction to the current function being defined,
     /// or to the main instruction list if no function is being defined
-    pub fn add_instruction(&mut self, op_index: usize) {
-        if let Some(current_function) = self.function_stack.last_mut() {
-            current_function.push(op_index);
-        } else {
-            self.instructions.push(op_index);
-        }
-    }
-
-    /// Adds an opcode to the current function being defined,
-    /// or to the main instruction list if no function is being defined
-    pub fn add_op(&mut self, op: OpCode) {
-        self.add_instruction(op.into());
-    }
-
-    /// Adds an opcode and its argument to the current function being defined,
-    /// or to the main instruction list if no function is being defined
-    pub fn add_op_arg(&mut self, op: OpCode, arg: usize) {
-        self.add_op(op);
-        self.add_instruction(arg);
+    pub fn add_instruction(&mut self, op_code: usize) {
+        self.instructions.push(op_code);
     }
 
     pub fn add_constant(&mut self, value: Value) -> usize {
@@ -176,7 +123,6 @@ impl Environment {
 impl Clone for Environment {
     fn clone(&self) -> Self {
         Environment {
-            function_stack: vec![],
             constants: self.constants.clone(),
             instructions: self.instructions.clone(),
             op_table: self.op_table.clone(),
