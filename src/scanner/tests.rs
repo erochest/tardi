@@ -2,8 +2,8 @@ use super::*;
 
 fn scan_raw(input: &str) -> Vec<Result<Token>> {
     let mut scanner = Scanner::new();
-    let tokens = Scan::scan(&mut scanner, input);
-    tokens
+
+    Scan::scan(&mut scanner, input)
 }
 
 fn scan(input: &str) -> Vec<Token> {
@@ -11,9 +11,8 @@ fn scan(input: &str) -> Vec<Token> {
     let tokens = tokens.into_iter().collect::<Result<Vec<_>>>();
 
     assert!(tokens.is_ok());
-    let tokens = tokens.unwrap();
 
-    tokens
+    tokens.unwrap()
 }
 
 #[test]
