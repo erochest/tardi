@@ -17,3 +17,8 @@ watch:
 install:
     cargo install --path .
 
+lint:
+    cargo clippy --fix
+    cargo fmt
+    jj commit -m "cargo clippy fmt"
+
