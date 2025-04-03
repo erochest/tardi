@@ -1,7 +1,7 @@
 use std::cell::RefCell;
-use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
 use std::rc::Rc;
+use std::{fmt, ptr};
 
 use crate::error::{Result, VMError};
 use crate::vm::{OpFn, VM};
@@ -34,6 +34,16 @@ impl Callable {
                 ip: instructions, ..
             }) => {
                 vm.ip = *instructions;
+                Ok(())
+            }
+        }
+    }
+
+    pub fn set_name(&mut self, name: &str) -> Result<()> {
+        match self {
+            Callable::BuiltIn(_) => Err(VMError::TypeMismatch("lambda".to_string()).into()),
+            Callable::Fn(f) => {
+                f.name = Some(name.to_string());
                 Ok(())
             }
         }
@@ -97,10 +107,42 @@ pub enum Value {
     Char(char),
     List(Vec<SharedValue>),
     String(String),
-    /// Function or lambda object
-    Function(Rc<RefCell<Callable>>),
-    /// Code address for jumps and returns
+    Function(Callable),
     Address(usize),
+}
+
+impl Value {
+    pub fn get_list(&self) -> Option<&Vec<SharedValue>> {
+        if let Value::List(list) = self {
+            Some(list)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_list_mut(&mut self) -> Option<&mut Vec<SharedValue>> {
+        if let Value::List(list) = self {
+            Some(list)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_function(&self) -> Option<&Callable> {
+        if let Value::Function(callable) = self {
+            Some(callable)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_function_mut(&mut self) -> Option<&mut Callable> {
+        if let Value::Function(callable) = self {
+            Some(callable)
+        } else {
+            None
+        }
+    }
 }
 
 impl fmt::Display for Value {
@@ -133,16 +175,13 @@ impl fmt::Display for Value {
                 write!(f, " ]")
             }
             Value::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
-            Value::Function(c) => {
-                let callable = c.borrow();
-                match &*callable {
-                    Callable::BuiltIn(_) => write!(f, "<built-in function>"),
-                    Callable::Fn(func) => match &func.name {
-                        Some(name) => write!(f, "<function {}>", name),
-                        None => write!(f, "<lambda>"),
-                    },
-                }
-            }
+            Value::Function(callable) => match callable {
+                Callable::BuiltIn(_) => write!(f, "<built-in function>"),
+                Callable::Fn(func) => match &func.name {
+                    Some(name) => write!(f, "<function {}>", name),
+                    None => write!(f, "<lambda>"),
+                },
+            },
             Value::Address(addr) => write!(f, "<address {}>", addr),
         }
     }
@@ -166,7 +205,7 @@ impl PartialEq for Value {
             (Value::String(a), Value::String(b)) => a == b,
             (Value::Function(a), Value::Function(b)) => {
                 // Functions are equal if they point to the same memory location
-                Rc::ptr_eq(a, b)
+                ptr::eq(a, b)
             }
             (Value::Address(a), Value::Address(b)) => a == b,
             _ => false,

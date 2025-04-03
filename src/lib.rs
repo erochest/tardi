@@ -22,7 +22,6 @@ pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
 use scanner::Token;
-use vm::create_op_table;
 pub use vm::value::Value;
 use vm::value::{shared, Shared};
 pub use vm::VM;
@@ -44,14 +43,6 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
     tardi.execute_str(source)?;
     let tardi = tardi;
 
-    // let scanner = Scanner::new(&source);
-    // let mut compiler = Compiler::new();
-    // let environment = compiler.compile(scanner)?;
-
-    // let mut vm = VM::new();
-    // vm.load_environment(Box::new(environment));
-    // vm.run()?;
-
     if print_stack {
         // Print stack contents from top to bottom
         for value in tardi.stack() {
@@ -67,11 +58,11 @@ pub trait Scan {
 }
 
 pub trait Compile {
-    fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Environment>;
+    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()>;
 }
 
 pub trait Execute {
-    fn run(&mut self) -> Result<()>;
+    fn run(&mut self, env: Shared<Environment>) -> Result<()>;
     fn stack(&self) -> Vec<Value>;
 }
 
@@ -85,16 +76,14 @@ pub struct Tardi {
 
 impl Tardi {
     pub fn new(
-        environment: Shared<Environment>,
+        environment: Environment,
         scanner: Box<dyn Scan>,
         compiler: Box<dyn Compile>,
         executor: Box<dyn Execute>,
     ) -> Self {
-        // TODO: this doesn't feel like the right place for this.
-        environment.borrow_mut().set_op_table(create_op_table());
         Tardi {
             input: None,
-            environment,
+            environment: shared(environment),
             scanner,
             compiler,
             executor,
@@ -102,12 +91,12 @@ impl Tardi {
     }
 
     pub fn execute_str(&mut self, input: String) -> Result<()> {
-        // TODO: have everything work on the one Environment created first
         self.input = Some(input);
         let tokens = self.scanner.scan(self.input.as_ref().unwrap());
-        // TODO: how does Compile have access to the environment?
-        *self.environment.borrow_mut() = self.compiler.compile(tokens)?;
-        self.executor.run()?;
+        // mutates environment
+        self.compiler.compile(self.environment.clone(), tokens)?;
+        // accesses environment
+        self.executor.run(self.environment.clone())?;
         Ok(())
     }
 
@@ -118,10 +107,10 @@ impl Tardi {
 
 impl Default for Tardi {
     fn default() -> Tardi {
-        let environment = shared(Environment::default());
+        let environment = Environment::with_builtins();
         let scanner = Box::new(Scanner::default());
         let compiler = Box::new(Compiler::default());
-        let executor = Box::new(VM::new(environment.clone()));
+        let executor = Box::new(VM::new());
         Tardi::new(environment, scanner, compiler, executor)
     }
 }

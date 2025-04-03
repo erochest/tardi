@@ -1,6 +1,6 @@
 use crate::error::{CompilerError, Error, Result};
 use crate::scanner::{Token, TokenType};
-use crate::vm::value::{shared, Callable, Function, Value};
+use crate::vm::value::{Callable, Function, Shared, Value};
 use crate::vm::OpCode;
 use crate::Environment;
 
@@ -13,7 +13,7 @@ struct CompileClosure {
 }
 
 pub struct Compiler {
-    environment: Environment,
+    environment: Option<Shared<Environment>>,
     closure_stack: Vec<CompileClosure>,
 }
 
@@ -26,7 +26,7 @@ impl Default for Compiler {
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
-            environment: Environment::with_builtins(),
+            environment: None,
             closure_stack: Vec::new(),
         }
     }
@@ -41,6 +41,7 @@ impl Compiler {
             TokenType::Swap => self.compile_op(OpCode::Swap),
             TokenType::Rot => self.compile_op(OpCode::Rot),
             TokenType::Drop => self.compile_op(OpCode::Drop),
+            TokenType::StackSize => self.compile_op(OpCode::StackSize),
             TokenType::ToR => self.compile_op(OpCode::ToR),
             TokenType::RFrom => self.compile_op(OpCode::RFrom),
             TokenType::RFetch => self.compile_op(OpCode::RFetch),
@@ -97,9 +98,9 @@ impl Compiler {
                 self.compile_word_call(&word)?;
                 Ok(())
             }
-            _ => Err(Error::CompilerError(CompilerError::UnsupportedToken(
-                format!("{:?}", token),
-            ))),
+            TokenType::Lambda => todo!(),
+            TokenType::Error => todo!(),
+            TokenType::Eof => todo!(),
         }
     }
 
@@ -109,7 +110,9 @@ impl Compiler {
         if let Some(closure) = self.closure_stack.last_mut() {
             closure.instructions.push(op.into());
         } else {
-            self.environment.add_instruction(op.into());
+            self.environment
+                .as_ref()
+                .map(|e| e.borrow_mut().add_instruction(op.into()));
         }
         Ok(())
     }
@@ -126,12 +129,20 @@ impl Compiler {
         if let Some(closure) = self.closure_stack.last_mut() {
             closure.instructions.push(arg);
         } else {
-            self.environment.add_instruction(arg);
+            self.environment
+                .as_ref()
+                .map(|e| e.borrow_mut().add_instruction(arg));
         }
     }
 
     fn compile_constant<T: Into<Value>>(&mut self, value: T) -> Result<()> {
-        let const_index = self.environment.add_constant(value.into());
+        let const_index = self
+            .environment
+            .as_ref()
+            .map(|e| e.borrow_mut().add_constant(value.into()))
+            .ok_or(Error::CompilerError(CompilerError::InvalidOperation(
+                "no environment".to_string(),
+            )))?;
         self.compile_op_arg(OpCode::Lit, const_index)?;
         Ok(())
     }
@@ -146,9 +157,22 @@ impl Compiler {
     /// appending it to the main instructions, and returning the start index
     pub fn end_function(&mut self) -> Result<Function> {
         if let Some(closure) = self.closure_stack.pop() {
-            let jump_target = self.environment.instructions_len() + 2 + closure.instructions.len();
+            let jump_target = self
+                .environment
+                .as_ref()
+                .map(|e| e.borrow().instructions_len())
+                .unwrap_or_default()
+                + 2
+                + closure.instructions.len();
             self.compile_op_arg(OpCode::Jump, jump_target)?;
-            let ip = self.environment.extend_instructions(closure.instructions);
+            let ip = self
+                .environment
+                .as_ref()
+                .map(|e| {
+                    e.borrow_mut()
+                        .extend_instructions(closure.instructions.clone())
+                })
+                .unwrap_or_default();
             Ok(Function {
                 name: None,
                 words: closure.words,
@@ -160,14 +184,23 @@ impl Compiler {
             Ok(Function {
                 name: None,
                 words: vec![],
-                ip: self.environment.instructions_len(),
+                ip: self
+                    .environment
+                    .as_ref()
+                    .map(|e| e.borrow().instructions_len())
+                    .unwrap_or_default(),
             })
         }
     }
 
     /// Compiles a word as a function call
     fn compile_word_call(&mut self, word: &str) -> Result<()> {
-        if let Some(&index) = self.environment.get_op_map().get(word) {
+        if let Some(index) = self
+            .environment
+            .as_ref()
+            .map(|e| e.borrow().get_op_map().get(word).copied())
+            .unwrap_or_default()
+        {
             // Right now this only handles non-recursive calls.
             // TODO: to handle recursive calls, if the function doesn't
             // have a valid address (say zero), then put the function's
@@ -196,7 +229,9 @@ impl Compiler {
         let callable = Callable::Fn(function);
         let const_index = self
             .environment
-            .add_constant(Value::Function(shared(callable)));
+            .as_ref()
+            .map(|e| e.borrow_mut().add_constant(Value::Function(callable)))
+            .unwrap_or_default();
 
         self.compile_op_arg(OpCode::Lit, const_index)?;
 
@@ -205,13 +240,14 @@ impl Compiler {
 }
 
 impl Compile for Compiler {
-    fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Environment> {
+    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()> {
+        self.environment = Some(env);
         let tokens: Result<Vec<Token>> = tokens.into_iter().collect();
         for token in tokens? {
             self.compile_token(token)?;
         }
         self.compile_op(OpCode::Return)?;
-        Ok(self.environment.clone())
+        Ok(())
     }
 }
 

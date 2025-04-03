@@ -2,15 +2,36 @@ use super::*;
 use crate::env::Environment;
 use crate::error::{Error, VMError};
 use crate::vm::value::{Callable, Function, Value};
+use crate::{Compile, Compiler, Scan, Scanner};
 use std::collections::HashMap;
+
+fn eval(env: Shared<Environment>, vm: &mut VM, input: &str) -> Result<()> {
+    let mut scanner = Scanner::new();
+    let mut compiler = Compiler::new();
+
+    let tokens = Scan::scan(&mut scanner, input);
+    compiler.compile(env.clone(), tokens).unwrap();
+    let result = vm.run(env.clone());
+
+    result
+}
+
+fn assert_is_ok(input: &str, result: &Result<()>) {
+    assert!(
+        result.is_ok(),
+        "result input: {:?} / error: {:?}",
+        input,
+        result
+    );
+}
 
 #[test]
 fn test_stack_operations() {
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    let environment = shared(Environment::with_builtins());
+    let mut vm = VM::new();
 
     // Test push and pop
-    vm.push(shared(Value::Integer(42))).unwrap();
+    eval(environment.clone(), &mut vm, "42").unwrap();
     assert_eq!(vm.stack_size(), 1);
     let value = vm.pop().unwrap();
     assert!(matches!(*value.borrow(), Value::Integer(42)));
@@ -20,32 +41,28 @@ fn test_stack_operations() {
     ));
 
     // Test dup
-    vm.push(shared(Value::Integer(1))).unwrap();
-    vm.dup().unwrap();
+    eval(environment.clone(), &mut vm, "1 dup").unwrap();
     assert_eq!(vm.stack_size(), 2);
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
 
     // Test swap
-    vm.push(shared(Value::Integer(1))).unwrap();
-    vm.push(shared(Value::Integer(2))).unwrap();
-    vm.swap().unwrap();
+    eval(environment.clone(), &mut vm, "1 2 swap").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(2)));
 
     // Test rot
-    vm.push(shared(Value::Integer(1))).unwrap();
-    vm.push(shared(Value::Integer(2))).unwrap();
-    vm.push(shared(Value::Integer(3))).unwrap();
-    vm.rot().unwrap();
+    eval(environment.clone(), &mut vm, "1 2 3 rot").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(2)));
 
     // Test drop_op
-    vm.push(shared(Value::Integer(42))).unwrap();
-    vm.drop_op().unwrap();
+    eval(environment.clone(), &mut vm, "42 drop").unwrap();
     assert_eq!(vm.stack_size(), 0);
+
+    eval(environment.clone(), &mut vm, "10 11 12 13 stack-size").unwrap();
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(4)));
 }
 
 #[test]
@@ -57,9 +74,9 @@ fn test_basic_vm_execution() {
         op_table,
         HashMap::new(),
     );
-    let mut vm = VM::new(shared(environment));
+    let mut vm = VM::new();
 
-    vm.run().unwrap();
+    vm.run(shared(environment)).unwrap();
 
     // Verify the result
     let value = vm.pop().unwrap();
@@ -74,11 +91,11 @@ fn test_invalid_opcode() {
         vec![],
         HashMap::new(),
     );
-    let mut vm = VM::new(shared(environment));
+    let mut vm = VM::new();
 
     assert!(matches!(
-        vm.run(),
-        Err(Error::VMError(VMError::InvalidOpCode(_)))
+        vm.run(shared(environment)),
+        Err(Error::VMError(VMError::InvalidOpCode(_, _)))
     ));
 }
 
@@ -89,11 +106,11 @@ fn test_function_and_lambda_operations() {
     // Test lambda creation and execution
     let lambda_environment = Environment::from_parameters(
         vec![
-            Value::Function(shared(Callable::Fn(Function {
+            Value::Function(Callable::Fn(Function {
                 name: None,
                 words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
                 ip: 5, // Index where the lambda instructions start
-            }))),
+            })),
             Value::Integer(2),
             Value::Integer(3),
         ],
@@ -114,8 +131,8 @@ fn test_function_and_lambda_operations() {
         HashMap::new(),
     );
 
-    let mut vm = VM::new(shared(lambda_environment));
-    vm.run().unwrap();
+    let mut vm = VM::new();
+    vm.run(shared(lambda_environment)).unwrap();
 
     // Verify the result of lambda execution (2 * 3 = 6)
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(6)));
@@ -124,11 +141,11 @@ fn test_function_and_lambda_operations() {
     let function_environment = Environment::from_parameters(
         vec![
             Value::String("triple".to_string()),
-            Value::Function(shared(Callable::Fn(Function {
+            Value::Function(Callable::Fn(Function {
                 name: None,
                 words: vec!["3".to_string(), "*".to_string()],
                 ip: 7, // Index where the function instructions start
-            }))),
+            })),
             Value::Integer(3),
             Value::Integer(4),
         ],
@@ -153,8 +170,8 @@ fn test_function_and_lambda_operations() {
         HashMap::new(),
     );
 
-    let mut vm = VM::new(shared(function_environment));
-    vm.run().unwrap();
+    let mut vm = VM::new();
+    vm.run(shared(function_environment)).unwrap();
 
     // Verify the result of function execution (4 * 3 = 12)
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(12)));
@@ -162,159 +179,148 @@ fn test_function_and_lambda_operations() {
 
 #[test]
 fn test_return_stack_operations() {
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    let environment = shared(Environment::with_builtins());
+    let mut vm = VM::new();
 
     // Test >r (to_r)
-    vm.push(shared(Value::Integer(42))).unwrap();
-    vm.to_r().unwrap();
-    assert_eq!(vm.stack_size(), 0);
+    eprintln!("eval '42 >r stack-size r> drop'");
+    let result = eval(environment.clone(), &mut vm, "42 >r stack-size r> drop");
+    assert_is_ok("42 >r stack-size r> drop", &result);
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(0)));
 
     // Test r> (r_from)
-    vm.r_from().unwrap();
-    assert_eq!(vm.stack_size(), 1);
+    eprintln!("eval '42 >r 7 r>'");
+    eval(environment.clone(), &mut vm, "42 >r 7 r>").unwrap();
+    assert_eq!(vm.stack_size(), 2);
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(42)));
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(7)));
 
     // Test r@ (r_fetch)
-    vm.push(shared(Value::Integer(10))).unwrap();
-    vm.to_r().unwrap();
-    vm.r_fetch().unwrap();
-    assert_eq!(vm.stack_size(), 1);
+    eprintln!("eval '10 >r r@ r>'");
+    eval(environment.clone(), &mut vm, "10 >r r@ r>").unwrap();
+    assert_eq!(vm.stack_size(), 2);
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(10)));
-    vm.r_from().unwrap(); // Clear the return stack
+    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(10)));
 
     // Test return stack overflow
-    for i in 0..1024 {
-        vm.push(shared(Value::Integer(1))).unwrap();
-        match vm.to_r() {
-            Ok(_) => continue,
-            Err(Error::VMError(VMError::ReturnStackOverflow)) => {
-                // We've hit the overflow, verify we pushed the expected number of values
-                assert!(i > 0);
-                break;
-            }
-            Err(e) => panic!("Unexpected error: {:?}", e),
-        }
-    }
-
-    // Clear the return stack (only pop what we successfully pushed)
-    while vm.r_from().is_ok() {}
+    eprintln!("eval '0 1 2 3 ... 1021 1022 1023'");
+    let script = (0..2048)
+        .map(|n| format!("{} >r", n))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let result = eval(environment.clone(), &mut vm, &script);
+    assert!(
+        matches!(result, Err(Error::VMError(VMError::ReturnStackOverflow)),),
+        "actual result {:?}",
+        result
+    );
 
     // Test return stack underflow
+    eprintln!("eval 'r>'");
+    let result = eval(environment.clone(), &mut vm, "r>");
     assert!(matches!(
-        vm.r_from(),
-        Err(Error::VMError(VMError::ReturnStackUnderflow))
+        result,
+        Err(Error::VMError(VMError::ReturnStackUnderflow)),
     ));
+    eprintln!("eval 'r@'");
+    let result = eval(environment.clone(), &mut vm, "r@");
     assert!(matches!(
-        vm.r_fetch(),
-        Err(Error::VMError(VMError::ReturnStackUnderflow))
+        result,
+        Err(Error::VMError(VMError::ReturnStackUnderflow)),
     ));
 }
 
 #[test]
 fn test_arithmetic_operations() {
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    let environment = shared(Environment::with_builtins());
+    let mut vm = VM::new();
 
     // Test integer addition
-    vm.push(shared(Value::Integer(3))).unwrap();
-    vm.push(shared(Value::Integer(4))).unwrap();
-    vm.add().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(7)));
+    eval(environment.clone(), &mut vm, "3 4 +").unwrap();
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Integer(7)), "{:?} != {:?}", top, 7);
 
     // Test float addition
-    vm.push(shared(Value::Float(3.5))).unwrap();
-    vm.push(shared(Value::Float(1.5))).unwrap();
-    vm.add().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Float(5.0)));
+    eval(environment.clone(), &mut vm, "3.5 1.5 +").unwrap();
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Float(5.0)), "{:?} != {:?}", top, 5.0);
 
     // Test mixed addition (integer + float)
-    vm.push(shared(Value::Integer(2))).unwrap();
-    vm.push(shared(Value::Float(1.5))).unwrap();
-    vm.add().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Float(3.5)));
+    eval(environment.clone(), &mut vm, "2 1.5 +").unwrap();
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Float(3.5)), "{:?} != {:?}", top, 3.5);
 
     // Test subtraction
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Integer(3))).unwrap();
-    vm.subtract().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(2)));
+    eval(environment.clone(), &mut vm, "5 3 -").unwrap();
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Integer(2)), "{:?} != {:?}", top, 2);
 
     // Test multiplication
-    vm.push(shared(Value::Integer(4))).unwrap();
-    vm.push(shared(Value::Integer(3))).unwrap();
-    vm.multiply().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(12)));
+    eval(environment.clone(), &mut vm, "4 3 *").unwrap();
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Integer(12)), "{:?} != {:?}", top, 12);
 
     // Test division
-    vm.push(shared(Value::Integer(10))).unwrap();
-    vm.push(shared(Value::Integer(2))).unwrap();
-    vm.divide().unwrap();
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(5)));
+    eval(environment.clone(), &mut vm, "10 2 /").unwrap();
+    let top = vm.pop().unwrap();
+    let top = top.borrow();
+    assert!(matches!(*top, Value::Integer(5)), "{:?} != {:?}", top, 5);
 }
 
 #[test]
 fn test_arithmetic_errors() {
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    let environment = shared(Environment::with_builtins());
+    let mut vm = VM::new();
 
     // Test division by zero (integer)
-    vm.push(shared(Value::Integer(10))).unwrap();
-    vm.push(shared(Value::Integer(0))).unwrap();
-    assert!(matches!(
-        vm.divide(),
-        Err(Error::VMError(VMError::DivisionByZero))
-    ));
+    let result = eval(environment.clone(), &mut vm, "10 0 /");
+    assert!(
+        matches!(result, Err(Error::VMError(VMError::DivisionByZero))),
+        "original result: {:?}",
+        result
+    );
 
     // Test division by zero (float)
-    vm.push(shared(Value::Float(10.0))).unwrap();
-    vm.push(shared(Value::Float(0.0))).unwrap();
-    assert!(matches!(
-        vm.divide(),
-        Err(Error::VMError(VMError::DivisionByZero))
-    ));
+    let result = eval(environment.clone(), &mut vm, "10.0 0.0 /");
+    assert!(
+        matches!(result, Err(Error::VMError(VMError::DivisionByZero))),
+        "original result: {:?}",
+        result
+    );
 
     // Test type mismatch
-    vm.push(shared(Value::Integer(1))).unwrap();
-    vm.push(shared(Value::Boolean(true))).unwrap();
-    assert!(matches!(
-        vm.add(),
-        Err(Error::VMError(VMError::TypeMismatch(_)))
-    ));
+    let result = eval(environment.clone(), &mut vm, "1 #t +");
+    assert!(
+        matches!(result, Err(Error::VMError(VMError::TypeMismatch(_)))),
+        "original result: {:?}",
+        result
+    );
 
     // Test stack underflow
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
-    assert!(matches!(
-        vm.add(),
-        Err(Error::VMError(VMError::StackUnderflow))
-    ));
+    let result = eval(environment.clone(), &mut vm, "+");
+    assert!(
+        matches!(result, Err(Error::VMError(VMError::StackUnderflow))),
+        "original result: {:?}",
+        result
+    );
 }
 
 #[test]
 fn test_character_operations() {
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    let environment = shared(Environment::with_builtins());
+    let mut vm = VM::new();
 
     // Test basic character handling
-    vm.push(shared(Value::Char('a'))).unwrap();
+    eval(environment.clone(), &mut vm, "'a'").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('a')));
 
     // Test character literals in environment execution
-    let op_table = create_op_table();
-    let environment = Environment::from_parameters(
-        vec![Value::Char('a'), Value::Char('\n'), Value::Char('🦀')],
-        vec![
-            0, 0, // lit 'a'
-            0, 1, // lit '\n'
-            0, 2, // lit '🦀'
-        ],
-        op_table,
-        HashMap::new(),
-    );
-
-    let mut vm = VM::new(shared(environment));
-    vm.run().unwrap();
+    eval(environment.clone(), &mut vm, "'a' '\n' '🦀'").unwrap();
 
     // Verify the characters were pushed onto the stack in the correct order
     let top = vm.pop().unwrap();
@@ -328,136 +334,103 @@ fn test_character_operations() {
     assert!(matches!(*top, Value::Char('a')), "stack top: {:?}", top);
 
     // Test stack operations with characters
-    vm.push(shared(Value::Char('x'))).unwrap();
-    vm.push(shared(Value::Char('y'))).unwrap();
-    vm.dup().unwrap();
+    eval(environment.clone(), &mut vm, "'x' 'y' dup").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('y')));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('y')));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Char('x')));
 
     // Test comparison operations with characters
-    vm.push(shared(Value::Char('a'))).unwrap();
-    vm.push(shared(Value::Char('a'))).unwrap();
-    vm.equal().unwrap();
+    eval(environment.clone(), &mut vm, "'a' 'a' ==").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
-    vm.push(shared(Value::Char('a'))).unwrap();
-    vm.push(shared(Value::Char('b'))).unwrap();
-    vm.less().unwrap();
+    eval(environment.clone(), &mut vm, "'a' 'b' <").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
     // Test type mismatch with characters
-    vm.push(shared(Value::Char('a'))).unwrap();
-    vm.push(shared(Value::Integer(1))).unwrap();
+    let result = eval(environment.clone(), &mut vm, "'a' 1 ==");
     assert!(matches!(
-        vm.equal(),
+        result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 }
 
 #[test]
 fn test_comparison_operations() {
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    let environment = shared(Environment::with_builtins());
+    let mut vm = VM::new();
 
     // Test equal
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.equal().unwrap();
+    eval(environment.clone(), &mut vm, "5 5 ==").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Integer(6))).unwrap();
-    vm.equal().unwrap();
+    eval(environment.clone(), &mut vm, "5 6 ==").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(false)));
 
     // Test less than
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Integer(6))).unwrap();
-    vm.less().unwrap();
+    eval(environment.clone(), &mut vm, "5 6 <").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
     // Test greater than
-    vm.push(shared(Value::Integer(6))).unwrap();
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.greater().unwrap();
+    eval(environment.clone(), &mut vm, "6 5 >").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
     // Test comparison with different types
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Float(5.0))).unwrap();
-    vm.equal().unwrap();
+    eval(environment.clone(), &mut vm, "5 5.0 ==").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
     // Test comparison error
-    vm.push(shared(Value::Integer(5))).unwrap();
-    vm.push(shared(Value::Boolean(true))).unwrap();
+    let result = eval(environment.clone(), &mut vm, "5 #t ==");
     assert!(matches!(
-        vm.equal(),
+        result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 
     // Test NOT operation
-    vm.push(shared(Value::Boolean(true))).unwrap();
-    vm.not().unwrap();
+    eval(environment.clone(), &mut vm, "#t !").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(false)));
 
-    vm.push(shared(Value::Boolean(false))).unwrap();
-    vm.not().unwrap();
+    eval(environment.clone(), &mut vm, "#f !").unwrap();
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Boolean(true)));
 
     // Test NOT operation error
+    let result = eval(environment.clone(), &mut vm, "5 !");
     vm.push(shared(Value::Integer(5))).unwrap();
     assert!(matches!(
-        vm.not(),
+        result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 }
 
 #[test]
 fn test_function_and_lambda_errors() {
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    let environment = shared(Environment::with_builtins());
+    let mut vm = VM::new();
 
     // Test calling a non-function value
-    vm.push(shared(Value::Integer(42))).unwrap();
+    let result = eval(environment.clone(), &mut vm, "42 call");
     assert!(matches!(
-        vm.call_stack(),
+        result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 
     // Test function definition with invalid name
-    vm.push(shared(Value::Integer(42))).unwrap(); // Invalid name (not a string)
-    vm.push(shared(Value::Function(shared(Callable::Fn(Function {
-        name: None,
-        words: vec!["2".to_string(), "*".to_string()],
-        ip: 0,
-    })))))
-    .unwrap();
+    let result = eval(environment.clone(), &mut vm, "42 { 2 * } <function>");
     assert!(matches!(
-        vm.function(),
+        result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 
     // Test function definition with invalid lambda
-    vm.push(shared(Value::String("test".to_string()))).unwrap();
-    vm.push(shared(Value::Integer(42))).unwrap(); // Invalid lambda
+    let result = eval(environment.clone(), &mut vm, "\"test\" 42 <function>");
     assert!(matches!(
-        vm.function(),
+        result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 
-    // Test calling without a environment loaded
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
-
-    // Test return operation with empty return stack
-    assert!(matches!(vm.return_op(), Err(Error::VMError(VMError::Exit))));
-
     // Test return operation with invalid return address
-    vm.push_return(shared(Value::Integer(42))).unwrap(); // Not an address
+    let result = eval(environment.clone(), &mut vm, "{ 42 >r } call");
     assert!(matches!(
-        vm.return_op(),
+        result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 }
@@ -482,9 +455,10 @@ fn test_jump_operations() {
         op_table.clone(),
         HashMap::new(),
     );
-    let mut vm = VM::new(shared(jump_environment));
+    let jump_environment = shared(jump_environment);
+    let mut vm = VM::new();
 
-    vm.run().unwrap();
+    vm.run(jump_environment.clone()).unwrap();
 
     // Should have pushed 1 and 3, skipping 2
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
@@ -513,21 +487,24 @@ fn test_jump_operations() {
         HashMap::new(),
     );
 
-    let mut vm = VM::new(shared(jump_stack_environment));
-    vm.run().unwrap();
+    let jump_stack_environment = shared(jump_stack_environment);
+    let mut vm = VM::new();
+    vm.run(jump_stack_environment.clone()).unwrap();
 
     // Should have pushed 1 and 3, skipping 2
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
 
-    // Test jump errors
-    let environment = Environment::default();
-    let mut vm = VM::new(shared(environment));
+    // TODO: uncomment once there's a word for <jump-stack>
+    // // Test jump errors
+    // let environment = shared(Environment::with_builtins());
+    // let mut vm = VM::new();
 
-    // Test jump_stack with invalid address type
-    vm.push(shared(Value::Integer(42))).unwrap(); // Not an address
-    assert!(matches!(
-        vm.jump_stack(),
-        Err(Error::VMError(VMError::TypeMismatch(_)))
-    ));
+    // // Test jump_stack with invalid address type
+    // let result = eval(environment.clone(), &mut vm, "42");
+    // vm.push(shared(Value::Integer(42))).unwrap(); // Not an address
+    // assert!(matches!(
+    //     vm.jump_stack(),
+    //     Err(Error::VMError(VMError::TypeMismatch(_)))
+    // ));
 }

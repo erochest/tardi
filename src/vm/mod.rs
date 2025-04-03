@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use value::{Callable, Function, Shared};
 
 use crate::env::Environment;
@@ -17,7 +19,7 @@ pub type OpFn = fn(&mut VM) -> Result<()>;
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
 pub struct VM {
     /// The environment being executed
-    environment: Shared<Environment>,
+    environment: Option<Shared<Environment>>,
 
     /// Instruction pointer tracking the current position in the instruction stream
     ip: usize,
@@ -31,9 +33,9 @@ pub struct VM {
 
 impl VM {
     /// Creates a new VM instance
-    pub fn new(environment: Shared<Environment>) -> Self {
+    pub fn new() -> Self {
         VM {
-            environment,
+            environment: None,
             ip: 0,
             stack: Vec::new(),
             return_stack: Vec::new(),
@@ -96,17 +98,29 @@ impl VM {
         self.stack.len()
     }
 
+    /// Returns the current size of the data stack
+    pub fn stack_size_op(&mut self) -> Result<()> {
+        self.stack
+            .push(shared(Value::Integer(self.stack_size() as i64)));
+        Ok(())
+    }
+
     /// Executes the lit operation - loads a constant onto the stack
     pub fn lit(&mut self) -> Result<()> {
+        // TODO: Seems like could combine the const_index and constant/value pipelines here
         let const_index = self
             .environment
-            .borrow()
-            .get_instruction(self.ip)
-            .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
+            .as_ref()
+            .and_then(|e| e.borrow().get_instruction(self.ip))
+            .ok_or(Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
         self.ip += 1;
 
         let value = {
-            if let Some(value) = self.environment.borrow().get_constant(const_index) {
+            let constant = self
+                .environment
+                .as_ref()
+                .and_then(|e| e.borrow().get_constant(const_index).cloned());
+            if let Some(value) = constant {
                 shared(value.clone())
             } else {
                 return Err(Error::VMError(VMError::InvalidConstantIndex(const_index)));
@@ -228,15 +242,13 @@ impl VM {
         let list = self.pop()?;
         let value = self.pop()?;
 
-        {
-            let mut list_ref = list.borrow_mut();
-            if let Value::List(items) = &mut *list_ref {
-                items.push(value);
-                Ok(())
-            } else {
-                Err(VMError::TypeMismatch(format!("append to list: {}", list_ref)).into())
-            }
-        }
+        (*list)
+            .borrow_mut()
+            .get_list_mut()
+            .map(|l| l.push(value))
+            .ok_or_else(|| VMError::TypeMismatch("append to list".to_string()))?;
+
+        Ok(())
     }
 
     /// Prepends a value to the beginning of a list
@@ -244,15 +256,13 @@ impl VM {
         let list = self.pop()?;
         let value = self.pop()?;
 
-        {
-            let mut list_ref = list.borrow_mut();
-            if let Value::List(items) = &mut *list_ref {
-                items.insert(0, value);
-                Ok(())
-            } else {
-                Err(VMError::TypeMismatch(format!("prepend to list: {}", list_ref)).into())
-            }
-        }
+        (*list)
+            .borrow_mut()
+            .get_list_mut()
+            .map(|l| l.insert(0, value))
+            .ok_or_else(|| VMError::TypeMismatch("prepend to list".to_string()))?;
+
+        Ok(())
     }
 
     /// Concatenates two lists
@@ -281,18 +291,17 @@ impl VM {
     /// Removes and returns the first element of a list
     pub fn split_head(&mut self) -> Result<()> {
         let list = self.pop()?;
-
-        let head = {
-            let mut list_ref = list.borrow_mut();
-            if let Value::List(items) = &mut *list_ref {
-                if items.is_empty() {
-                    return Err(VMError::EmptyList.into());
+        let head = (*list)
+            .borrow_mut()
+            .get_list_mut()
+            .ok_or_else(|| VMError::TypeMismatch("split head of list".to_string()))
+            .and_then(|l| {
+                if l.is_empty() {
+                    Err(VMError::EmptyList)
+                } else {
+                    Ok(l.remove(0))
                 }
-                items.remove(0)
-            } else {
-                return Err(VMError::TypeMismatch("split head of list".to_string()).into());
-            }
-        };
+            })?;
 
         self.push(head)
     }
@@ -356,8 +365,8 @@ impl VM {
     pub fn call(&mut self) -> Result<()> {
         let fn_index = self
             .environment
-            .borrow()
-            .get_instruction(self.ip)
+            .as_ref()
+            .and_then(|e| e.borrow().get_instruction(self.ip))
             .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip += 1;
 
@@ -372,28 +381,15 @@ impl VM {
     /// Calls a function from the stack
     pub fn call_stack(&mut self) -> Result<()> {
         let func = self.pop()?;
-        let func_ref = func.borrow();
+        let mut vm = self;
 
-        match &*func_ref {
-            Value::Function(callable) => {
-                let callable_ref = callable.borrow();
-                match &*callable_ref {
-                    Callable::BuiltIn(op) => {
-                        // Execute built-in function directly
-                        op(self)?;
-                        Ok(())
-                    }
-                    Callable::Fn(function) => {
-                        // Save the current IP on the return stack
-                        self.push_return(shared(Value::Address(self.ip)))?;
-                        // Jump to the function's code
-                        self.ip = function.ip;
-                        Ok(())
-                    }
-                }
-            }
-            _ => Err(VMError::TypeMismatch("function call".to_string()).into()),
-        }
+        (*func)
+            .borrow()
+            .get_function()
+            .ok_or_else(|| Error::from(VMError::TypeMismatch("function call".to_string())))
+            .and_then(|c| c.call(&mut vm))?;
+
+        Ok(())
     }
 
     /// Defines a named function
@@ -406,23 +402,20 @@ impl VM {
             _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
         };
 
-        let function = match &*lambda.borrow() {
-            Value::Function(callable) => {
-                let mut callable = callable.borrow_mut();
-                match &mut *callable {
-                    Callable::Fn(ref mut f) => {
-                        f.name = Some(name_str.clone());
-                        f.clone()
-                    }
-                    _ => return Err(VMError::TypeMismatch("lambda".to_string()).into()),
-                }
-            }
-            _ => return Err(VMError::TypeMismatch("lambda".to_string()).into()),
-        };
-        let callable = shared(Callable::Fn(function));
+        let callable = (*lambda)
+            .borrow_mut()
+            .get_function_mut()
+            .ok_or_else(|| Error::from(VMError::TypeMismatch("lambda".to_string())))
+            .and_then(|c| {
+                c.set_name(&name_str)?;
+                Ok(c.clone())
+            })?;
 
         // Add the function to the op_table
-        self.environment.borrow_mut().add_to_op_table(callable);
+        if let Some(env) = self.environment.as_ref() {
+            let env = env.clone();
+            (*env).borrow_mut().add_to_op_table(shared(callable));
+        }
 
         Ok(())
     }
@@ -447,10 +440,11 @@ impl VM {
 
     /// Jumps to a specific instruction
     pub fn jump(&mut self) -> Result<()> {
-        let environment = self.environment.borrow();
-        let target = environment
-            .get_instruction(self.ip)
-            .ok_or(VMError::InvalidAddress(self.ip))?;
+        let target = self
+            .environment
+            .as_ref()
+            .and_then(|env| env.borrow().get_instruction(self.ip))
+            .ok_or_else(|| VMError::InvalidAddress(self.ip))?;
         self.ip = target;
         Ok(())
     }
@@ -467,6 +461,36 @@ impl VM {
             _ => Err(VMError::TypeMismatch("jump address".to_string()).into()),
         }
     }
+
+    fn debug_out(&self, op_code: usize) {
+        eprintln!(
+            "executing {:?} @ {}",
+            OpCode::try_from(op_code).unwrap(),
+            self.ip,
+        );
+    }
+
+    fn debug_out_with_stacks(&self, op_code: usize) {
+        let stack_repr = self
+            .stack
+            .iter()
+            .map(|v| format!("[{}]", v.borrow()))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let rstack_repr = self
+            .return_stack
+            .iter()
+            .map(|v| format!("[{}]", v.borrow()))
+            .collect::<Vec<_>>()
+            .join(" ");
+        eprintln!(
+            "executing {:?} @ {} : {} : {}",
+            OpCode::try_from(op_code).unwrap(),
+            self.ip,
+            stack_repr,
+            rstack_repr
+        );
+    }
 }
 
 impl Execute for VM {
@@ -479,23 +503,31 @@ impl Execute for VM {
     }
 
     /// Runs the VM, executing all instructions in the instruction stream
-    fn run(&mut self) -> Result<()> {
-        while self.ip < self.environment.borrow().instructions_len() {
+    fn run(&mut self, env: Shared<Environment>) -> Result<()> {
+        self.environment = Some(env.clone());
+        let max_ip = self
+            .environment
+            .as_ref()
+            .map(|e| e.borrow().instructions_len())
+            .unwrap_or_default();
+        while self.ip < max_ip {
             // Get the next instruction (OpCode)
             let op_code = self
                 .environment
-                .borrow()
-                .get_instruction(self.ip)
-                .ok_or(Error::VMError(VMError::InvalidOpCode(self.ip)))?;
+                .as_ref()
+                .and_then(|e| e.borrow().get_instruction(self.ip))
+                .ok_or_else(|| Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
+            // self.debug_out(op_code);
+            // self.debug_out_with_stacks(op_code);
 
             self.ip += 1;
 
             // Get the operation from the op_table
             let operation = self
                 .environment
-                .borrow()
-                .get_op(op_code)
-                .ok_or(Error::VMError(VMError::InvalidOpCode(op_code)))?;
+                .as_ref()
+                .and_then(|e| e.borrow().get_op(op_code))
+                .ok_or_else(|| Error::VMError(VMError::InvalidOpCode(self.ip - 1, op_code)))?;
 
             // Execute the operation
             let operation = operation.borrow();
@@ -505,7 +537,12 @@ impl Execute for VM {
                     Err(Error::VMError(VMError::Exit)) => {
                         return Ok(());
                     }
-                    err => return err,
+                    err => {
+                        // Reset for the next input
+                        self.ip = max_ip;
+                        self.return_stack.clear();
+                        return err;
+                    }
                 },
                 Callable::Fn(Function {
                     ip: instructions, ..
@@ -536,6 +573,10 @@ pub fn rot(vm: &mut VM) -> Result<()> {
 
 pub fn drop_op(vm: &mut VM) -> Result<()> {
     vm.drop_op()
+}
+
+pub fn stack_size(vm: &mut VM) -> Result<()> {
+    vm.stack_size_op()
 }
 
 pub fn add(vm: &mut VM) -> Result<()> {
@@ -577,6 +618,7 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
     push_op(&mut op_table, swap);
     push_op(&mut op_table, rot);
     push_op(&mut op_table, drop_op);
+    push_op(&mut op_table, stack_size);
     push_op(&mut op_table, add);
     push_op(&mut op_table, subtract);
     push_op(&mut op_table, multiply);

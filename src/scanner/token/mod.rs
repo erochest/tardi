@@ -17,6 +17,7 @@ pub enum TokenType {
     Swap,
     Rot,
     Drop,
+    StackSize,
 
     // Return Stack Operations
     ToR,    // >r

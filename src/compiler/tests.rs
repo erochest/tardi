@@ -2,21 +2,27 @@ use std::convert::TryFrom;
 
 use super::*;
 use crate::scanner::Scanner;
+use crate::vm::value::shared;
 use crate::{Environment, Scan};
 
 use pretty_assertions::assert_eq;
 
 // TODO: more tests
 
-fn compile(input: &str) -> Result<Environment> {
+fn compile(input: &str) -> Result<Shared<Environment>> {
     let mut scanner = Scanner::new();
     let mut compiler = Compiler::new();
     let tokens = Scan::scan(&mut scanner, input);
-    compiler.compile(tokens)
+    let environment = Environment::with_builtins();
+    let environment = shared(environment);
+    compiler
+        .compile(environment.clone(), tokens)
+        .map(|_| environment)
 }
 
-fn get_ops(environment: &Environment) -> Vec<OpCode> {
+fn get_ops(environment: Shared<Environment>) -> Vec<OpCode> {
     let mut actual_ops = Vec::new();
+    let environment = environment.borrow();
     let instructions = environment.get_instructions();
     let mut i = 0;
 
@@ -64,7 +70,7 @@ fn test_compile_comparison_operators() -> Result<()> {
         OpCode::Not,
         OpCode::Return,
     ];
-    let actual_ops = get_ops(&environment);
+    let actual_ops = get_ops(environment);
 
     assert_eq!(actual_ops, expected_ops);
 
@@ -82,7 +88,7 @@ fn test_compile_return_stack_operations() -> Result<()> {
         OpCode::RFrom,
         OpCode::Return,
     ];
-    let actual_ops = get_ops(&environment);
+    let actual_ops = get_ops(environment);
 
     assert_eq!(actual_ops, expected_ops);
     Ok(())
@@ -108,6 +114,7 @@ fn test_compile_character_literals() -> Result<()> {
     expected_ops.push(OpCode::Return);
 
     let mut actual_ops = Vec::new();
+    let environment = environment.borrow();
     let instructions = environment.get_instructions();
     let mut i = 0;
     while i < instructions.len() {

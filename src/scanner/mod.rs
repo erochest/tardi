@@ -324,6 +324,7 @@ impl Scanner {
             "swap" => TokenType::Swap,
             "rot" => TokenType::Rot,
             "drop" => TokenType::Drop,
+            "stack-size" => TokenType::StackSize,
 
             // Return stack operations
             ">r" => TokenType::ToR,
