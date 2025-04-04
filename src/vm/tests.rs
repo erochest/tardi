@@ -11,9 +11,8 @@ fn eval(env: Shared<Environment>, vm: &mut VM, input: &str) -> Result<()> {
 
     let tokens = Scan::scan(&mut scanner, input);
     compiler.compile(env.clone(), tokens).unwrap();
-    let result = vm.run(env.clone());
 
-    result
+    vm.run(env.clone())
 }
 
 fn assert_is_ok(input: &str, result: &Result<()>) {

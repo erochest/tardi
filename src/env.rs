@@ -156,7 +156,7 @@ impl Environment {
         ip: usize,
     ) -> result::Result<usize, fmt::Error> {
         match op {
-            OpCode::Lit | OpCode::Call => self.debug_const(&op, f, ip),
+            OpCode::Lit | OpCode::Call => self.debug_const(op, f, ip),
             OpCode::Dup
             | OpCode::Swap
             | OpCode::Rot
@@ -185,8 +185,8 @@ impl Environment {
             | OpCode::CallStack
             | OpCode::Return
             | OpCode::JumpStack
-            | OpCode::Function => self.debug_simple(&op, f, ip),
-            OpCode::Jump => self.debug_jump(&op, f, ip),
+            | OpCode::Function => self.debug_simple(op, f, ip),
+            OpCode::Jump => self.debug_jump(op, f, ip),
         }
     }
 

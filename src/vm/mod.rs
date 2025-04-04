@@ -30,6 +30,12 @@ pub struct VM {
     return_stack: Vec<SharedValue>,
 }
 
+impl Default for VM {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VM {
     /// Creates a new VM instance
     pub fn new() -> Self {
@@ -380,13 +386,13 @@ impl VM {
     /// Calls a function from the stack
     pub fn call_stack(&mut self) -> Result<()> {
         let func = self.pop()?;
-        let mut vm = self;
+        let vm = self;
 
         (*func)
             .borrow()
             .get_function()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("function call".to_string())))
-            .and_then(|c| c.call(&mut vm))?;
+            .and_then(|c| c.call(vm))?;
 
         Ok(())
     }
@@ -443,7 +449,7 @@ impl VM {
             .environment
             .as_ref()
             .and_then(|env| env.borrow().get_instruction(self.ip))
-            .ok_or_else(|| VMError::InvalidAddress(self.ip))?;
+            .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip = target;
         Ok(())
     }
@@ -506,7 +512,7 @@ impl Execute for VM {
                 .environment
                 .as_ref()
                 .and_then(|e| e.borrow().get_instruction(self.ip))
-                .ok_or_else(|| Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
+                .ok_or(Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
 
             if log_enabled!(Level::Debug) {
                 self.debug_op(op_code);

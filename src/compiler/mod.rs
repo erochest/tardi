@@ -109,10 +109,8 @@ impl Compiler {
     pub fn compile_op(&mut self, op: OpCode) -> Result<()> {
         if let Some(closure) = self.closure_stack.last_mut() {
             closure.instructions.push(op.into());
-        } else {
-            self.environment
-                .as_ref()
-                .map(|e| e.borrow_mut().add_instruction(op.into()));
+        } else if let Some(e) = self.environment.as_ref() {
+            e.borrow_mut().add_instruction(op.into())
         }
         Ok(())
     }
@@ -128,10 +126,8 @@ impl Compiler {
     pub fn compile_instruction(&mut self, arg: usize) {
         if let Some(closure) = self.closure_stack.last_mut() {
             closure.instructions.push(arg);
-        } else {
-            self.environment
-                .as_ref()
-                .map(|e| e.borrow_mut().add_instruction(arg));
+        } else if let Some(e) = self.environment.as_ref() {
+            e.borrow_mut().add_instruction(arg)
         }
     }
 
