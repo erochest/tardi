@@ -389,7 +389,13 @@ impl Default for Scanner {
 }
 
 impl Scan for Scanner {
-    fn scan(&mut self, input: &str) -> Vec<Result<Token>> {
+    fn scan(
+        &mut self,
+        input: &str,
+        environment: Shared<Environment>,
+        compile: &Box<dyn Compile>,
+        executor: &Box<dyn Execute>,
+    ) -> Vec<Result<Token>> {
         self.set_source(input);
         self.into_iter().collect()
     }

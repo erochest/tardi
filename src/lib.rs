@@ -34,7 +34,7 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
     // - it allows the function to modify the environment and the token vector on the stack
 
     let mut tardi = Tardi::default();
-    tardi.execute_str(source)?;
+    tardi.execute_str(&source)?;
     let tardi = tardi;
 
     if print_stack {
@@ -63,7 +63,7 @@ pub fn repl() -> Result<()> {
             break;
         }
 
-        tardi.execute_str(input)?;
+        tardi.execute_str(&input)?;
         for value in tardi.stack() {
             println!("{}", value);
         }
@@ -73,7 +73,13 @@ pub fn repl() -> Result<()> {
 }
 
 pub trait Scan {
-    fn scan(&mut self, input: &str) -> Vec<Result<Token>>;
+    fn scan(
+        &mut self,
+        input: &str,
+        environment: Shared<Environment>,
+        compiler: &Box<dyn Compile>,
+        executor: &Box<dyn Execute>,
+    ) -> Vec<Result<Token>>;
 }
 
 pub trait Compile {
@@ -109,18 +115,38 @@ impl Tardi {
         }
     }
 
-    pub fn execute_str(&mut self, input: String) -> Result<()> {
-        log::debug!("input : {:?}", input);
-        self.input = Some(input);
-        let tokens = self.scanner.scan(self.input.as_ref().unwrap());
+    pub fn reset(&mut self) {
+        self.input = None;
+    }
 
+    pub fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
+        log::debug!("input : {:?}", input);
+        let input = input.to_string();
+        self.input = Some(input);
+        Ok(self.scanner.scan(
+            self.input.as_ref().unwrap(),
+            self.environment.clone(),
+            &self.compiler,
+            &self.executor,
+        ))
+    }
+
+    pub fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Shared<Environment>> {
         log::debug!("tokens: {:?}", tokens);
         self.compiler.compile(self.environment.clone(), tokens)?;
+        Ok(self.environment.clone())
+    }
 
+    pub fn execute(&mut self) -> Result<()> {
         log::debug!("environment:\n{:?}", self.environment.borrow());
-        self.executor.run(self.environment.clone())?;
+        self.executor.run(self.environment.clone())
+    }
 
-        Ok(())
+    pub fn execute_str(&mut self, input: &str) -> Result<()> {
+        self.reset();
+        let tokens = self.scan(input)?;
+        self.compile(tokens)?;
+        self.execute()
     }
 
     pub fn stack(&self) -> Vec<Value> {

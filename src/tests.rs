@@ -6,7 +6,7 @@ use super::*;
 fn test_tardi_execute_str() {
     let mut tardi = Tardi::default();
 
-    let result = tardi.execute_str("42".to_string());
+    let result = tardi.execute_str("42");
     assert!(result.is_ok());
 
     let stack = tardi.stack();

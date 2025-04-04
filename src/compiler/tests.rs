@@ -1,23 +1,16 @@
 use std::convert::TryFrom;
 
 use super::*;
-use crate::scanner::Scanner;
-use crate::shared::shared;
-use crate::{Environment, Scan};
+use crate::{Environment, Tardi};
 
 use pretty_assertions::assert_eq;
 
 // TODO: more tests
 
 fn compile(input: &str) -> Result<Shared<Environment>> {
-    let mut scanner = Scanner::new();
-    let mut compiler = Compiler::new();
-    let tokens = Scan::scan(&mut scanner, input);
-    let environment = Environment::with_builtins();
-    let environment = shared(environment);
-    compiler
-        .compile(environment.clone(), tokens)
-        .map(|_| environment)
+    let mut tardi = Tardi::default();
+    let result = tardi.execute_str(input);
+    result.map(|_| tardi.environment.clone())
 }
 
 fn get_ops(environment: Shared<Environment>) -> Vec<OpCode> {

@@ -1,9 +1,10 @@
+use crate::Tardi;
+
 use super::*;
 
 fn scan_raw(input: &str) -> Vec<Result<Token>> {
-    let mut scanner = Scanner::new();
-
-    Scan::scan(&mut scanner, input)
+    let mut tardi = Tardi::default();
+    tardi.scan(input).unwrap()
 }
 
 fn scan(input: &str) -> Vec<Token> {

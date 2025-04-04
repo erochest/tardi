@@ -17,6 +17,7 @@ pub struct Function {
     pub ip: usize,
 }
 
+// TODO: impl Display for Callable
 /// Enum representing different types of callable objects
 #[derive(Debug, Clone)]
 pub enum Callable {
