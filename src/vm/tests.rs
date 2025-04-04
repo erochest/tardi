@@ -183,27 +183,23 @@ fn test_return_stack_operations() {
     let mut vm = VM::new();
 
     // Test >r (to_r)
-    eprintln!("eval '42 >r stack-size r> drop'");
     let result = eval(environment.clone(), &mut vm, "42 >r stack-size r> drop");
     assert_is_ok("42 >r stack-size r> drop", &result);
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(0)));
 
     // Test r> (r_from)
-    eprintln!("eval '42 >r 7 r>'");
     eval(environment.clone(), &mut vm, "42 >r 7 r>").unwrap();
     assert_eq!(vm.stack_size(), 2);
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(42)));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(7)));
 
     // Test r@ (r_fetch)
-    eprintln!("eval '10 >r r@ r>'");
     eval(environment.clone(), &mut vm, "10 >r r@ r>").unwrap();
     assert_eq!(vm.stack_size(), 2);
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(10)));
     assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(10)));
 
     // Test return stack overflow
-    eprintln!("eval '0 1 2 3 ... 1021 1022 1023'");
     let script = (0..2048)
         .map(|n| format!("{} >r", n))
         .collect::<Vec<_>>()
@@ -216,13 +212,11 @@ fn test_return_stack_operations() {
     );
 
     // Test return stack underflow
-    eprintln!("eval 'r>'");
     let result = eval(environment.clone(), &mut vm, "r>");
     assert!(matches!(
         result,
         Err(Error::VMError(VMError::ReturnStackUnderflow)),
     ));
-    eprintln!("eval 'r@'");
     let result = eval(environment.clone(), &mut vm, "r@");
     assert!(matches!(
         result,

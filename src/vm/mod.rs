@@ -1,5 +1,4 @@
-use std::convert::TryFrom;
-
+use log::{log_enabled, Level};
 use value::{Callable, Function, Shared};
 
 use crate::env::{EnvLoc, Environment};
@@ -462,16 +461,12 @@ impl VM {
         }
     }
 
-    fn debug_out(&self, op_code: usize) {
-        eprintln!(
-            "EVAL {:?} @ {}",
-            OpCode::try_from(op_code).unwrap(),
-            self.ip,
-        );
+    fn debug_op(&self, op_code: usize) {
+        let env_loc = EnvLoc::new(self.environment.clone().unwrap(), self.ip);
+        log::debug!("{:?}", env_loc);
     }
 
-    fn debug_out_with_stacks(&self, op_code: usize) {
-        let env_loc = EnvLoc::new(self.environment.clone().unwrap(), self.ip);
+    fn debug_stacks(&self, op_code: usize) {
         let stack_repr = self
             .stack
             .iter()
@@ -484,10 +479,7 @@ impl VM {
             .map(|v| format!("[{}]", v.borrow()))
             .collect::<Vec<_>>()
             .join(" ");
-        eprintln!(
-            "{:?}DATA  : {}\nRETURN: {}\n",
-            env_loc, stack_repr, rstack_repr
-        );
+        log::trace!("DATA  : {}\nRETURN: {}\n", stack_repr, rstack_repr);
     }
 }
 
@@ -515,8 +507,13 @@ impl Execute for VM {
                 .as_ref()
                 .and_then(|e| e.borrow().get_instruction(self.ip))
                 .ok_or_else(|| Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
-            // self.debug_out(op_code);
-            self.debug_out_with_stacks(op_code);
+
+            if log_enabled!(Level::Debug) {
+                self.debug_op(op_code);
+            }
+            if log_enabled!(Level::Trace) {
+                self.debug_stacks(op_code);
+            }
 
             self.ip += 1;
 

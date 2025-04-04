@@ -117,14 +117,14 @@ impl Tardi {
     }
 
     pub fn execute_str(&mut self, input: String) -> Result<()> {
-        eprintln!("input : {:?}", input);
+        log::debug!("input : {:?}", input);
         self.input = Some(input);
         let tokens = self.scanner.scan(self.input.as_ref().unwrap());
 
-        eprintln!("tokens: {:?}", tokens);
+        log::debug!("tokens: {:?}", tokens);
         self.compiler.compile(self.environment.clone(), tokens)?;
 
-        eprintln!("environment:\n{:?}", self.environment.borrow());
+        log::debug!("environment:\n{:?}", self.environment.borrow());
         self.executor.run(self.environment.clone())?;
 
         Ok(())
