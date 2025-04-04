@@ -1,6 +1,9 @@
-use crate::vm::create_op_table;
 use crate::vm::value::{Callable, Function, Shared, Value};
+use crate::vm::{create_op_table, OpCode};
 use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::fmt;
+use std::result;
 
 #[derive(Default)]
 pub struct Environment {
@@ -8,6 +11,31 @@ pub struct Environment {
     instructions: Vec<usize>,
     op_table: Vec<Shared<Callable>>,
     op_map: HashMap<String, usize>,
+}
+
+pub struct EnvLoc {
+    env: Shared<Environment>,
+    ip: usize,
+}
+
+impl fmt::Debug for EnvLoc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let op = self
+            .env
+            .borrow()
+            .get_instruction(self.ip)
+            .map(OpCode::try_from)
+            .unwrap()
+            .unwrap();
+        self.env.borrow().debug_op(&op, f, self.ip)?;
+        Ok(())
+    }
+}
+
+impl EnvLoc {
+    pub fn new(env: Shared<Environment>, ip: usize) -> Self {
+        Self { env, ip }
+    }
 }
 
 impl Environment {
@@ -115,6 +143,122 @@ impl Environment {
         self.op_table.push(callable);
 
         index
+    }
+
+    pub fn debug(&self) -> String {
+        format!("{:?}", self)
+    }
+
+    fn debug_op(
+        &self,
+        op: &OpCode,
+        f: &mut fmt::Formatter<'_>,
+        ip: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        match op {
+            OpCode::Lit | OpCode::Call => self.debug_const(&op, f, ip),
+            OpCode::Dup
+            | OpCode::Swap
+            | OpCode::Rot
+            | OpCode::Drop
+            | OpCode::StackSize
+            | OpCode::Add
+            | OpCode::Subtract
+            | OpCode::Multiply
+            | OpCode::Divide
+            | OpCode::Equal
+            | OpCode::Less
+            | OpCode::Greater
+            | OpCode::Not
+            | OpCode::ToR
+            | OpCode::RFrom
+            | OpCode::RFetch
+            | OpCode::CreateList
+            | OpCode::Append
+            | OpCode::Prepend
+            | OpCode::Concat
+            | OpCode::SplitHead
+            | OpCode::CreateString
+            | OpCode::ToString
+            | OpCode::Utf8ToString
+            | OpCode::StringConcat
+            | OpCode::CallStack
+            | OpCode::Return
+            | OpCode::JumpStack
+            | OpCode::Function => self.debug_simple(&op, f, ip),
+            OpCode::Jump => self.debug_jump(&op, f, ip),
+        }
+    }
+
+    fn debug_const(
+        &self,
+        op: &OpCode,
+        f: &mut fmt::Formatter<'_>,
+        ip: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut ip = ip;
+
+        self.write_ip_number(f, ip)?;
+        self.write_op_code(f, op)?;
+
+        ip += 1;
+        let index = self.instructions[ip];
+        let value = &self.constants[index];
+        writeln!(f, " {:0>4}. {: <16}", index, value)?;
+
+        Ok(ip)
+    }
+
+    fn debug_simple(
+        &self,
+        op: &OpCode,
+        f: &mut fmt::Formatter<'_>,
+        ip: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        self.write_ip_number(f, ip)?;
+        self.write_op_code(f, op)?;
+        writeln!(f)?;
+        Ok(ip)
+    }
+
+    fn debug_jump(
+        &self,
+        op: &OpCode,
+        f: &mut fmt::Formatter<'_>,
+        ip: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut ip = ip;
+
+        self.write_ip_number(f, ip)?;
+        self.write_op_code(f, op)?;
+
+        ip += 1;
+        let index = self.instructions[ip];
+        writeln!(f, " {:0>4}", index)?;
+
+        Ok(ip)
+    }
+
+    fn write_ip_number(&self, f: &mut fmt::Formatter<'_>, ip: usize) -> fmt::Result {
+        write!(f, "{:0>4}. ", ip)
+    }
+
+    fn write_op_code(&self, f: &mut fmt::Formatter<'_>, op_code: &OpCode) -> fmt::Result {
+        let debugged = format!("{:?}", op_code);
+        write!(f, "{: <16} | ", debugged)
+    }
+}
+
+impl fmt::Debug for Environment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut ip = 0;
+
+        while ip < self.instructions.len() {
+            let op = OpCode::try_from(self.instructions[ip]).unwrap();
+            ip = self.debug_op(&op, f, ip)? + 1;
+        }
+
+        Ok(())
     }
 }
 
