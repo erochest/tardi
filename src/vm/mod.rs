@@ -1,5 +1,6 @@
+use crate::shared::{shared, Shared};
 use log::{log_enabled, Level};
-use value::{Callable, Function, Shared};
+use value::{Callable, Function};
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
@@ -8,7 +9,7 @@ pub mod ops;
 pub use self::ops::OpCode;
 
 pub mod value;
-use self::value::{shared, SharedValue, Value};
+use self::value::{SharedValue, Value};
 
 use super::Execute;
 
@@ -467,12 +468,12 @@ impl VM {
         }
     }
 
-    fn debug_op(&self, op_code: usize) {
+    fn debug_op(&self) {
         let env_loc = EnvLoc::new(self.environment.clone().unwrap(), self.ip);
         log::debug!("{:?}", env_loc);
     }
 
-    fn debug_stacks(&self, op_code: usize) {
+    fn debug_stacks(&self) {
         let stack_repr = self
             .stack
             .iter()
@@ -515,10 +516,10 @@ impl Execute for VM {
                 .ok_or(Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
 
             if log_enabled!(Level::Debug) {
-                self.debug_op(op_code);
+                self.debug_op();
             }
             if log_enabled!(Level::Trace) {
-                self.debug_stacks(op_code);
+                self.debug_stacks();
             }
 
             self.ip += 1;

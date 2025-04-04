@@ -1,30 +1,23 @@
 //! Tardi environmentming language implementation
 
-/// Re-export error types
+pub mod compiler;
+pub mod env;
 pub mod error;
-
-/// Virtual Machine implementation
+pub mod scanner;
+pub mod shared;
 pub mod vm;
 
-/// Scanner implementation
-pub mod scanner;
-
-/// Compiler implementation
-pub mod compiler;
-
-pub mod env;
-
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 // Re-exports
+use crate::shared::{shared, Shared};
 pub use compiler::Compiler;
 pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
 use scanner::Token;
 pub use vm::value::Value;
-use vm::value::{shared, Shared};
 pub use vm::VM;
 
 /// Run a Tardi source file

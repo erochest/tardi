@@ -3,7 +3,10 @@ pub use token::{Token, TokenType};
 
 use super::Scan;
 
+use crate::env::Environment;
 use crate::error::{Error, Result, ScannerError};
+use crate::shared::Shared;
+use crate::{Compile, Execute};
 use std::result;
 
 /// Scanner that converts source text into a stream of tokens

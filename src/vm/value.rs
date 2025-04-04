@@ -51,16 +51,8 @@ impl Callable {
     }
 }
 
-/// Shared type
-pub type Shared<T> = Rc<RefCell<T>>;
-
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
-
-/// Helper function to create a SharedValue
-pub fn shared<V>(value: V) -> Shared<V> {
-    Rc::new(RefCell::new(value))
-}
 
 // From implementations for each of the contained values
 impl From<i64> for Value {

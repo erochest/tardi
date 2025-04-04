@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use super::*;
 use crate::scanner::Scanner;
-use crate::vm::value::shared;
+use crate::shared::shared;
 use crate::{Environment, Scan};
 
 use pretty_assertions::assert_eq;
