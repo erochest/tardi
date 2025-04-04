@@ -42,6 +42,15 @@ impl Scanner {
         }
     }
 
+    fn set_source(&mut self, source: &str) {
+        self.source = source.to_string();
+        self.chars = self.source.chars().collect();
+        self.index = 0;
+        self.line = 1;
+        self.column = 1;
+        self.offset = 0;
+    }
+
     /// Scans hexadecimal digits up to the specified length
     fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32> {
         let mut value = 0u32;
@@ -378,8 +387,7 @@ impl Default for Scanner {
 
 impl Scan for Scanner {
     fn scan(&mut self, input: &str) -> Vec<Result<Token>> {
-        self.source = input.to_string();
-        self.chars = self.source.chars().collect();
+        self.set_source(input);
         self.into_iter().collect()
     }
 }
