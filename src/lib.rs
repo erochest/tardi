@@ -14,6 +14,7 @@ pub mod compiler;
 
 pub mod env;
 
+use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
 // Re-exports
@@ -47,6 +48,31 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
         // Print stack contents from top to bottom
         for value in tardi.stack() {
             eprintln!("{}", value);
+        }
+    }
+
+    Ok(())
+}
+
+pub fn repl() -> Result<()> {
+    let mut tardi = Tardi::default();
+    let mut stdout = io::stdout();
+    let stdin = io::stdin();
+
+    loop {
+        let mut input = String::new();
+        stdout.write_all(b"> ")?;
+        stdout.flush()?;
+        stdin.read_line(&mut input)?;
+        let command = input.trim();
+        if command == "/quit" || command == "/exit" || command == "/q" || command == "/xt" {
+            println!("ok");
+            break;
+        }
+
+        tardi.execute_str(input)?;
+        for value in tardi.stack() {
+            println!("{}", value);
         }
     }
 
@@ -91,12 +117,16 @@ impl Tardi {
     }
 
     pub fn execute_str(&mut self, input: String) -> Result<()> {
+        eprintln!("input : {:?}", input);
         self.input = Some(input);
         let tokens = self.scanner.scan(self.input.as_ref().unwrap());
-        // mutates environment
+
+        eprintln!("tokens: {:?}", tokens);
         self.compiler.compile(self.environment.clone(), tokens)?;
-        // accesses environment
+
+        eprintln!("environment:\n{:?}", self.environment.borrow());
         self.executor.run(self.environment.clone())?;
+
         Ok(())
     }
 

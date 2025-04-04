@@ -14,6 +14,8 @@ fn main() -> Result<()> {
 
     if let Some(file) = args.file {
         tardi::run_file(&file, args.print_stack)?;
+    } else {
+        tardi::repl()?;
     }
 
     Ok(())
