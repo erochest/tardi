@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use value::{Callable, Function, Shared};
 
-use crate::env::Environment;
+use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
 
 pub mod ops;
@@ -98,13 +98,6 @@ impl VM {
         self.stack.len()
     }
 
-    /// Returns the current size of the data stack
-    pub fn stack_size_op(&mut self) -> Result<()> {
-        self.stack
-            .push(shared(Value::Integer(self.stack_size() as i64)));
-        Ok(())
-    }
-
     /// Executes the lit operation - loads a constant onto the stack
     pub fn lit(&mut self) -> Result<()> {
         // TODO: Seems like could combine the const_index and constant/value pipelines here
@@ -159,6 +152,13 @@ impl VM {
     /// Removes the top item from the stack
     pub fn drop_op(&mut self) -> Result<()> {
         self.pop().map(|_| ())
+    }
+
+    /// Returns the current size of the data stack
+    pub fn stack_size_op(&mut self) -> Result<()> {
+        self.stack
+            .push(shared(Value::Integer(self.stack_size() as i64)));
+        Ok(())
     }
 
     /// Adds the top two items on the stack
@@ -464,13 +464,14 @@ impl VM {
 
     fn debug_out(&self, op_code: usize) {
         eprintln!(
-            "executing {:?} @ {}",
+            "EVAL {:?} @ {}",
             OpCode::try_from(op_code).unwrap(),
             self.ip,
         );
     }
 
     fn debug_out_with_stacks(&self, op_code: usize) {
+        let env_loc = EnvLoc::new(self.environment.clone().unwrap(), self.ip);
         let stack_repr = self
             .stack
             .iter()
@@ -484,11 +485,8 @@ impl VM {
             .collect::<Vec<_>>()
             .join(" ");
         eprintln!(
-            "executing {:?} @ {} : {} : {}",
-            OpCode::try_from(op_code).unwrap(),
-            self.ip,
-            stack_repr,
-            rstack_repr
+            "{:?}DATA  : {}\nRETURN: {}\n",
+            env_loc, stack_repr, rstack_repr
         );
     }
 }
@@ -518,7 +516,7 @@ impl Execute for VM {
                 .and_then(|e| e.borrow().get_instruction(self.ip))
                 .ok_or_else(|| Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
             // self.debug_out(op_code);
-            // self.debug_out_with_stacks(op_code);
+            self.debug_out_with_stacks(op_code);
 
             self.ip += 1;
 

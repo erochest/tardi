@@ -20,6 +20,7 @@ pub struct Function {
 /// Enum representing different types of callable objects
 #[derive(Debug, Clone)]
 pub enum Callable {
+    // TODO: Need to store names for built-in functions
     /// Built-in function implemented in Rust
     BuiltIn(OpFn),
     /// User-defined function or lambda
