@@ -1,6 +1,7 @@
 use crate::error::ScannerError;
 use crate::vm::value::Value;
 use std::convert::TryFrom;
+use std::fmt::Display;
 
 /// Represents a token's type and any associated literal value
 #[derive(Debug, Clone, PartialEq)]
@@ -41,6 +42,7 @@ pub enum TokenType {
 
     // Words
     Word(String),
+    MacroStart, // MACRO:
 
     // List Operations
     CreateList, // <list>
@@ -89,6 +91,12 @@ pub struct Token {
 
     /// The actual text of the token from source
     pub lexeme: String,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
 }
 
 impl Token {

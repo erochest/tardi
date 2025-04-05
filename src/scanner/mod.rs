@@ -5,8 +5,9 @@ use super::Scan;
 
 use crate::env::Environment;
 use crate::error::{Error, Result, ScannerError};
-use crate::shared::Shared;
-use crate::{Compile, Execute};
+use crate::shared::{shared, Shared};
+use crate::vm::value::SharedValue;
+use crate::{Compile, Execute, Value};
 use std::result;
 
 /// Scanner that converts source text into a stream of tokens
@@ -380,6 +381,18 @@ impl Scanner {
             _ => TokenType::Word(word),
         }))
     }
+
+    pub fn scan_token(&mut self) -> Result<Token> {
+        todo!()
+    }
+
+    pub fn scan_token_list(&mut self, delimiter: &Token) -> Result<Vec<Token>> {
+        todo!()
+    }
+
+    pub fn scan_value_list(&mut self, delimiter: &Token) -> Result<Vec<SharedValue>> {
+        todo!()
+    }
 }
 
 impl Default for Scanner {
@@ -395,9 +408,24 @@ impl Scan for Scanner {
         environment: Shared<Environment>,
         compile: &Box<dyn Compile>,
         executor: &Box<dyn Execute>,
-    ) -> Vec<Result<Token>> {
+    ) -> Vec<Value> {
         self.set_source(input);
-        self.into_iter().collect()
+
+        // TODO: first step is to read Value's not, Token's
+        let token_iter = self.into_iter();
+        let mut buffer = Vec::new();
+        while let Some(result) = token_iter.next() {
+            if let Ok(token) = result {
+                if let TokenType::MacroStart = token.token_type {
+                    // the closing token
+                    let closing_token = token_iter.next();
+                    // TODO: read and compile values to `;`
+                }
+                buffer.push(Value::Token(token));
+            }
+        }
+
+        buffer
     }
 }
 

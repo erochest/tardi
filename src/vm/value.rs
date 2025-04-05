@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::{fmt, ptr};
 
 use crate::error::{Result, VMError};
+use crate::scanner::{Token, TokenType};
 use crate::vm::{OpFn, VM};
 
 /// Function structure for user-defined functions and lambdas
@@ -50,6 +51,14 @@ impl Callable {
             }
         }
     }
+
+    pub fn is_lambda(&self) -> bool {
+        if let Callable::Fn(f) = self {
+            f.name.is_none()
+        } else {
+            false
+        }
+    }
 }
 
 /// Shared value type for all values
@@ -92,6 +101,9 @@ impl From<Vec<SharedValue>> for Value {
     }
 }
 
+// TODO: move p much everything here out of `vm`
+// -- they're more closely tied to `Environment` and they're part of what
+// bridges across layers
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -103,6 +115,7 @@ pub enum Value {
     String(String),
     Function(Callable),
     Address(usize),
+    Token(Token),
 }
 
 impl Value {
@@ -136,6 +149,18 @@ impl Value {
         } else {
             None
         }
+    }
+
+    pub fn get_token(&self) -> Option<&Token> {
+        if let Value::Token(token) = self {
+            Some(token)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_token_type(&self) -> Option<&TokenType> {
+        self.get_token().map(|t| &t.token_type)
     }
 }
 
@@ -177,6 +202,7 @@ impl fmt::Display for Value {
                 },
             },
             Value::Address(addr) => write!(f, "<address {}>", addr),
+            Value::Token(token) => write!(f, "{}", token),
         }
     }
 }

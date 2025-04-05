@@ -17,6 +17,7 @@ pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
 use scanner::Token;
+use vm::value::SharedValue;
 pub use vm::value::Value;
 pub use vm::VM;
 
@@ -79,11 +80,11 @@ pub trait Scan {
         environment: Shared<Environment>,
         compiler: &Box<dyn Compile>,
         executor: &Box<dyn Execute>,
-    ) -> Vec<Result<Token>>;
+    ) -> Vec<Value>;
 }
 
 pub trait Compile {
-    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()>;
+    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Value>) -> Result<()>;
 }
 
 pub trait Execute {
@@ -119,7 +120,7 @@ impl Tardi {
         self.input = None;
     }
 
-    pub fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
+    pub fn scan(&mut self, input: &str) -> Result<Vec<Value>> {
         log::debug!("input : {:?}", input);
         let input = input.to_string();
         self.input = Some(input);
@@ -131,7 +132,7 @@ impl Tardi {
         ))
     }
 
-    pub fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Shared<Environment>> {
+    pub fn compile(&mut self, tokens: Vec<Value>) -> Result<Shared<Environment>> {
         log::debug!("tokens: {:?}", tokens);
         self.compiler.compile(self.environment.clone(), tokens)?;
         Ok(self.environment.clone())

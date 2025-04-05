@@ -1,7 +1,7 @@
 use crate::error::{CompilerError, Error, Result};
 use crate::scanner::{Token, TokenType};
-use crate::shared::Shared;
-use crate::vm::value::{Callable, Function, Value};
+use crate::shared::{shared, Shared};
+use crate::vm::value::{Callable, Function, SharedValue, Value};
 use crate::vm::OpCode;
 use crate::Environment;
 
@@ -29,6 +29,26 @@ impl Compiler {
         Compiler {
             environment: None,
             closure_stack: Vec::new(),
+        }
+    }
+
+    fn compile_value(&mut self, value: Value) -> Result<()> {
+        match value {
+            Value::Integer(_)
+            | Value::Float(_)
+            | Value::Boolean(_)
+            | Value::Char(_)
+            | Value::List(_)
+            | Value::String(_)
+            | Value::Address(_) => self.compile_constant(value),
+            Value::Function(ref callable) => {
+                if callable.is_lambda() {
+                    self.compile_constant(value)
+                } else {
+                    self.add_function(callable.clone())
+                }
+            }
+            Value::Token(token) => self.compile_token(token),
         }
     }
 
@@ -99,6 +119,7 @@ impl Compiler {
                 self.compile_word_call(&word)?;
                 Ok(())
             }
+            TokenType::MacroStart => unimplemented!("this gets handled by the scanner"),
             TokenType::Lambda => todo!(),
             TokenType::Error => todo!(),
             TokenType::Eof => todo!(),
@@ -234,14 +255,23 @@ impl Compiler {
 
         Ok(())
     }
+
+    /// Adds a function defined in a macro to the environment
+    fn add_function(&mut self, callable: Callable) -> Result<()> {
+        if let Some(env) = self.environment.as_ref() {
+            env.borrow_mut().add_to_op_table(shared(callable));
+            Ok(())
+        } else {
+            Err(Error::CompilerError(CompilerError::MissingEnvironment))
+        }
+    }
 }
 
 impl Compile for Compiler {
-    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()> {
+    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Value>) -> Result<()> {
         self.environment = Some(env);
-        let tokens: Result<Vec<Token>> = tokens.into_iter().collect();
-        for token in tokens? {
-            self.compile_token(token)?;
+        for token in tokens {
+            self.compile_value(token)?;
         }
         self.compile_op(OpCode::Return)?;
         Ok(())

@@ -119,6 +119,7 @@ pub enum CompilerError {
     UnmatchedBrace,
     UndefinedWord(String),
     InvalidFunction(String),
+    MissingEnvironment,
 }
 
 impl fmt::Display for CompilerError {
@@ -129,6 +130,7 @@ impl fmt::Display for CompilerError {
             CompilerError::UnmatchedBrace => write!(f, "Unmatched closing brace"),
             CompilerError::UndefinedWord(s) => write!(f, "Undefined word: {}", s),
             CompilerError::InvalidFunction(s) => write!(f, "Invalid function: {}", s),
+            CompilerError::MissingEnvironment => write!(f, "Compiling with environment"),
         }
     }
 }
