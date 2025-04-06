@@ -74,17 +74,16 @@ pub fn repl() -> Result<()> {
 }
 
 pub trait Scan {
-    fn scan(
-        &mut self,
-        input: &str,
-        environment: Shared<Environment>,
-        compiler: &Box<dyn Compile>,
-        executor: &Box<dyn Execute>,
-    ) -> Vec<Value>;
+    fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>>;
 }
 
 pub trait Compile {
-    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Value>) -> Result<()>;
+    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()>;
+    fn compile_lambda(
+        &mut self,
+        env: Shared<Environment>,
+        tokens: Vec<Result<Token>>,
+    ) -> Result<()>;
 }
 
 pub trait Execute {
@@ -120,19 +119,14 @@ impl Tardi {
         self.input = None;
     }
 
-    pub fn scan(&mut self, input: &str) -> Result<Vec<Value>> {
+    pub fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
         log::debug!("input : {:?}", input);
         let input = input.to_string();
         self.input = Some(input);
-        Ok(self.scanner.scan(
-            self.input.as_ref().unwrap(),
-            self.environment.clone(),
-            &self.compiler,
-            &self.executor,
-        ))
+        self.scanner.scan(self.input.as_ref().unwrap())
     }
 
-    pub fn compile(&mut self, tokens: Vec<Value>) -> Result<Shared<Environment>> {
+    pub fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Shared<Environment>> {
         log::debug!("tokens: {:?}", tokens);
         self.compiler.compile(self.environment.clone(), tokens)?;
         Ok(self.environment.clone())

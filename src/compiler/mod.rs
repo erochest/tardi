@@ -268,12 +268,26 @@ impl Compiler {
 }
 
 impl Compile for Compiler {
-    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Value>) -> Result<()> {
+    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()> {
         self.environment = Some(env);
         for token in tokens {
-            self.compile_value(token)?;
+            let token = token?;
+            self.compile_token(token)?;
         }
         self.compile_op(OpCode::Return)?;
+        Ok(())
+    }
+
+    fn compile_lambda(
+        &mut self,
+        env: Shared<Environment>,
+        tokens: Vec<Result<Token>>,
+    ) -> Result<()> {
+        let index = self.start_function();
+        self.compile(env, tokens)?;
+        // TODO: probably need to clean up the function we in-process.
+        // I'm not fixing it now because I need to do that everywhere.
+        let function = self.end_function()?;
         Ok(())
     }
 }

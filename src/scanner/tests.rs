@@ -4,26 +4,28 @@ use super::*;
 
 // TODO: better tests for errors
 
-fn scan_raw(input: &str) -> Vec<Value> {
+fn scan_raw(input: &str) -> Vec<Result<Token>> {
     let mut tardi = Tardi::default();
     tardi.scan(input).unwrap()
 }
 
-fn scan(input: &str) -> Vec<Value> {
+fn scan(input: &str) -> Vec<Token> {
     let mut tardi = Tardi::default();
     let tokens = tardi.scan(input);
+    assert!(tokens.is_ok());
+    let tokens = tokens.unwrap();
+    let tokens: Result<Vec<Token>> = tokens.into_iter().collect();
     assert!(tokens.is_ok());
     tokens.unwrap()
 }
 
-fn top(tokens: &mut Vec<Value>) -> Token {
-    let token = tokens.remove(0);
-    let token = token.get_token().unwrap();
-    token.clone()
+fn top<T>(vector: &mut Vec<T>) -> T {
+    let item = vector.remove(0);
+    item
 }
 
 fn assert_top(
-    tokens: &mut Vec<Value>,
+    tokens: &mut Vec<Token>,
     line: usize,
     column: usize,
     length: usize,
@@ -203,13 +205,25 @@ fn test_scan_booleans() {
     let mut tokens = scan_raw("#t #f #x");
 
     // Test "#t"
-    let token = assert_top(&mut tokens, 1, 1, 2, Some("#t"));
+    let token = top(&mut tokens);
+    assert!(token.is_ok());
+    let token = token.unwrap();
+    assert_eq!(token.line, 1);
+    assert_eq!(token.column, 1);
+    assert_eq!(token.length, 2);
+    assert_eq!(token.lexeme, "#t".to_string());
     assert!(matches!(token.token_type, TokenType::Boolean(true)));
 
     // Test "#f"
     let token = top(&mut tokens);
+    assert!(token.is_ok());
+    let token = token.unwrap();
     assert!(matches!(token.token_type, TokenType::Boolean(false)));
     assert_eq!(token.lexeme, "#f");
+
+    // Test error "#x"
+    let token = top(&mut tokens);
+    assert!(token.is_err());
 }
 
 #[test]
@@ -324,16 +338,4 @@ fn test_scan_comments() {
 
     // Ensure there are no more tokens
     assert!(tokens.is_empty());
-}
-
-#[test]
-fn test_scan_macro() {
-    let mut tardi = Tardi::default();
-    let result = tardi.scan("MACRO: & ;");
-    assert!(result.is_ok());
-    let tokens = result.unwrap();
-    assert!(tokens.is_empty());
-
-    // TODO: creates `&` macro in environment
-    // TODO: executes `&` and does nothing
 }

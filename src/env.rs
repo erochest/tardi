@@ -6,6 +6,8 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::result;
 
+// TODO: need documentation for what these are, how they're used, and the methods that operate on these below
+// TODO: add something to store macros
 #[derive(Default)]
 pub struct Environment {
     constants: Vec<Value>,

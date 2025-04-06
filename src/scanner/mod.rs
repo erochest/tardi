@@ -6,7 +6,7 @@ use super::Scan;
 use crate::env::Environment;
 use crate::error::{Error, Result, ScannerError};
 use crate::shared::{shared, Shared};
-use crate::vm::value::SharedValue;
+use crate::vm::value::{Callable, Function, SharedValue};
 use crate::{Compile, Execute, Value};
 use std::result;
 
@@ -382,15 +382,32 @@ impl Scanner {
         }))
     }
 
-    pub fn scan_token(&mut self) -> Result<Token> {
-        todo!()
+    pub fn scan_token(&mut self) -> Result<Value> {
+        let token = self.next().ok_or(ScannerError::UnexpectedEndOfInput)??;
+        Ok(Value::Token(token))
     }
 
-    pub fn scan_token_list(&mut self, delimiter: &Token) -> Result<Vec<Token>> {
-        todo!()
+    pub fn scan_token_list(&mut self, delimiter: &TokenType) -> Result<Vec<Value>> {
+        let mut buffer = Vec::new();
+
+        loop {
+            if let Some(token) = self.next() {
+                let token = token?;
+                if token.token_type == *delimiter {
+                    break;
+                }
+                buffer.push(Value::Token(token));
+            } else {
+                return Err(ScannerError::UnexpectedEndOfInput.into());
+            }
+        }
+
+        Ok(buffer)
     }
 
-    pub fn scan_value_list(&mut self, delimiter: &Token) -> Result<Vec<SharedValue>> {
+    // TODO: when this is done, can I reimplement `scan` to be
+    // `scan_value_list(TokenType::EOF)`?
+    pub fn scan_value_list(&mut self, delimiter: &TokenType) -> Result<Vec<SharedValue>> {
         todo!()
     }
 }
@@ -402,30 +419,37 @@ impl Default for Scanner {
 }
 
 impl Scan for Scanner {
-    fn scan(
-        &mut self,
-        input: &str,
-        environment: Shared<Environment>,
-        compile: &Box<dyn Compile>,
-        executor: &Box<dyn Execute>,
-    ) -> Vec<Value> {
+    fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
         self.set_source(input);
+        // TODO: needs to populate scanning functions in environment
+        // TODO: needs to check if they're there first though
 
         // TODO: first step is to read Value's not, Token's
-        let token_iter = self.into_iter();
         let mut buffer = Vec::new();
-        while let Some(result) = token_iter.next() {
-            if let Ok(token) = result {
-                if let TokenType::MacroStart = token.token_type {
-                    // the closing token
-                    let closing_token = token_iter.next();
-                    // TODO: read and compile values to `;`
-                }
-                buffer.push(Value::Token(token));
-            }
+        while let Some(result) = self.next() {
+            // if let Ok(token) = result {
+            //     if let TokenType::MacroStart = token.token_type {
+            //         // TODO: use scan_token
+            //         let trigger = self.scan_token()?;
+            //         // TODO: use scan_value_list instead here
+            //         let body = self.scan_token_list(&TokenType::Word(";".to_string()))?;
+            //         // TODO: compile the body
+            //         // TODO: get the compiled body's ip
+            //         let function = Callable::Fn(Function {
+            //             name: Some(trigger.to_string()),
+            //             words: body.iter().map(|v| v.to_string()).collect(),
+            //             ip: todo!(),
+            //         });
+            //     }
+            // TODO: check in the env if this is a macro trigger
+            // TODO: load VM and env to execute the macro
+            // TODO: call the macro
+            // TODO: get the macro results
+            buffer.push(result);
+            // }
         }
 
-        buffer
+        Ok(buffer)
     }
 }
 

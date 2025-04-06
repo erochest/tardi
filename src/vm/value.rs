@@ -7,6 +7,7 @@ use crate::error::{Result, VMError};
 use crate::scanner::{Token, TokenType};
 use crate::vm::{OpFn, VM};
 
+// TODO: add flag or something for a macro
 /// Function structure for user-defined functions and lambdas
 #[derive(Debug, Clone)]
 pub struct Function {

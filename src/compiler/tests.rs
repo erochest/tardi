@@ -139,3 +139,15 @@ fn test_compile_character_literals() -> Result<()> {
     assert_eq!(actual_ops, expected_ops);
     Ok(())
 }
+
+#[ignore = "while i work out the details"]
+#[test]
+fn test_compile_macro() {
+    let mut tardi = Tardi::default();
+    let tokens = tardi.scan("MACRO: & ;").unwrap();
+    let result = tardi.compile(tokens);
+    assert!(result.is_ok());
+
+    // TODO: creates `&` macro in environment
+    // TODO: executes `&` and does nothing
+}

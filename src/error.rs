@@ -88,6 +88,7 @@ pub enum ScannerError {
     UnterminatedString,
     UnterminatedChar,
     InvalidEscapeSequence(String),
+    UnexpectedEndOfInput,
 }
 
 impl fmt::Display for ScannerError {
@@ -99,6 +100,7 @@ impl fmt::Display for ScannerError {
             ScannerError::UnterminatedString => write!(f, "Unterminated string"),
             ScannerError::UnterminatedChar => write!(f, "Unterminated character literal"),
             ScannerError::InvalidEscapeSequence(s) => write!(f, "Invalid escape sequence: {}", s),
+            ScannerError::UnexpectedEndOfInput => write!(f, "End of input"),
         }
     }
 }
