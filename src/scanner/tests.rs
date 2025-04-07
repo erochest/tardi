@@ -430,3 +430,58 @@ fn test_scan_token() {
     let token = scanner.scan_token();
     assert!(token.is_none());
 }
+
+#[test]
+fn test_scan_tokens_until() {
+    let mut scanner = Scanner::new();
+    scanner.set_source("\n: double 2 * ;\n7 double\n");
+
+    let token = scanner.scan_token();
+    assert!(
+        token.is_some_and(|r| r.is_ok_and(|t| t.token_type == TokenType::Word(":".to_string())))
+    );
+
+    let tokens = scanner.scan_tokens_until(TokenType::Word(";".to_string()));
+    assert!(tokens.is_ok());
+    let tokens = tokens.unwrap();
+    let tokens = tokens.into_iter().collect::<Result<Vec<_>>>();
+    assert!(tokens.is_ok());
+    let tokens = tokens.unwrap();
+    assert_eq!(tokens.len(), 3);
+    assert_eq!(
+        tokens[0],
+        Token {
+            token_type: TokenType::Word("double".to_string()),
+            line: 2,
+            column: 3,
+            offset: 3,
+            length: 6,
+            lexeme: "double".to_string()
+        }
+    );
+    assert_eq!(
+        tokens[1],
+        Token {
+            token_type: TokenType::Integer(2),
+            line: 2,
+            column: 10,
+            offset: 10,
+            length: 1,
+            lexeme: "2".to_string()
+        }
+    );
+    assert_eq!(
+        tokens[2],
+        Token {
+            token_type: TokenType::Star,
+            line: 2,
+            column: 12,
+            offset: 12,
+            length: 1,
+            lexeme: "*".to_string()
+        }
+    );
+
+    let token = scanner.scan_token();
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.token_type == TokenType::Integer(7))));
+}

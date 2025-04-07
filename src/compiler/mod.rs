@@ -33,12 +33,29 @@ impl Compiler {
     }
 
     fn pass1(&mut self, tokens: Vec<Result<Token>>) -> Result<Vec<Value>> {
-        Ok(tokens
+        // TODO: needs to populate scanning functions in environment
+        // TODO: needs to check if they're there first though
+        let tokens = tokens
             .into_iter()
-            .collect::<Result<Vec<_>>>()?
+            .collect::<Result<Vec<Token>>>()?
             .into_iter()
-            .map(Value::Token)
-            .collect())
+            .collect::<Vec<_>>();
+        let tokens_len = tokens.len();
+        let mut i = 0;
+        let mut buffer = Vec::new();
+
+        while i < tokens_len {
+            if let Some(token) = tokens.get(i) {
+                i += 1;
+                if let TokenType::MacroStart = token.token_type {
+                    i = self.compile_macro(&mut buffer, i, &tokens);
+                } else {
+                    buffer.push(Value::Token(token.clone()));
+                }
+            }
+        }
+
+        Ok(buffer)
     }
 
     fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
@@ -283,6 +300,28 @@ impl Compiler {
         } else {
             Err(Error::CompilerError(CompilerError::MissingEnvironment))
         }
+    }
+
+    // if let Ok(token) = result {
+    //     if let TokenType::MacroStart = token.token_type {
+    //         // TODO: use scan_token
+    //         let trigger = self.scan_token()?;
+    //         // TODO: use scan_value_list instead here
+    //         let body = self.scan_token_list(&TokenType::Word(";".to_string()))?;
+    //         // TODO: compile the body
+    //         // TODO: get the compiled body's ip
+    //         let function = Callable::Fn(Function {
+    //             name: Some(trigger.to_string()),
+    //             words: body.iter().map(|v| v.to_string()).collect(),
+    //             ip: todo!(),
+    //         });
+    //     }
+    // TODO: check in the env if this is a macro trigger
+    // TODO: load VM and env to execute the macro
+    // TODO: call the macro
+    // TODO: get the macro results
+    fn compile_macro(&self, buffer: &mut Vec<Value>, i: usize, tokens: &[Token]) -> usize {
+        todo!()
     }
 }
 

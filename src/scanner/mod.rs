@@ -430,7 +430,19 @@ impl Scan for Scanner {
     }
 
     fn scan_tokens_until(&mut self, token_type: TokenType) -> Result<Vec<Result<Token>>> {
-        todo!()
+        let mut buffer = Vec::new();
+
+        while let Some(token) = self.scan_token() {
+            match token {
+                Ok(token) if token.token_type == token_type => break,
+                Ok(token) if token.token_type == TokenType::EndOfInput => {
+                    return Err(ScannerError::UnexpectedEndOfInput.into())
+                }
+                _ => buffer.push(token),
+            }
+        }
+
+        Ok(buffer)
     }
 
     fn read_string_until(&mut self, delimiter: String) -> Result<String> {
