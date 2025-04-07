@@ -46,15 +46,6 @@ impl Scanner {
         }
     }
 
-    fn set_source(&mut self, source: &str) {
-        self.source = source.to_string();
-        self.chars = self.source.chars().collect();
-        self.index = 0;
-        self.line = 1;
-        self.column = 1;
-        self.offset = 0;
-    }
-
     /// Scans hexadecimal digits up to the specified length
     fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32> {
         let mut value = 0u32;
@@ -421,35 +412,29 @@ impl Default for Scanner {
 impl Scan for Scanner {
     fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
         self.set_source(input);
-        // TODO: needs to populate scanning functions in environment
-        // TODO: needs to check if they're there first though
+        let tokens = self.collect();
+        Ok(tokens)
+    }
 
-        // TODO: first step is to read Value's not, Token's
-        let mut buffer = Vec::new();
-        while let Some(result) = self.next() {
-            // if let Ok(token) = result {
-            //     if let TokenType::MacroStart = token.token_type {
-            //         // TODO: use scan_token
-            //         let trigger = self.scan_token()?;
-            //         // TODO: use scan_value_list instead here
-            //         let body = self.scan_token_list(&TokenType::Word(";".to_string()))?;
-            //         // TODO: compile the body
-            //         // TODO: get the compiled body's ip
-            //         let function = Callable::Fn(Function {
-            //             name: Some(trigger.to_string()),
-            //             words: body.iter().map(|v| v.to_string()).collect(),
-            //             ip: todo!(),
-            //         });
-            //     }
-            // TODO: check in the env if this is a macro trigger
-            // TODO: load VM and env to execute the macro
-            // TODO: call the macro
-            // TODO: get the macro results
-            buffer.push(result);
-            // }
-        }
+    fn set_source(&mut self, input: &str) {
+        self.source = input.to_string();
+        self.chars = self.source.chars().collect();
+        self.index = 0;
+        self.line = 1;
+        self.column = 1;
+        self.offset = 0;
+    }
 
-        Ok(buffer)
+    fn scan_token(&mut self) -> Result<Token> {
+        todo!()
+    }
+
+    fn scan_tokens_until(&mut self, token_type: TokenType) -> Result<Vec<Result<Token>>> {
+        todo!()
+    }
+
+    fn read_string_until(&mut self, delimiter: String) -> Result<String> {
+        todo!()
     }
 }
 
