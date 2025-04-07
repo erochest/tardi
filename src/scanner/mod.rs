@@ -29,6 +29,9 @@ pub struct Scanner {
 
     /// Current offset from start of source (0-based)
     offset: usize,
+
+    /// Has the scanner reached the EndOfInput for this source?
+    end_of_input: bool,
 }
 
 impl Scanner {
@@ -43,6 +46,7 @@ impl Scanner {
             line: 1,
             column: 1,
             offset: 0,
+            end_of_input: false,
         }
     }
 
@@ -373,11 +377,6 @@ impl Scanner {
         }))
     }
 
-    pub fn scan_token(&mut self) -> Result<Value> {
-        let token = self.next().ok_or(ScannerError::UnexpectedEndOfInput)??;
-        Ok(Value::Token(token))
-    }
-
     pub fn scan_token_list(&mut self, delimiter: &TokenType) -> Result<Vec<Value>> {
         let mut buffer = Vec::new();
 
@@ -423,10 +422,11 @@ impl Scan for Scanner {
         self.line = 1;
         self.column = 1;
         self.offset = 0;
+        self.end_of_input = false;
     }
 
-    fn scan_token(&mut self) -> Result<Token> {
-        todo!()
+    fn scan_token(&mut self) -> Option<Result<Token>> {
+        self.next()
     }
 
     fn scan_tokens_until(&mut self, token_type: TokenType) -> Result<Vec<Result<Token>>> {
@@ -442,6 +442,10 @@ impl Iterator for Scanner {
     type Item = result::Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.end_of_input {
+            return None;
+        }
+
         // Skip any whitespace before the next token
         self.skip_whitespace();
 
@@ -451,7 +455,20 @@ impl Iterator for Scanner {
         let start_offset = self.offset;
 
         // Get next character
-        let c = self.next_char()?;
+        let c = self.next_char();
+
+        if c.is_none() {
+            self.end_of_input = true;
+            return Some(Ok(Token::new(
+                TokenType::EndOfInput,
+                self.line,
+                self.column,
+                self.offset,
+                0,
+                String::new(),
+            )));
+        }
+        let c = c.unwrap();
 
         // Create token based on character
         let result = match c {

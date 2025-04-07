@@ -45,7 +45,6 @@ impl Compiler {
         for value in values {
             self.compile_value(value)?;
         }
-        self.compile_op(OpCode::Return)?;
         Ok(())
     }
 
@@ -139,7 +138,10 @@ impl Compiler {
             TokenType::MacroStart => unimplemented!("this gets handled by the scanner"),
             TokenType::Lambda => todo!(),
             TokenType::Error => todo!(),
-            TokenType::Eof => todo!(),
+            TokenType::EndOfInput => {
+                self.compile_op(OpCode::Return)?;
+                Ok(())
+            }
         }
     }
 

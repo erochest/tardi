@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 
 /// Represents a token's type and any associated literal value
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum TokenType {
     // Literals
     Integer(i64),
@@ -68,11 +68,11 @@ pub enum TokenType {
 
     // Special tokens
     Error,
-    Eof,
+    EndOfInput,
 }
 
 /// Represents a token in the source code
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Token {
     /// The type of token and any associated literal value
     pub token_type: TokenType,

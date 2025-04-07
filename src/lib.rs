@@ -76,7 +76,7 @@ pub fn repl() -> Result<()> {
 pub trait Scan {
     fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>>;
     fn set_source(&mut self, input: &str);
-    fn scan_token(&mut self) -> Result<Token>;
+    fn scan_token(&mut self) -> Option<Result<Token>>;
     fn scan_tokens_until(&mut self, token_type: TokenType) -> Result<Vec<Result<Token>>>;
     fn read_string_until(&mut self, delimiter: String) -> Result<String>;
 }

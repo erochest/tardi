@@ -336,8 +336,9 @@ fn test_scan_comments() {
     assert!(matches!(token.token_type, TokenType::Dup));
     assert_eq!(token.lexeme, "dup");
 
-    // Ensure there are no more tokens
-    assert!(tokens.is_empty());
+    // Ensure there is only the EndOfInput token
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens[0].token_type, TokenType::EndOfInput);
 }
 
 #[test]
@@ -349,4 +350,83 @@ fn test_set_source() {
     assert_eq!(scanner.line, 1);
     assert_eq!(scanner.column, 1);
     assert_eq!(scanner.offset, 0);
+}
+
+#[test]
+fn test_scan_token() {
+    let mut scanner = Scanner::new();
+    scanner.set_source("24 42 * word");
+
+    let token = scanner.scan_token();
+    assert!(matches!(token, Some(Ok(_))));
+    let token = token.unwrap().unwrap();
+    assert_eq!(
+        token,
+        Token {
+            token_type: TokenType::Integer(24),
+            line: 1,
+            column: 1,
+            offset: 0,
+            length: 2,
+            lexeme: "24".to_string()
+        }
+    );
+    let token = scanner.scan_token();
+    assert!(matches!(token, Some(Ok(_))));
+    let token = token.unwrap().unwrap();
+    assert_eq!(
+        token,
+        Token {
+            token_type: TokenType::Integer(42),
+            line: 1,
+            column: 4,
+            offset: 3,
+            length: 2,
+            lexeme: "42".to_string()
+        }
+    );
+    let token = scanner.scan_token();
+    assert!(matches!(token, Some(Ok(_))));
+    let token = token.unwrap().unwrap();
+    assert_eq!(
+        token,
+        Token {
+            token_type: TokenType::Star,
+            line: 1,
+            column: 7,
+            offset: 6,
+            length: 1,
+            lexeme: "*".to_string()
+        }
+    );
+    let token = scanner.scan_token();
+    assert!(matches!(token, Some(Ok(_))));
+    let token = token.unwrap().unwrap();
+    assert_eq!(
+        token,
+        Token {
+            token_type: TokenType::Word("word".to_string()),
+            line: 1,
+            column: 9,
+            offset: 8,
+            length: 4,
+            lexeme: "word".to_string()
+        }
+    );
+    let token = scanner.scan_token();
+    assert!(matches!(token, Some(Ok(_))));
+    let token = token.unwrap().unwrap();
+    assert_eq!(
+        token,
+        Token {
+            token_type: TokenType::EndOfInput,
+            line: 1,
+            column: 13,
+            offset: 12,
+            length: 0,
+            lexeme: "".to_string()
+        }
+    );
+    let token = scanner.scan_token();
+    assert!(token.is_none());
 }
