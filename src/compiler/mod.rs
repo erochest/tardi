@@ -32,6 +32,23 @@ impl Compiler {
         }
     }
 
+    fn pass1(&mut self, tokens: Vec<Result<Token>>) -> Result<Vec<Value>> {
+        Ok(tokens
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .map(Value::Token)
+            .collect())
+    }
+
+    fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
+        for value in values {
+            self.compile_value(value)?;
+        }
+        self.compile_op(OpCode::Return)?;
+        Ok(())
+    }
+
     fn compile_value(&mut self, value: Value) -> Result<()> {
         match value {
             Value::Integer(_)
@@ -270,11 +287,8 @@ impl Compiler {
 impl Compile for Compiler {
     fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()> {
         self.environment = Some(env);
-        for token in tokens {
-            let token = token?;
-            self.compile_token(token)?;
-        }
-        self.compile_op(OpCode::Return)?;
+        let intermediate = self.pass1(tokens)?;
+        self.pass2(intermediate)?;
         Ok(())
     }
 
