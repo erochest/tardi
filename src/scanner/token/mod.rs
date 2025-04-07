@@ -1,5 +1,5 @@
 use crate::error::ScannerError;
-use crate::vm::value::Value;
+use crate::value::Value;
 use std::convert::TryFrom;
 use std::fmt::Display;
 

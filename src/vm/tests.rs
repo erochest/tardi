@@ -1,7 +1,7 @@
 use super::*;
 use crate::env::Environment;
 use crate::error::{Error, VMError};
-use crate::vm::value::{Callable, Function, Value};
+use crate::value::{Callable, Function, Value};
 use crate::Tardi;
 use std::collections::HashMap;
 use std::fmt::Debug;

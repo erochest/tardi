@@ -102,7 +102,6 @@ impl From<Vec<SharedValue>> for Value {
     }
 }
 
-// TODO: move p much everything here out of `vm`
 // -- they're more closely tied to `Environment` and they're part of what
 // bridges across layers
 /// Enum representing different types of values that can be stored on the stack

@@ -1,7 +1,7 @@
 use crate::error::{CompilerError, Error, Result};
 use crate::scanner::{Token, TokenType};
 use crate::shared::{shared, Shared};
-use crate::vm::value::{Callable, Function, SharedValue, Value};
+use crate::value::{Callable, Function, SharedValue, Value};
 use crate::vm::OpCode;
 use crate::Environment;
 

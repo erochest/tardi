@@ -1,5 +1,5 @@
 use crate::shared::Shared;
-use crate::vm::value::{Callable, Function, Value};
+use crate::value::{Callable, Function, Value};
 use crate::vm::{create_op_table, OpCode};
 use std::collections::HashMap;
 use std::convert::TryFrom;

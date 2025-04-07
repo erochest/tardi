@@ -6,7 +6,7 @@ use super::Scan;
 use crate::env::Environment;
 use crate::error::{Error, Result, ScannerError};
 use crate::shared::{shared, Shared};
-use crate::vm::value::{Callable, Function, SharedValue};
+use crate::value::{Callable, Function, SharedValue};
 use crate::{Compile, Execute, Value};
 use std::result;
 

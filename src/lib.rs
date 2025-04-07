@@ -5,6 +5,7 @@ pub mod env;
 pub mod error;
 pub mod scanner;
 pub mod shared;
+pub mod value;
 pub mod vm;
 
 use std::io::{self, Write};
@@ -17,8 +18,7 @@ pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
 use scanner::Token;
-use vm::value::SharedValue;
-pub use vm::value::Value;
+pub use value::Value;
 pub use vm::VM;
 
 /// Run a Tardi source file

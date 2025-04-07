@@ -1,6 +1,5 @@
 use crate::shared::{shared, Shared};
 use log::{log_enabled, Level};
-use value::{Callable, Function};
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
@@ -8,8 +7,7 @@ use crate::error::{Error, Result, VMError};
 pub mod ops;
 pub use self::ops::OpCode;
 
-pub mod value;
-use self::value::{SharedValue, Value};
+use crate::value::{Callable, Function, SharedValue, Value};
 
 use super::Execute;
 
@@ -19,16 +17,16 @@ pub type OpFn = fn(&mut VM) -> Result<()>;
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
 pub struct VM {
     /// The environment being executed
-    environment: Option<Shared<Environment>>,
+    pub environment: Option<Shared<Environment>>,
 
     /// Instruction pointer tracking the current position in the instruction stream
-    ip: usize,
+    pub ip: usize,
 
     /// Data stack for operation arguments and results
-    stack: Vec<SharedValue>,
+    pub stack: Vec<SharedValue>,
 
     /// Return stack for control flow
-    return_stack: Vec<SharedValue>,
+    pub return_stack: Vec<SharedValue>,
 }
 
 impl Default for VM {
