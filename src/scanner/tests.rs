@@ -485,3 +485,28 @@ fn test_scan_tokens_until() {
     let token = scanner.scan_token();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.token_type == TokenType::Integer(7))));
 }
+
+#[test]
+fn test_read_string_until() {
+    let mut scanner = Scanner::new();
+    scanner.set_source("\n<< double 2 * >>\n7 double\n");
+
+    let token = scanner.scan_token();
+    assert!(
+        token.is_some_and(|r| r.is_ok_and(|t| t.token_type == TokenType::Word("<<".to_string())))
+    );
+
+    let result = scanner.read_string_until(">>");
+    assert!(result.is_ok(), "error on {:?}", result);
+    let text_range = result.unwrap();
+    assert_eq!(text_range, " double 2 * ".to_string());
+
+    let token = scanner.scan_token();
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.token_type == TokenType::Integer(7))));
+
+    let result = scanner.read_string_until(">>");
+    assert!(matches!(
+        result,
+        Err(Error::ScannerError(ScannerError::UnexpectedEndOfInput))
+    ));
+}

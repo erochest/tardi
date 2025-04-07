@@ -8,7 +8,7 @@ use crate::error::{Error, Result, ScannerError};
 use crate::shared::{shared, Shared};
 use crate::value::{Callable, Function, SharedValue};
 use crate::{Compile, Execute, Value};
-use std::result;
+use std::{char, result};
 
 /// Scanner that converts source text into a stream of tokens
 pub struct Scanner {
@@ -27,6 +27,7 @@ pub struct Scanner {
     /// Current column number (1-based)
     column: usize,
 
+    // TODO: how is this different than `index`?
     /// Current offset from start of source (0-based)
     offset: usize,
 
@@ -445,8 +446,25 @@ impl Scan for Scanner {
         Ok(buffer)
     }
 
-    fn read_string_until(&mut self, delimiter: String) -> Result<String> {
-        todo!()
+    fn read_string_until(&mut self, delimiter: &str) -> Result<String> {
+        let delimiter: Vec<char> = delimiter.chars().collect();
+        let mut buffer = Vec::new();
+
+        loop {
+            if let Some(c) = self.next_char() {
+                buffer.push(c);
+                if self.chars[self.index..].starts_with(&delimiter) {
+                    for _ in delimiter {
+                        let _ = self.next_char();
+                    }
+                    break;
+                }
+            } else {
+                return Err(ScannerError::UnexpectedEndOfInput.into());
+            }
+        }
+
+        Ok(buffer.iter().collect())
     }
 }
 
