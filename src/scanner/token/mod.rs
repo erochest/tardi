@@ -71,9 +71,65 @@ pub enum TokenType {
     EndOfInput,
 }
 
+fn format_char(c: char) -> String {
+    match c {
+        '\n' => "\n".to_string(),
+        '\r' => "\r".to_string(),
+        '\t' => "\t".to_string(),
+        c => c.to_string(),
+    }
+}
+
+fn format_str(str: &str) -> String {
+    str.chars().map(format_char).collect::<Vec<_>>().join("")
+}
+
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!("impl Display for TokenType")
+        match self {
+            TokenType::Integer(i) => write!(f, "{}", i),
+            TokenType::Float(d) => write!(f, "{}", d),
+            TokenType::Boolean(b) => write!(f, "{}", if *b { "#t" } else { "#f" }),
+            TokenType::Char(c) => write!(f, "'{}'", format_char(*c)),
+            TokenType::String(str) => write!(f, "\"{}\"", format_str(str)),
+            TokenType::Dup => write!(f, "dup"),
+            TokenType::Swap => write!(f, "swap"),
+            TokenType::Rot => write!(f, "rot"),
+            TokenType::Drop => write!(f, "drop"),
+            TokenType::StackSize => write!(f, "stack-size"),
+            TokenType::ToR => write!(f, ">r"),
+            TokenType::RFrom => write!(f, "r>"),
+            TokenType::RFetch => write!(f, "r@"),
+            TokenType::Plus => write!(f, "+"),
+            TokenType::Dash => write!(f, "-"),
+            TokenType::Star => write!(f, "*"),
+            TokenType::Slash => write!(f, "/"),
+            TokenType::EqualEqual => write!(f, "=="),
+            TokenType::BangEqual => write!(f, "!="),
+            TokenType::Less => write!(f, "<"),
+            TokenType::Greater => write!(f, ">"),
+            TokenType::LessEqual => write!(f, "<="),
+            TokenType::GreaterEqual => write!(f, ">="),
+            TokenType::Bang => write!(f, "!"),
+            TokenType::Word(word) => write!(f, "{}", word),
+            TokenType::MacroStart => write!(f, "MACRO:"),
+            TokenType::CreateList => write!(f, "<list>"),
+            TokenType::Append => write!(f, "append"),
+            TokenType::Prepend => write!(f, "prepend"),
+            TokenType::Concat => write!(f, "concat"),
+            TokenType::SplitHead => write!(f, "split-head!"),
+            TokenType::CreateString => write!(f, "<string>"),
+            TokenType::ToString => write!(f, ">string"),
+            TokenType::Utf8ToString => write!(f, "utf8>string"),
+            TokenType::StringConcat => write!(f, "string-concat"),
+            TokenType::Function => write!(f, "<function>"),
+            TokenType::Lambda => write!(f, "<lambda>"),
+            TokenType::Call => write!(f, "call"),
+            TokenType::LeftCurly => write!(f, "{{"),
+            TokenType::RightCurly => write!(f, "}}"),
+            TokenType::Error => write!(f, "<error>"),
+            TokenType::EndOfInput => write!(f, "<end-of-input>"),
+        }
     }
 }
 
@@ -101,7 +157,7 @@ pub struct Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!("impl Display for Token")
+        write!(f, "{}", self.token_type)
     }
 }
 
