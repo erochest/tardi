@@ -62,6 +62,7 @@ fn test_basic_vm_execution() {
         vec![0, 0], // lit operation index followed by constant index
         op_table,
         HashMap::new(),
+        HashMap::new(),
     );
     let mut vm = VM::new();
 
@@ -78,6 +79,7 @@ fn test_invalid_opcode() {
         vec![],
         vec![999], // Invalid opcode
         vec![],
+        HashMap::new(),
         HashMap::new(),
     );
     let mut vm = VM::new();
@@ -118,6 +120,7 @@ fn test_function_and_lambda_operations() {
         ],
         op_table.clone(),
         HashMap::new(),
+        HashMap::new(),
     );
 
     let mut vm = VM::new();
@@ -156,6 +159,7 @@ fn test_function_and_lambda_operations() {
             7,
         ],
         op_table,
+        HashMap::new(),
         HashMap::new(),
     );
 
@@ -403,6 +407,7 @@ fn test_jump_operations() {
         ],
         op_table.clone(),
         HashMap::new(),
+        HashMap::new(),
     );
     let jump_environment = shared(jump_environment);
     let mut vm = VM::new();
@@ -433,6 +438,7 @@ fn test_jump_operations() {
             3, // lit 3
         ],
         op_table,
+        HashMap::new(),
         HashMap::new(),
     );
 

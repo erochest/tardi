@@ -1,9 +1,9 @@
-use crate::error::{CompilerError, Error, Result};
+use crate::error::{CompilerError, Error, Result, ScannerError};
 use crate::scanner::{Token, TokenType};
 use crate::shared::{shared, Shared};
 use crate::value::{Callable, Function, SharedValue, Value};
 use crate::vm::OpCode;
-use crate::{Environment, Scan};
+use crate::{Environment, Execute, Scan};
 
 use super::Compile;
 
@@ -41,30 +41,36 @@ impl Compiler {
         }
     }
 
-    fn pass1<S: Scan>(&mut self, scanner: &mut S, input: &str) -> Result<Vec<Value>> {
+    fn pass1<S: Scan, E: Execute>(
+        &mut self,
+        executor: &mut E,
+        env: Shared<Environment>,
+        scanner: &mut S,
+        input: &str,
+    ) -> Result<Vec<Value>> {
         // TODO: needs to populate scanning functions in environment
         // TODO: needs to check if they're already there first though
-        let tokens = scanner.scan(input)?;
-        let tokens = hoist_result(tokens)?;
-        let tokens_len = tokens.len();
-        let mut i = 0;
+        scanner.set_source(input);
         let mut buffer = Vec::new();
 
-        while i < tokens_len {
-            if let Some(token) = tokens.get(i) {
-                i += 1;
-                if let TokenType::MacroStart = token.token_type {
-                    i = self.compile_macro(&mut buffer, i, &tokens);
-                } else {
-                    buffer.push(Value::Token(token.clone()));
-                }
+        while let Some(token) = scanner.scan_token() {
+            let token = token?;
+            if token.token_type == TokenType::MacroStart {
+                let function = self.compile_macro(executor, env.clone(), scanner)?;
+                env.borrow_mut().add_macro(function)?;
+            } else {
+                buffer.push(Value::Token(token));
             }
         }
 
         Ok(buffer)
     }
 
-    fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
+    // TODO: check in the env if this is a macro trigger
+    // TODO: load VM and env to execute the macro
+    // TODO: call the macro
+    // TODO: get the macro results
+    fn pass2(&mut self, env: Shared<Environment>, values: Vec<Value>) -> Result<()> {
         for value in values {
             self.compile_value(value)?;
         }
@@ -308,50 +314,76 @@ impl Compiler {
         }
     }
 
-    // if let Ok(token) = result {
-    //     if let TokenType::MacroStart = token.token_type {
-    //         // TODO: use scan_token
-    //         let trigger = self.scan_token()?;
-    //         // TODO: use scan_value_list instead here
-    //         let body = self.scan_token_list(&TokenType::Word(";".to_string()))?;
-    //         // TODO: compile the body
-    //         // TODO: get the compiled body's ip
-    //         let function = Callable::Fn(Function {
-    //             name: Some(trigger.to_string()),
-    //             words: body.iter().map(|v| v.to_string()).collect(),
-    //             ip: todo!(),
-    //         });
-    //     }
-    // TODO: check in the env if this is a macro trigger
-    // TODO: load VM and env to execute the macro
-    // TODO: call the macro
-    // TODO: get the macro results
-    fn compile_macro(&self, buffer: &mut Vec<Value>, i: usize, tokens: &[Token]) -> usize {
-        todo!()
+    fn compile_macro<S: Scan, E: Execute>(
+        &mut self,
+        executor: &mut E,
+        env: Shared<Environment>,
+        scanner: &mut S,
+    ) -> Result<Function> {
+        let trigger = scanner
+            .scan_token()
+            .ok_or(ScannerError::UnexpectedEndOfInput)?;
+        let trigger = trigger?;
+
+        let body =
+            self.scan_value_list(executor, env, TokenType::Word(";".to_string()), scanner)?;
+        self.start_function();
+        for value in body {
+            self.compile_value(value)?;
+        }
+        let mut function = self.end_function()?;
+        function.name = Some(trigger.lexeme.clone());
+
+        Ok(function)
+    }
+
+    fn scan_value_list<S: Scan, E: Execute>(
+        &self,
+        executor: &mut E,
+        env: Shared<Environment>,
+        delimiter: TokenType,
+        scanner: &mut S,
+    ) -> Result<Vec<Value>> {
+        let mut buffer = Vec::new();
+
+        while let Some(token) = scanner.scan_token() {
+            let token = token?;
+            if token.token_type == delimiter {
+                return Ok(buffer);
+            }
+            if env.borrow().is_macro_trigger(&token.token_type) {
+                executor.execute_macro(env.clone(), &token.token_type, &mut buffer)?;
+            }
+        }
+
+        Err(ScannerError::UnexpectedEndOfInput.into())
     }
 }
 
 impl Compile for Compiler {
-    fn compile<S: Scan>(
+    fn compile<S: Scan, E: Execute>(
         &mut self,
+        executor: &mut E,
         env: Shared<Environment>,
         scanner: &mut S,
         input: &str,
     ) -> Result<()> {
-        self.environment = Some(env);
-        let intermediate = self.pass1(scanner, input)?;
-        self.pass2(intermediate)?;
+        self.environment = Some(env.clone());
+        let intermediate = self.pass1(executor, env.clone(), scanner, input)?;
+        self.pass2(env, intermediate)?;
         Ok(())
     }
 
-    fn compile_lambda<S: Scan>(
+    // TODO: where is this getting called? still needed?
+    fn compile_lambda<S: Scan, E: Execute>(
         &mut self,
+        executor: &mut E,
         env: Shared<Environment>,
         scanner: &mut S,
         input: &str,
     ) -> Result<()> {
         let index = self.start_function();
-        self.compile(env, scanner, input)?;
+        self.compile(executor, env, scanner, input)?;
         // TODO: probably need to clean up the function we in-process.
         // I'm not fixing it now because I need to do that everywhere.
         let function = self.end_function()?;

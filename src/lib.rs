@@ -82,14 +82,16 @@ pub trait Scan {
 }
 
 pub trait Compile {
-    fn compile<S: Scan>(
+    fn compile<S: Scan, E: Execute>(
         &mut self,
+        executor: &mut E,
         env: Shared<Environment>,
         scanner: &mut S,
         input: &str,
     ) -> Result<()>;
-    fn compile_lambda<S: Scan>(
+    fn compile_lambda<S: Scan, E: Execute>(
         &mut self,
+        executor: &mut E,
         env: Shared<Environment>,
         scanner: &mut S,
         input: &str,
@@ -99,6 +101,12 @@ pub trait Compile {
 pub trait Execute {
     fn run(&mut self, env: Shared<Environment>) -> Result<()>;
     fn stack(&self) -> Vec<Value>;
+    fn execute_macro(
+        &mut self,
+        env: Shared<Environment>,
+        trigger: &TokenType,
+        tokens: &mut Vec<Value>,
+    ) -> Result<()>;
 }
 
 pub struct Tardi {
@@ -137,8 +145,12 @@ impl Tardi {
     }
 
     pub fn compile(&mut self, input: &str) -> Result<Shared<Environment>> {
-        self.compiler
-            .compile(self.environment.clone(), &mut self.scanner, input)?;
+        self.compiler.compile(
+            &mut self.executor,
+            self.environment.clone(),
+            &mut self.scanner,
+            input,
+        )?;
         Ok(self.environment.clone())
     }
 

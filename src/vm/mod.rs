@@ -3,6 +3,7 @@ use log::{log_enabled, Level};
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
+use crate::scanner::TokenType;
 
 pub mod ops;
 pub use self::ops::OpCode;
@@ -551,6 +552,15 @@ impl Execute for VM {
         }
 
         Ok(())
+    }
+
+    fn execute_macro(
+        &mut self,
+        env: Shared<Environment>,
+        trigger: &TokenType,
+        tokens: &mut Vec<Value>,
+    ) -> Result<()> {
+        todo!("execute macro")
     }
 }
 

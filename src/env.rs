@@ -1,3 +1,5 @@
+use crate::error::Result;
+use crate::scanner::TokenType;
 use crate::shared::Shared;
 use crate::value::{Callable, Function, Value};
 use crate::vm::{create_op_table, OpCode};
@@ -14,6 +16,7 @@ pub struct Environment {
     instructions: Vec<usize>,
     op_table: Vec<Shared<Callable>>,
     op_map: HashMap<String, usize>,
+    macro_table: HashMap<String, Function>,
 }
 
 pub struct EnvLoc {
@@ -48,6 +51,7 @@ impl Environment {
             instructions: Vec::new(),
             op_table: Vec::new(),
             op_map: HashMap::new(),
+            macro_table: HashMap::new(),
         }
     }
 
@@ -56,12 +60,14 @@ impl Environment {
         instructions: Vec<usize>,
         op_table: Vec<Shared<Callable>>,
         op_map: HashMap<String, usize>,
+        macro_table: HashMap<String, Function>,
     ) -> Self {
         Environment {
             constants,
             instructions,
             op_table,
             op_map,
+            macro_table,
         }
     }
 
@@ -146,6 +152,16 @@ impl Environment {
         self.op_table.push(callable);
 
         index
+    }
+
+    pub fn add_macro(&mut self, function: Function) -> Result<()> {
+        let key = function.name.clone().unwrap_or_default();
+        self.macro_table.insert(key, function);
+        Ok(())
+    }
+
+    pub fn is_macro_trigger(&self, trigger: &TokenType) -> bool {
+        self.macro_table.contains_key(&trigger.to_string())
     }
 
     pub fn debug(&self) -> String {
@@ -274,6 +290,7 @@ impl Clone for Environment {
             instructions: self.instructions.clone(),
             op_table: self.op_table.clone(),
             op_map: self.op_map.clone(),
+            macro_table: self.macro_table.clone(),
         }
     }
 }

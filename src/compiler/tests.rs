@@ -140,13 +140,23 @@ fn test_compile_character_literals() -> Result<()> {
     Ok(())
 }
 
-#[ignore = "while i work out the details"]
 #[test]
 fn test_compile_macro() {
     let mut tardi = Tardi::default();
-    let result = tardi.compile("MACRO: & ;");
-    assert!(result.is_ok());
 
-    // TODO: creates `&` macro in environment
-    // TODO: executes `&` and does nothing
+    let result = tardi.compile("MACRO: & ;");
+
+    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+    assert!(tardi
+        .environment
+        .borrow()
+        .is_macro_trigger(&TokenType::Word("&".to_string())));
+
+    let result = tardi.compile("40 41 & 42");
+
+    assert!(result.is_ok(), "ERROR MACRO use: {:?}", result);
+    assert_eq!(
+        tardi.stack(),
+        vec![Value::Integer(40), 41.into(), 42.into()]
+    );
 }

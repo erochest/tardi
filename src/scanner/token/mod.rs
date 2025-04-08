@@ -71,6 +71,12 @@ pub enum TokenType {
     EndOfInput,
 }
 
+impl Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!("impl Display for TokenType")
+    }
+}
+
 /// Represents a token in the source code
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Token {
@@ -95,7 +101,7 @@ pub struct Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        todo!("impl Display for Token")
     }
 }
 
