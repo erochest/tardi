@@ -3,7 +3,7 @@ use crate::scanner::{Token, TokenType};
 use crate::shared::{shared, Shared};
 use crate::value::{Callable, Function, SharedValue, Value};
 use crate::vm::OpCode;
-use crate::Environment;
+use crate::{Environment, Scan};
 
 use super::Compile;
 
@@ -24,6 +24,15 @@ impl Default for Compiler {
     }
 }
 
+// TODO: move this somewhere else
+fn hoist_result<T>(input: Vec<Result<T>>) -> Result<Vec<T>> {
+    Ok(input
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .collect())
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
@@ -32,14 +41,11 @@ impl Compiler {
         }
     }
 
-    fn pass1(&mut self, tokens: Vec<Result<Token>>) -> Result<Vec<Value>> {
+    fn pass1<S: Scan>(&mut self, scanner: &mut S, input: &str) -> Result<Vec<Value>> {
         // TODO: needs to populate scanning functions in environment
-        // TODO: needs to check if they're there first though
-        let tokens = tokens
-            .into_iter()
-            .collect::<Result<Vec<Token>>>()?
-            .into_iter()
-            .collect::<Vec<_>>();
+        // TODO: needs to check if they're already there first though
+        let tokens = scanner.scan(input)?;
+        let tokens = hoist_result(tokens)?;
         let tokens_len = tokens.len();
         let mut i = 0;
         let mut buffer = Vec::new();
@@ -326,20 +332,26 @@ impl Compiler {
 }
 
 impl Compile for Compiler {
-    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()> {
+    fn compile<S: Scan>(
+        &mut self,
+        env: Shared<Environment>,
+        scanner: &mut S,
+        input: &str,
+    ) -> Result<()> {
         self.environment = Some(env);
-        let intermediate = self.pass1(tokens)?;
+        let intermediate = self.pass1(scanner, input)?;
         self.pass2(intermediate)?;
         Ok(())
     }
 
-    fn compile_lambda(
+    fn compile_lambda<S: Scan>(
         &mut self,
         env: Shared<Environment>,
-        tokens: Vec<Result<Token>>,
+        scanner: &mut S,
+        input: &str,
     ) -> Result<()> {
         let index = self.start_function();
-        self.compile(env, tokens)?;
+        self.compile(env, scanner, input)?;
         // TODO: probably need to clean up the function we in-process.
         // I'm not fixing it now because I need to do that everywhere.
         let function = self.end_function()?;

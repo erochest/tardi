@@ -144,8 +144,7 @@ fn test_compile_character_literals() -> Result<()> {
 #[test]
 fn test_compile_macro() {
     let mut tardi = Tardi::default();
-    let tokens = tardi.scan("MACRO: & ;").unwrap();
-    let result = tardi.compile(tokens);
+    let result = tardi.compile("MACRO: & ;");
     assert!(result.is_ok());
 
     // TODO: creates `&` macro in environment

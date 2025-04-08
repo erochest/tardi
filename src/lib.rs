@@ -82,11 +82,17 @@ pub trait Scan {
 }
 
 pub trait Compile {
-    fn compile(&mut self, env: Shared<Environment>, tokens: Vec<Result<Token>>) -> Result<()>;
-    fn compile_lambda(
+    fn compile<S: Scan>(
         &mut self,
         env: Shared<Environment>,
-        tokens: Vec<Result<Token>>,
+        scanner: &mut S,
+        input: &str,
+    ) -> Result<()>;
+    fn compile_lambda<S: Scan>(
+        &mut self,
+        env: Shared<Environment>,
+        scanner: &mut S,
+        input: &str,
     ) -> Result<()>;
 }
 
@@ -98,17 +104,17 @@ pub trait Execute {
 pub struct Tardi {
     input: Option<String>,
     environment: Shared<Environment>,
-    scanner: Box<dyn Scan>,
-    compiler: Box<dyn Compile>,
-    executor: Box<dyn Execute>,
+    scanner: Scanner,
+    compiler: Compiler,
+    executor: VM,
 }
 
 impl Tardi {
     pub fn new(
         environment: Environment,
-        scanner: Box<dyn Scan>,
-        compiler: Box<dyn Compile>,
-        executor: Box<dyn Execute>,
+        scanner: Scanner,
+        compiler: Compiler,
+        executor: VM,
     ) -> Self {
         Tardi {
             input: None,
@@ -123,16 +129,16 @@ impl Tardi {
         self.input = None;
     }
 
-    pub fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
+    pub fn scan_str(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
         log::debug!("input : {:?}", input);
         let input = input.to_string();
         self.input = Some(input);
-        self.scanner.scan(self.input.as_ref().unwrap())
+        Scan::scan(&mut self.scanner, self.input.as_ref().unwrap())
     }
 
-    pub fn compile(&mut self, tokens: Vec<Result<Token>>) -> Result<Shared<Environment>> {
-        log::debug!("tokens: {:?}", tokens);
-        self.compiler.compile(self.environment.clone(), tokens)?;
+    pub fn compile(&mut self, input: &str) -> Result<Shared<Environment>> {
+        self.compiler
+            .compile(self.environment.clone(), &mut self.scanner, input)?;
         Ok(self.environment.clone())
     }
 
@@ -143,8 +149,7 @@ impl Tardi {
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
         self.reset();
-        let tokens = self.scan(input)?;
-        self.compile(tokens)?;
+        self.compile(input)?;
         self.execute()
     }
 
@@ -156,9 +161,9 @@ impl Tardi {
 impl Default for Tardi {
     fn default() -> Tardi {
         let environment = Environment::with_builtins();
-        let scanner = Box::new(Scanner::default());
-        let compiler = Box::new(Compiler::default());
-        let executor = Box::new(VM::new());
+        let scanner = Scanner::default();
+        let compiler = Compiler::default();
+        let executor = VM::new();
         Tardi::new(environment, scanner, compiler, executor)
     }
 }

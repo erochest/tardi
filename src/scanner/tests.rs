@@ -6,12 +6,12 @@ use super::*;
 
 fn scan_raw(input: &str) -> Vec<Result<Token>> {
     let mut tardi = Tardi::default();
-    tardi.scan(input).unwrap()
+    tardi.scan_str(input).unwrap()
 }
 
 fn scan(input: &str) -> Vec<Token> {
     let mut tardi = Tardi::default();
-    let tokens = tardi.scan(input);
+    let tokens = tardi.scan_str(input);
     assert!(tokens.is_ok());
     let tokens = tokens.unwrap();
     let tokens: Result<Vec<Token>> = tokens.into_iter().collect();
