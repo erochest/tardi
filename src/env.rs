@@ -156,12 +156,17 @@ impl Environment {
 
     pub fn add_macro(&mut self, function: Function) -> Result<()> {
         let key = function.name.clone().unwrap_or_default();
+        log::trace!("Environment::add_macro {:?} {}", key, function.ip);
         self.macro_table.insert(key, function);
         Ok(())
     }
 
     pub fn is_macro_trigger(&self, trigger: &TokenType) -> bool {
         self.macro_table.contains_key(&trigger.to_string())
+    }
+
+    pub fn get_macro(&self, trigger: &TokenType) -> Option<&Function> {
+        self.macro_table.get(&trigger.to_string())
     }
 
     pub fn debug(&self) -> String {

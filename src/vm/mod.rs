@@ -1,5 +1,6 @@
 use crate::shared::{shared, Shared};
 use log::{log_enabled, Level};
+use std::fmt::Debug;
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
@@ -557,11 +558,58 @@ impl Execute for VM {
     fn execute_macro(
         &mut self,
         env: Shared<Environment>,
-        trigger: &TokenType,
-        tokens: &mut Vec<Value>,
-    ) -> Result<()> {
-        todo!("execute macro")
+        _trigger: &TokenType,
+        function: &Function,
+        tokens: &[Value],
+    ) -> Result<Vec<Value>> {
+        if log::log_enabled!(Level::Trace) {
+            trace_list("VM::execute_macro input", 8, tokens);
+        }
+        // Convert the tokens seen already to a form we can work on.
+        let shared_tokens = tokens.into_iter().cloned().map(shared).collect::<Vec<_>>();
+        let value = Value::List(shared_tokens);
+        self.stack.push(shared(value));
+
+        // Set the IP to the macro, run it, and reset the IP to where it was.
+        let macro_ip = function.ip;
+        log::trace!("VM::execute_macro running: ip = {}", macro_ip);
+        let ip = self.ip;
+        self.ip = macro_ip;
+        self.run(env.clone())?;
+        log::trace!("VM::execute_macro restoring ip to {}", ip);
+        self.ip = ip;
+
+        // Get the token list off the stack and return it to the compiler form.
+        if let Some(value) = self.stack.pop() {
+            if let Some(list) = value.borrow_mut().get_list_mut() {
+                let list = list
+                    .into_iter()
+                    .map(|item| item.borrow().clone())
+                    .collect::<Vec<_>>();
+                if log::log_enabled!(Level::Trace) {
+                    trace_list("VM::execute_macro output", 8, &list);
+                }
+                Ok(list)
+            } else {
+                Err(VMError::StackUnderflow.into())
+            }
+        } else {
+            Err(VMError::StackUnderflow.into())
+        }
     }
+}
+
+fn trace_list<T: Debug>(header: &str, items: usize, list: &[T]) {
+    let len = list.len();
+    log::trace!(
+        "{} {:?}",
+        header,
+        if len <= items {
+            list
+        } else {
+            &list[len - items..]
+        }
+    );
 }
 
 // Define the operations

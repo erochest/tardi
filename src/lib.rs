@@ -18,6 +18,7 @@ pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
 use scanner::{Token, TokenType};
+use value::Function;
 pub use value::Value;
 pub use vm::VM;
 
@@ -105,8 +106,9 @@ pub trait Execute {
         &mut self,
         env: Shared<Environment>,
         trigger: &TokenType,
-        tokens: &mut Vec<Value>,
-    ) -> Result<()>;
+        function: &Function,
+        tokens: &[Value],
+    ) -> Result<Vec<Value>>;
 }
 
 pub struct Tardi {

@@ -141,10 +141,11 @@ fn test_compile_character_literals() -> Result<()> {
 }
 
 #[test]
-fn test_compile_macro() {
+fn test_compile_macro_basic() {
+    // env_logger::init();
     let mut tardi = Tardi::default();
 
-    let result = tardi.compile("MACRO: & ;");
+    let result = tardi.execute_str("MACRO: & ;");
 
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
     assert!(tardi
@@ -152,7 +153,7 @@ fn test_compile_macro() {
         .borrow()
         .is_macro_trigger(&TokenType::Word("&".to_string())));
 
-    let result = tardi.compile("40 41 & 42");
+    let result = tardi.execute_str("40 41 & 42");
 
     assert!(result.is_ok(), "ERROR MACRO use: {:?}", result);
     assert_eq!(

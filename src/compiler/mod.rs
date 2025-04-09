@@ -55,23 +55,30 @@ impl Compiler {
 
         while let Some(token) = scanner.scan_token() {
             let token = token?;
+            log::trace!("Compiler::pass1 {:?}", token);
             if token.token_type == TokenType::MacroStart {
                 let function = self.compile_macro(executor, env.clone(), scanner)?;
                 env.borrow_mut().add_macro(function)?;
-            } else {
-                buffer.push(Value::Token(token));
+                continue;
+            } else if let Some(function) = env.borrow().get_macro(&token.token_type) {
+                log::trace!("Compiler::pass1 executing macro {:?}", function);
+                buffer = executor.execute_macro(
+                    env.clone(),
+                    &token.token_type,
+                    function,
+                    &mut buffer,
+                )?;
+                continue;
             }
+            buffer.push(Value::Token(token));
         }
 
         Ok(buffer)
     }
 
-    // TODO: check in the env if this is a macro trigger
-    // TODO: load VM and env to execute the macro
-    // TODO: call the macro
-    // TODO: get the macro results
-    fn pass2(&mut self, env: Shared<Environment>, values: Vec<Value>) -> Result<()> {
+    fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
         for value in values {
+            log::trace!("Compile::pass2 {:?}", value);
             self.compile_value(value)?;
         }
         Ok(())
@@ -215,6 +222,7 @@ impl Compiler {
 
     /// Starts a new function definition by pushing a new Vec<usize> onto the function_stack
     pub fn start_function(&mut self) -> usize {
+        log::trace!("Compiler::start_function");
         self.closure_stack.push(CompileClosure::default());
         self.closure_stack.len() - 1
     }
@@ -222,6 +230,7 @@ impl Compiler {
     /// Ends a function definition by popping the top Vec<usize> from function_stack,
     /// appending it to the main instructions, and returning the start index
     pub fn end_function(&mut self) -> Result<Function> {
+        log::trace!("Compiler::end_function");
         if let Some(closure) = self.closure_stack.pop() {
             let jump_target = self
                 .environment
@@ -239,6 +248,7 @@ impl Compiler {
                         .extend_instructions(closure.instructions.clone())
                 })
                 .unwrap_or_default();
+            log::trace!("Compiler::end_function: {} ({:?})", ip, closure.words);
             Ok(Function {
                 name: None,
                 words: closure.words,
@@ -327,10 +337,9 @@ impl Compiler {
 
         let body =
             self.scan_value_list(executor, env, TokenType::Word(";".to_string()), scanner)?;
+        log::trace!("Compiler::compile_macro {:?} => {:?}", trigger.lexeme, body);
         self.start_function();
-        for value in body {
-            self.compile_value(value)?;
-        }
+        self.pass2(body)?;
         let mut function = self.end_function()?;
         function.name = Some(trigger.lexeme.clone());
 
@@ -348,12 +357,17 @@ impl Compiler {
 
         while let Some(token) = scanner.scan_token() {
             let token = token?;
+            log::trace!("Compiler::scan_value_list {:?}", token);
             if token.token_type == delimiter {
+                log::trace!("Compiler::scan_value_list returning {:?}", buffer);
                 return Ok(buffer);
             }
-            if env.borrow().is_macro_trigger(&token.token_type) {
-                executor.execute_macro(env.clone(), &token.token_type, &mut buffer)?;
+            if let Some(function) = env.borrow().get_macro(&token.token_type) {
+                log::trace!("Complire::scan_value_list executing macro {:?}", function);
+                buffer =
+                    executor.execute_macro(env.clone(), &token.token_type, function, &buffer)?;
             }
+            buffer.push(Value::Token(token));
         }
 
         Err(ScannerError::UnexpectedEndOfInput.into())
@@ -370,7 +384,7 @@ impl Compile for Compiler {
     ) -> Result<()> {
         self.environment = Some(env.clone());
         let intermediate = self.pass1(executor, env.clone(), scanner, input)?;
-        self.pass2(env, intermediate)?;
+        self.pass2(intermediate)?;
         Ok(())
     }
 
