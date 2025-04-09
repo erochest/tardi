@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::create_op_table;
 use crate::env::Environment;
 use crate::error::{Error, VMError};
 use crate::value::{Callable, Function, Value};

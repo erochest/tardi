@@ -1,8 +1,9 @@
+use crate::core::create_op_table;
 use crate::error::Result;
 use crate::scanner::TokenType;
 use crate::shared::Shared;
 use crate::value::{Callable, Function, Value};
-use crate::vm::{create_op_table, OpCode};
+use crate::vm::OpCode;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
