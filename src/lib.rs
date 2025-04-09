@@ -13,15 +13,15 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 // Re-exports
-use crate::core::{Compile, Execute, Scan};
+use crate::core::{Compile, Execute, Scan, Tardi};
 use crate::shared::{shared, Shared};
 pub use compiler::Compiler;
 pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
 use scanner::{Token, TokenType};
-use value::Function;
 pub use value::Value;
+use value::{Callable, Function};
 pub use vm::VM;
 
 /// Run a Tardi source file
@@ -74,77 +74,6 @@ pub fn repl() -> Result<()> {
     }
 
     Ok(())
-}
-
-pub struct Tardi {
-    input: Option<String>,
-    environment: Shared<Environment>,
-    scanner: Scanner,
-    compiler: Compiler,
-    executor: VM,
-}
-
-impl Tardi {
-    pub fn new(
-        environment: Environment,
-        scanner: Scanner,
-        compiler: Compiler,
-        executor: VM,
-    ) -> Self {
-        Tardi {
-            input: None,
-            environment: shared(environment),
-            scanner,
-            compiler,
-            executor,
-        }
-    }
-
-    pub fn reset(&mut self) {
-        self.input = None;
-    }
-
-    pub fn scan_str(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
-        log::debug!("input : {:?}", input);
-        let input = input.to_string();
-        self.input = Some(input);
-        Scan::scan(&mut self.scanner, self.input.as_ref().unwrap())
-    }
-
-    pub fn compile(&mut self, input: &str) -> Result<Shared<Environment>> {
-        self.compiler.compile(
-            &mut self.executor,
-            self.environment.clone(),
-            &mut self.scanner,
-            input,
-        )?;
-        Ok(self.environment.clone())
-    }
-
-    pub fn execute(&mut self) -> Result<()> {
-        log::debug!("environment:\n{:?}", self.environment.borrow());
-        self.executor.run(self.environment.clone())
-    }
-
-    pub fn execute_str(&mut self, input: &str) -> Result<()> {
-        self.reset();
-        self.compile(input)?;
-        self.execute()
-    }
-
-    pub fn stack(&self) -> Vec<Value> {
-        self.executor.stack()
-    }
-}
-
-impl Default for Tardi {
-    fn default() -> Tardi {
-        let environment = Environment::with_builtins();
-        let scanner = Scanner::default();
-        let compiler = Compiler::default();
-        let executor = VM::new();
-        Tardi::new(environment, scanner, compiler, executor)
-    }
 }
 
 #[cfg(test)]

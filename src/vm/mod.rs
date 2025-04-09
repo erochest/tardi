@@ -14,7 +14,6 @@ use crate::value::{Callable, Function, SharedValue, Value};
 
 use crate::core::Execute;
 
-// TODO: move `Tardi` into its own module
 // TODO: have `Tardi` own setting up built-ins pointing to methods
 // TODO: change `OpFn` not to take any parameters (will this work with methods?)
 // TODO: define builtins for `scan-token`, `scan-token-list`, and `scan-value-list`

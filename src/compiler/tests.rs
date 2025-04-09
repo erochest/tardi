@@ -1,7 +1,9 @@
 use std::convert::TryFrom;
 
 use super::*;
-use crate::{Environment, Tardi};
+use crate::core::Tardi;
+use crate::env::Environment;
+use crate::value::Value;
 
 use pretty_assertions::assert_eq;
 
@@ -159,5 +161,25 @@ fn test_compile_macro_basic() {
     assert_eq!(
         tardi.stack(),
         vec![Value::Integer(40), 41.into(), 42.into()]
+    );
+}
+
+#[test]
+fn test_compile_macro_scan_token() {
+    env_logger::init();
+    let mut tardi = Tardi::default();
+
+    let result = tardi.execute_str("MACRO: \\ scan-token ;");
+    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+
+    let result = tardi.execute_str("40 42 \\ +");
+    assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
+    let stack = tardi.stack();
+    assert_eq!(stack.len(), 3);
+    assert_eq!(stack[0], 40.into());
+    assert_eq!(stack[1], 42.into());
+    assert_eq!(
+        stack[2],
+        Value::Token(Token::new(TokenType::Plus, 1, 9, 8, 1, "+".to_string()))
     );
 }
