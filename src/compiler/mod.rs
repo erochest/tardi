@@ -1,11 +1,10 @@
+use crate::core::{Compile, Execute, Scan};
+use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError};
 use crate::scanner::{Token, TokenType};
 use crate::shared::{shared, Shared};
 use crate::value::{Callable, Function, SharedValue, Value};
 use crate::vm::OpCode;
-use crate::{Environment, Execute, Scan};
-
-use super::Compile;
 
 #[derive(Default)]
 struct CompileClosure {
