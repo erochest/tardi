@@ -38,6 +38,9 @@ pub enum OpCode {
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
+    ScanToken,
+    ScanTokenList,
+    ScanValueList,
 }
 
 impl From<OpCode> for usize {

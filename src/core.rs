@@ -15,34 +15,42 @@ pub trait Scan {
 }
 
 pub trait Compile {
-    fn compile<S: Scan, E: Execute>(
+    fn compile<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut S,
+        scanner: &mut Scanner,
         input: &str,
     ) -> Result<()>;
-    fn compile_lambda<S: Scan, E: Execute>(
+    fn compile_lambda<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut S,
+        scanner: &mut Scanner,
         input: &str,
     ) -> Result<()>;
 }
 
 pub trait Execute {
-    fn run(&mut self, env: Shared<Environment>) -> Result<()>;
+    fn run(
+        &mut self,
+        env: Shared<Environment>,
+        compiler: &mut Compiler,
+        scanner: &mut Scanner,
+    ) -> Result<()>;
     fn stack(&self) -> Vec<Value>;
     fn execute_macro(
         &mut self,
         env: Shared<Environment>,
+        compiler: &mut Compiler,
+        scanner: &mut Scanner,
         trigger: &TokenType,
         function: &Function,
         tokens: &[Value],
     ) -> Result<Vec<Value>>;
 }
 
+// TODO: make the VM the orchestrator and get rid of this?
 pub struct Tardi {
     pub input: Option<String>,
     pub environment: Shared<Environment>,
@@ -91,7 +99,11 @@ impl Tardi {
 
     pub fn execute(&mut self) -> Result<()> {
         log::debug!("environment:\n{:?}", self.environment.borrow());
-        self.executor.run(self.environment.clone())
+        self.executor.run(
+            self.environment.clone(),
+            &mut self.compiler,
+            &mut self.scanner,
+        )
     }
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
@@ -113,6 +125,14 @@ impl Tardi {
         //     env.add_to_op_table(shared(callable));
         // }
 
+        Ok(())
+    }
+
+    pub(crate) fn execute_ip(&mut self, ip: usize) -> Result<()> {
+        let bookmark = self.executor.ip;
+        self.executor.ip = ip;
+        self.execute()?;
+        self.executor.ip = bookmark;
         Ok(())
     }
 }
@@ -169,6 +189,10 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
     op_table
 }
 
+fn push_op(op_table: &mut Vec<Shared<Callable>>, op: OpFn) {
+    op_table.push(shared(Callable::BuiltIn(op)));
+}
+
 // Helper function to add an operation to the table and map
 // Will be used when we implement function support
 // fn add_word(op_table: &mut Vec<OpFn>, op_map: &mut HashMap<String, usize>, op: OpFn, name: &str) {
@@ -178,137 +202,133 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
 // }
 
 // Define the operations
-pub fn lit(vm: &mut VM) -> Result<()> {
+pub fn lit(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.lit()
 }
 
-pub fn dup(vm: &mut VM) -> Result<()> {
+pub fn dup(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.dup()
 }
 
-pub fn swap(vm: &mut VM) -> Result<()> {
+pub fn swap(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.swap()
 }
 
-pub fn rot(vm: &mut VM) -> Result<()> {
+pub fn rot(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.rot()
 }
 
-pub fn drop_op(vm: &mut VM) -> Result<()> {
+pub fn drop_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.drop_op()
 }
 
-pub fn stack_size(vm: &mut VM) -> Result<()> {
+pub fn stack_size(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.stack_size_op()
 }
 
-pub fn add(vm: &mut VM) -> Result<()> {
+pub fn add(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.add()
 }
 
-pub fn subtract(vm: &mut VM) -> Result<()> {
+pub fn subtract(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.subtract()
 }
 
-pub fn multiply(vm: &mut VM) -> Result<()> {
+pub fn multiply(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.multiply()
 }
 
-pub fn divide(vm: &mut VM) -> Result<()> {
+pub fn divide(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.divide()
 }
 
-fn push_op(op_table: &mut Vec<Shared<Callable>>, op: OpFn) {
-    op_table.push(shared(Callable::BuiltIn(op)));
-}
-
-pub fn to_r(vm: &mut VM) -> Result<()> {
+pub fn to_r(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.to_r()
 }
 
-pub fn r_from(vm: &mut VM) -> Result<()> {
+pub fn r_from(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.r_from()
 }
 
-pub fn r_fetch(vm: &mut VM) -> Result<()> {
+pub fn r_fetch(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.r_fetch()
 }
 
-pub fn not(vm: &mut VM) -> Result<()> {
+pub fn not(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.not()
 }
 
-pub fn equal(vm: &mut VM) -> Result<()> {
+pub fn equal(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.equal()
 }
 
-pub fn less(vm: &mut VM) -> Result<()> {
+pub fn less(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.less()
 }
 
-pub fn greater(vm: &mut VM) -> Result<()> {
+pub fn greater(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.greater()
 }
 
 // List operations
-pub fn create_list(vm: &mut VM) -> Result<()> {
+pub fn create_list(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.create_list()
 }
 
-pub fn append(vm: &mut VM) -> Result<()> {
+pub fn append(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.append()
 }
 
-pub fn prepend(vm: &mut VM) -> Result<()> {
+pub fn prepend(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.prepend()
 }
 
-pub fn concat(vm: &mut VM) -> Result<()> {
+pub fn concat(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.concat()
 }
 
-pub fn split_head(vm: &mut VM) -> Result<()> {
+pub fn split_head(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.split_head()
 }
 
 // String operations
-pub fn create_string(vm: &mut VM) -> Result<()> {
+pub fn create_string(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.create_string()
 }
 
-pub fn to_string(vm: &mut VM) -> Result<()> {
+pub fn to_string(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.to_string()
 }
 
-pub fn utf8_to_string(vm: &mut VM) -> Result<()> {
+pub fn utf8_to_string(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.utf8_to_string()
 }
 
-pub fn string_concat(vm: &mut VM) -> Result<()> {
+pub fn string_concat(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.string_concat()
 }
 
 // Function operations
-pub fn call(vm: &mut VM) -> Result<()> {
+pub fn call(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.call()
 }
 
-pub fn call_stack(vm: &mut VM) -> Result<()> {
-    vm.call_stack()
+pub fn call_stack(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    vm.call_stack(compiler, scanner)
 }
 
-pub fn return_op(vm: &mut VM) -> Result<()> {
+pub fn return_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.return_op()
 }
 
-pub fn jump(vm: &mut VM) -> Result<()> {
+pub fn jump(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.jump()
 }
 
-pub fn jump_stack(vm: &mut VM) -> Result<()> {
+pub fn jump_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.jump_stack()
 }
 
-pub fn function(vm: &mut VM) -> Result<()> {
+pub fn function(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.function()
 }

@@ -6,6 +6,7 @@ use std::{fmt, ptr};
 use crate::error::{Result, VMError};
 use crate::scanner::{Token, TokenType};
 use crate::vm::{OpFn, VM};
+use crate::{Compiler, Scanner};
 
 // TODO: add flag or something for a macro
 /// Function structure for user-defined functions and lambdas
@@ -31,9 +32,9 @@ pub enum Callable {
 }
 
 impl Callable {
-    pub fn call(&self, vm: &mut VM) -> Result<()> {
+    pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
         match self {
-            Callable::BuiltIn(f) => f(vm),
+            Callable::BuiltIn(f) => f(vm, compiler, scanner),
             Callable::Fn(Function {
                 ip: instructions, ..
             }) => {

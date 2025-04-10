@@ -5,6 +5,7 @@ use crate::scanner::{Token, TokenType};
 use crate::shared::{shared, Shared};
 use crate::value::{Callable, Function, SharedValue, Value};
 use crate::vm::OpCode;
+use crate::Scanner;
 
 #[derive(Default)]
 struct CompileClosure {
@@ -40,11 +41,11 @@ impl Compiler {
         }
     }
 
-    fn pass1<S: Scan, E: Execute>(
+    fn pass1<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut S,
+        scanner: &mut Scanner,
         input: &str,
     ) -> Result<Vec<Value>> {
         // TODO: needs to populate scanning functions in environment
@@ -63,6 +64,8 @@ impl Compiler {
                 log::trace!("Compiler::pass1 executing macro {:?}", function);
                 buffer = executor.execute_macro(
                     env.clone(),
+                    self,
+                    scanner,
                     &token.token_type,
                     function,
                     &mut buffer,
@@ -323,11 +326,11 @@ impl Compiler {
         }
     }
 
-    fn compile_macro<S: Scan, E: Execute>(
+    fn compile_macro<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut S,
+        scanner: &mut Scanner,
     ) -> Result<Function> {
         let trigger = scanner
             .scan_token()
@@ -345,12 +348,12 @@ impl Compiler {
         Ok(function)
     }
 
-    fn scan_value_list<S: Scan, E: Execute>(
-        &self,
+    fn scan_value_list<E: Execute>(
+        &mut self,
         executor: &mut E,
         env: Shared<Environment>,
         delimiter: TokenType,
-        scanner: &mut S,
+        scanner: &mut Scanner,
     ) -> Result<Vec<Value>> {
         let mut buffer = Vec::new();
 
@@ -363,8 +366,14 @@ impl Compiler {
             }
             if let Some(function) = env.borrow().get_macro(&token.token_type) {
                 log::trace!("Complire::scan_value_list executing macro {:?}", function);
-                buffer =
-                    executor.execute_macro(env.clone(), &token.token_type, function, &buffer)?;
+                buffer = executor.execute_macro(
+                    env.clone(),
+                    self,
+                    scanner,
+                    &token.token_type,
+                    function,
+                    &buffer,
+                )?;
             }
             buffer.push(Value::Token(token));
         }
@@ -374,11 +383,11 @@ impl Compiler {
 }
 
 impl Compile for Compiler {
-    fn compile<S: Scan, E: Execute>(
+    fn compile<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut S,
+        scanner: &mut Scanner,
         input: &str,
     ) -> Result<()> {
         self.environment = Some(env.clone());
@@ -388,11 +397,11 @@ impl Compile for Compiler {
     }
 
     // TODO: where is this getting called? still needed?
-    fn compile_lambda<S: Scan, E: Execute>(
+    fn compile_lambda<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut S,
+        scanner: &mut Scanner,
         input: &str,
     ) -> Result<()> {
         let index = self.start_function();

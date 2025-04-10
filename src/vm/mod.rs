@@ -14,10 +14,9 @@ use crate::value::{Callable, Function, SharedValue, Value};
 
 use crate::core::Execute;
 
-// TODO: change `OpFn` not to take any parameters (will this work with methods?)
 // TODO: define builtins for `scan-token`, `scan-token-list`, and `scan-value-list`
 /// Function pointer type for VM operations
-pub type OpFn = fn(&mut VM) -> Result<()>;
+pub type OpFn = fn(&mut VM, &mut Compiler, &mut Scanner) -> Result<()>;
 
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
 pub struct VM {
@@ -388,7 +387,7 @@ impl VM {
     }
 
     /// Calls a function from the stack
-    pub fn call_stack(&mut self) -> Result<()> {
+    pub fn call_stack(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
         let func = self.pop()?;
         let vm = self;
 
@@ -396,7 +395,7 @@ impl VM {
             .borrow()
             .get_function()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("function call".to_string())))
-            .and_then(|c| c.call(vm))?;
+            .and_then(|c| c.call(vm, compiler, scanner))?;
 
         Ok(())
     }
@@ -503,7 +502,12 @@ impl Execute for VM {
     }
 
     /// Runs the VM, executing all instructions in the instruction stream
-    fn run(&mut self, env: Shared<Environment>) -> Result<()> {
+    fn run(
+        &mut self,
+        env: Shared<Environment>,
+        compiler: &mut Compiler,
+        scanner: &mut Scanner,
+    ) -> Result<()> {
         self.environment = Some(env.clone());
         let max_ip = self
             .environment
@@ -537,7 +541,7 @@ impl Execute for VM {
             // Execute the operation
             let operation = operation.borrow();
             match *operation {
-                Callable::BuiltIn(f) => match f(self) {
+                Callable::BuiltIn(f) => match f(self, compiler, scanner) {
                     Ok(()) => {}
                     Err(Error::VMError(VMError::Exit)) => {
                         return Ok(());
@@ -561,6 +565,8 @@ impl Execute for VM {
     fn execute_macro(
         &mut self,
         env: Shared<Environment>,
+        compiler: &mut Compiler,
+        scanner: &mut Scanner,
         _trigger: &TokenType,
         function: &Function,
         tokens: &[Value],
@@ -578,7 +584,7 @@ impl Execute for VM {
         log::trace!("VM::execute_macro running: ip = {}", macro_ip);
         let ip = self.ip;
         self.ip = macro_ip;
-        self.run(env.clone())?;
+        self.run(env.clone(), compiler, scanner)?;
         log::trace!("VM::execute_macro restoring ip to {}", ip);
         self.ip = ip;
 

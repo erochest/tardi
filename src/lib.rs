@@ -13,6 +13,7 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 // Re-exports
+// TODO: clean these up
 use crate::core::{Compile, Execute, Scan, Tardi};
 use crate::shared::{shared, Shared};
 pub use compiler::Compiler;

@@ -57,118 +57,104 @@ fn test_stack_operations() {
 
 #[test]
 fn test_basic_vm_execution() {
-    let op_table = create_op_table();
-    let environment = Environment::from_parameters(
-        vec![Value::Integer(123)],
-        vec![0, 0], // lit operation index followed by constant index
-        op_table,
-        HashMap::new(),
-        HashMap::new(),
-    );
-    let mut vm = VM::new();
+    let mut tardi = Tardi::default();
+    let environment = tardi.environment.clone();
+    environment.borrow_mut().constants = vec![Value::Integer(123)];
+    environment.borrow_mut().instructions = vec![0, 0];
 
-    vm.run(shared(environment)).unwrap();
+    tardi.execute_ip(0);
 
     // Verify the result
-    let value = vm.pop().unwrap();
+    let value = tardi.executor.stack.pop().unwrap();
     assert!(matches!(*value.borrow(), Value::Integer(123)));
 }
 
 #[test]
 fn test_invalid_opcode() {
-    let environment = Environment::from_parameters(
-        vec![],
-        vec![999], // Invalid opcode
-        vec![],
-        HashMap::new(),
-        HashMap::new(),
-    );
-    let mut vm = VM::new();
+    let mut tardi = Tardi::default();
+    let env = tardi.environment.clone();
+    env.borrow_mut().instructions = vec![999];
+
+    let result = tardi.execute_ip(0);
 
     assert!(matches!(
-        vm.run(shared(environment)),
+        result,
         Err(Error::VMError(VMError::InvalidOpCode(_, _)))
     ));
 }
 
 #[test]
 fn test_function_and_lambda_operations() {
-    let op_table = create_op_table();
+    let mut tardi = Tardi::default();
+    let env = tardi.environment.clone();
 
-    // Test lambda creation and execution
-    let lambda_environment = Environment::from_parameters(
-        vec![
-            Value::Function(Callable::Fn(Function {
-                name: None,
-                words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
-                ip: 5, // Index where the lambda instructions start
-            })),
-            Value::Integer(2),
-            Value::Integer(3),
-        ],
-        vec![
-            0,
-            0,                          // lit (push lambda)
-            OpCode::CallStack as usize, // call the lambda
-            OpCode::Jump as usize,
-            11,
-            0,
-            1,
-            0,
-            2,
-            OpCode::Multiply as usize,
-            OpCode::Return as usize,
-        ],
-        op_table.clone(),
-        HashMap::new(),
-        HashMap::new(),
-    );
+    env.borrow_mut().constants = vec![
+        Value::Function(Callable::Fn(Function {
+            name: None,
+            words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
+            ip: 5, // Index where the lambda instructions start
+        })),
+        Value::Integer(2),
+        Value::Integer(3),
+    ];
+    env.borrow_mut().instructions = vec![
+        0,
+        0,                          // lit (push lambda)
+        OpCode::CallStack as usize, // call the lambda
+        OpCode::Jump as usize,
+        11,
+        0,
+        1,
+        0,
+        2,
+        OpCode::Multiply as usize,
+        OpCode::Return as usize,
+    ];
 
-    let mut vm = VM::new();
-    vm.run(shared(lambda_environment)).unwrap();
+    tardi.execute_ip(0).unwrap();
 
     // Verify the result of lambda execution (2 * 3 = 6)
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(6)));
+    assert!(matches!(
+        *tardi.executor.stack.pop().unwrap().borrow(),
+        Value::Integer(6)
+    ));
 
     // Test function definition and execution
-    let function_environment = Environment::from_parameters(
-        vec![
-            Value::String("triple".to_string()),
-            Value::Function(Callable::Fn(Function {
-                name: None,
-                words: vec!["3".to_string(), "*".to_string()],
-                ip: 7, // Index where the function instructions start
-            })),
-            Value::Integer(3),
-            Value::Integer(4),
-        ],
-        vec![
-            0,
-            0,
-            0,
-            1,
-            OpCode::Function as usize, // define the function
-            OpCode::Jump as usize,
-            11,
-            0,
-            2,
-            OpCode::Multiply as usize,
-            OpCode::Return as usize,
-            0,
-            3,
-            OpCode::Call as usize,
-            7,
-        ],
-        op_table,
-        HashMap::new(),
-        HashMap::new(),
-    );
+    env.borrow_mut().constants = vec![
+        Value::String("triple".to_string()),
+        Value::Function(Callable::Fn(Function {
+            name: None,
+            words: vec!["3".to_string(), "*".to_string()],
+            ip: 7, // Index where the function instructions start
+        })),
+        Value::Integer(3),
+        Value::Integer(4),
+    ];
+    env.borrow_mut().instructions = vec![
+        0,
+        0,
+        0,
+        1,
+        OpCode::Function as usize, // define the function
+        OpCode::Jump as usize,
+        11,
+        0,
+        2,
+        OpCode::Multiply as usize,
+        OpCode::Return as usize,
+        0,
+        3,
+        OpCode::Call as usize,
+        7,
+    ];
 
-    let mut vm = VM::new();
-    vm.run(shared(function_environment)).unwrap();
+    tardi.execute_ip(0).unwrap();
 
     // Verify the result of function execution (4 * 3 = 12)
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(12)));
+    assert!(matches!(
+        *tardi.executor.stack.pop().unwrap().borrow(),
+        Value::Integer(12)
+    ));
 }
 
 #[test]
@@ -391,65 +377,65 @@ fn test_function_and_lambda_errors() {
 
 #[test]
 fn test_jump_operations() {
-    // Test basic jump
-    let op_table = create_op_table();
-    let jump_environment = Environment::from_parameters(
-        vec![Value::Integer(1), Value::Integer(2), Value::Integer(3)],
-        vec![
-            0,
-            0, // lit 1
-            OpCode::Jump as usize,
-            6, // jump to position 5
-            0,
-            1, // lit 2 (skipped)
-            0,
-            2, // lit 3
-            OpCode::Return as usize,
-        ],
-        op_table.clone(),
-        HashMap::new(),
-        HashMap::new(),
-    );
-    let jump_environment = shared(jump_environment);
-    let mut vm = VM::new();
+    let mut tardi = Tardi::default();
+    let env = tardi.environment.clone();
 
-    vm.run(jump_environment.clone()).unwrap();
+    // Test basic jump
+    env.borrow_mut().constants = vec![Value::Integer(1), Value::Integer(2), Value::Integer(3)];
+    env.borrow_mut().instructions = vec![
+        0,
+        0, // lit 1
+        OpCode::Jump as usize,
+        6, // jump to position 5
+        0,
+        1, // lit 2 (skipped)
+        0,
+        2, // lit 3
+        OpCode::Return as usize,
+    ];
+
+    tardi.execute_ip(0).unwrap();
 
     // Should have pushed 1 and 3, skipping 2
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
+    assert!(matches!(
+        *tardi.executor.stack.pop().unwrap().borrow(),
+        Value::Integer(3)
+    ));
+    assert!(matches!(
+        *tardi.executor.stack.pop().unwrap().borrow(),
+        Value::Integer(1)
+    ));
 
     // Test jump_stack
-    let jump_stack_environment = Environment::from_parameters(
-        vec![
-            Value::Integer(1),
-            Value::Address(7),
-            Value::Integer(2),
-            Value::Integer(3),
-        ],
-        vec![
-            0,
-            0, // lit 1
-            0,
-            1, // lit address(7)
-            OpCode::JumpStack as usize,
-            0,
-            2, // lit 2 (skipped)
-            0,
-            3, // lit 3
-        ],
-        op_table,
-        HashMap::new(),
-        HashMap::new(),
-    );
+    env.borrow_mut().constants = vec![
+        Value::Integer(1),
+        Value::Address(7),
+        Value::Integer(2),
+        Value::Integer(3),
+    ];
+    env.borrow_mut().instructions = vec![
+        0,
+        0, // lit 1
+        0,
+        1, // lit address(7)
+        OpCode::JumpStack as usize,
+        0,
+        2, // lit 2 (skipped)
+        0,
+        3, // lit 3
+    ];
 
-    let jump_stack_environment = shared(jump_stack_environment);
-    let mut vm = VM::new();
-    vm.run(jump_stack_environment.clone()).unwrap();
+    tardi.execute_ip(0).unwrap();
 
     // Should have pushed 1 and 3, skipping 2
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(3)));
-    assert!(matches!(*vm.pop().unwrap().borrow(), Value::Integer(1)));
+    assert!(matches!(
+        *tardi.executor.stack.pop().unwrap().borrow(),
+        Value::Integer(3)
+    ));
+    assert!(matches!(
+        *tardi.executor.stack.pop().unwrap().borrow(),
+        Value::Integer(1)
+    ));
 
     // TODO: uncomment once there's a word for <jump-stack>
     // // Test jump errors

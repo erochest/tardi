@@ -10,14 +10,13 @@ use std::fmt;
 use std::result;
 
 // TODO: need documentation for what these are, how they're used, and the methods that operate on these below
-// TODO: add something to store macros
 #[derive(Default)]
 pub struct Environment {
-    constants: Vec<Value>,
-    instructions: Vec<usize>,
-    op_table: Vec<Shared<Callable>>,
-    op_map: HashMap<String, usize>,
-    macro_table: HashMap<String, Function>,
+    pub constants: Vec<Value>,
+    pub instructions: Vec<usize>,
+    pub op_table: Vec<Shared<Callable>>,
+    pub op_map: HashMap<String, usize>,
+    pub macro_table: HashMap<String, Function>,
 }
 
 pub struct EnvLoc {
@@ -212,6 +211,9 @@ impl Environment {
             | OpCode::JumpStack
             | OpCode::Function => self.debug_simple(op, f, ip),
             OpCode::Jump => self.debug_jump(op, f, ip),
+            OpCode::ScanToken | OpCode::ScanTokenList | OpCode::ScanValueList => {
+                self.debug_simple(op, f, ip)
+            }
         }
     }
 
