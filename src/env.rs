@@ -209,11 +209,13 @@ impl Environment {
             | OpCode::CallStack
             | OpCode::Return
             | OpCode::JumpStack
-            | OpCode::Function => self.debug_simple(op, f, ip),
+            | OpCode::Function
+            | OpCode::ScanToken
+            | OpCode::ScanTokenList
+            | OpCode::ScanValueList
+            | OpCode::Const
+            | OpCode::LitStack => self.debug_simple(op, f, ip),
             OpCode::Jump => self.debug_jump(op, f, ip),
-            OpCode::ScanToken | OpCode::ScanTokenList | OpCode::ScanValueList => {
-                self.debug_simple(op, f, ip)
-            }
         }
     }
 

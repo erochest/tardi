@@ -43,6 +43,8 @@ pub enum TokenType {
     // Words
     Word(String),
     MacroStart, // MACRO:
+    Const,
+    Lit,
 
     // List Operations
     CreateList, // <list>
@@ -65,6 +67,11 @@ pub enum TokenType {
     // Delimiters
     LeftCurly,  // {
     RightCurly, // }
+
+    // Scanning Ops
+    ScanToken,
+    ScanTokenList,
+    ScanValueList,
 
     // Special tokens
     Error,
@@ -113,6 +120,8 @@ impl Display for TokenType {
             TokenType::Bang => write!(f, "!"),
             TokenType::Word(word) => write!(f, "{}", word),
             TokenType::MacroStart => write!(f, "MACRO:"),
+            TokenType::Const => write!(f, "const"),
+            TokenType::Lit => write!(f, "lit"),
             TokenType::CreateList => write!(f, "<list>"),
             TokenType::Append => write!(f, "append"),
             TokenType::Prepend => write!(f, "prepend"),
@@ -127,6 +136,9 @@ impl Display for TokenType {
             TokenType::Call => write!(f, "call"),
             TokenType::LeftCurly => write!(f, "{{"),
             TokenType::RightCurly => write!(f, "}}"),
+            TokenType::ScanToken => write!(f, "scan-token"),
+            TokenType::ScanTokenList => write!(f, "scan-token-list"),
+            TokenType::ScanValueList => write!(f, "scan-value-list"),
             TokenType::Error => write!(f, "<error>"),
             TokenType::EndOfInput => write!(f, "<end-of-input>"),
         }

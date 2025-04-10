@@ -1,6 +1,9 @@
+use std::ops::Deref;
+use std::rc::Rc;
+
 use crate::compiler::Compiler;
 use crate::env::Environment;
-use crate::error::Result;
+use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
 use crate::scanner::{Scanner, Token, TokenType};
 use crate::shared::{shared, Shared};
 use crate::value::{Callable, Function, Value};
@@ -87,7 +90,6 @@ impl Tardi {
     }
 
     pub fn compile(&mut self, input: &str) -> Result<Shared<Environment>> {
-        self.inject_macro_readers()?;
         self.compiler.compile(
             &mut self.executor,
             self.environment.clone(),
@@ -98,7 +100,7 @@ impl Tardi {
     }
 
     pub fn execute(&mut self) -> Result<()> {
-        log::debug!("environment:\n{:?}", self.environment.borrow());
+        log::debug!("environment:\n{:?}", self.environment);
         self.executor.run(
             self.environment.clone(),
             &mut self.compiler,
@@ -114,18 +116,6 @@ impl Tardi {
 
     pub fn stack(&self) -> Vec<Value> {
         self.executor.stack()
-    }
-
-    fn inject_macro_readers(&mut self) -> Result<()> {
-        let env = self.environment.borrow_mut();
-        let op_map = env.get_op_map();
-
-        // if !op_map.contains_key("scan-token") {
-        //     let callable = Callable::Fn(todo!("scan-token implementation"));
-        //     env.add_to_op_table(shared(callable));
-        // }
-
-        Ok(())
     }
 
     pub(crate) fn execute_ip(&mut self, ip: usize) -> Result<()> {
@@ -185,6 +175,11 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
     push_op(&mut op_table, jump);
     push_op(&mut op_table, jump_stack);
     push_op(&mut op_table, function);
+    push_op(&mut op_table, scan_token);
+    push_op(&mut op_table, scan_token_list);
+    push_op(&mut op_table, scan_value_list);
+    push_op(&mut op_table, const_op);
+    push_op(&mut op_table, lit_stack);
 
     op_table
 }
@@ -331,4 +326,75 @@ pub fn jump_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner)
 
 pub fn function(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.function()
+}
+
+pub fn scan_token(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    let token = scanner
+        .scan_token()
+        .ok_or(ScannerError::UnexpectedEndOfInput)??;
+    let value = shared(Value::Token(token));
+    vm.push(value)?;
+    Ok(())
+}
+
+pub fn scan_token_list(
+    _vm: &mut VM,
+    _compiler: &mut Compiler,
+    _scanner: &mut Scanner,
+) -> Result<()> {
+    todo!("scan_token_list")
+}
+
+pub fn scan_value_list(
+    _vm: &mut VM,
+    _compiler: &mut Compiler,
+    _scanner: &mut Scanner,
+) -> Result<()> {
+    todo!("scan_value_list")
+}
+
+pub fn const_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+    let value = vm.pop()?;
+    // This seems sus to me.
+    let value: Value = Value::clone(Rc::unwrap_or_clone(value).borrow().deref());
+
+    let index = if let Some(env) = vm.environment.as_ref() {
+        let env = env.clone();
+        let mut env = (*env).borrow_mut();
+        env.add_constant(value)
+    } else {
+        return Err(CompilerError::MissingEnvironment.into());
+    };
+
+    let address = Value::Address(index);
+    vm.push(shared(address))?;
+
+    Ok(())
+}
+
+pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+    // let index = vm.pop()?;
+    // let index = index
+    //     .borrow()
+    //     .get_address()
+    //     .ok_or(VMError::TypeMismatch(format!("{:?}", index)))?;
+
+    // let value = {
+    //     let env = vm
+    //         .environment
+    //         .as_ref()
+    //         .ok_or_else(|| Error::CompilerError(CompilerError::MissingEnvironment))?
+    //         .borrow();
+    //     let value = env
+    //         .get_constant(index)
+    //         .ok_or_else(|| Error::VMError(VMError::InvalidConstantIndex(index)))?;
+    //     value.clone()
+    // };
+
+    let value = vm.pop()?;
+    let value: Value = Value::clone(Rc::unwrap_or_clone(value).borrow().deref());
+
+    vm.push(shared(Value::Literal(Box::new(value))))?;
+
+    Ok(())
 }

@@ -373,8 +373,13 @@ impl Scanner {
             "<lambda>" => TokenType::Lambda,
             "call" => TokenType::Call,
 
-            // Macros
+            // Macros and scanning functions used in macros
             "MACRO:" => TokenType::MacroStart,
+            "scan-token" => TokenType::ScanToken,
+            "scan-token-list" => TokenType::ScanTokenList,
+            "scan-value-list" => TokenType::ScanValueList,
+            "const" => TokenType::Const,
+            "lit" => TokenType::Lit,
 
             // If it's not a known operator or keyword, it's a word
             _ => TokenType::Word(word),
@@ -397,13 +402,6 @@ impl Scanner {
         }
 
         Ok(buffer)
-    }
-
-    // TODO: when this is done, can I reimplement `scan` to be
-    // `scan_value_list(TokenType::EOF)`?
-    // TODO: how can I remove this since it's handled by the compiler?
-    pub fn scan_value_list(&mut self, delimiter: &TokenType) -> Result<Vec<SharedValue>> {
-        todo!("scan_value_list")
     }
 }
 

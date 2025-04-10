@@ -169,15 +169,23 @@ fn test_compile_macro_scan_token() {
     env_logger::init();
     let mut tardi = Tardi::default();
 
-    let result = tardi.execute_str("MACRO: \\ scan-token ;");
+    let result = tardi.execute_str(
+        r#"
+        MACRO: \
+            dup >r
+            scan-token lit
+            r> append ;
+        "#,
+    );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
-    let result = tardi.execute_str("40 42 \\ +");
+    let result = tardi.execute_str(r#"40 42 \ +"#);
     assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
     let stack = tardi.stack();
     assert_eq!(stack.len(), 3);
     assert_eq!(stack[0], 40.into());
     assert_eq!(stack[1], 42.into());
+    eprintln!("{:#?}", stack[2]);
     assert_eq!(
         stack[2],
         Value::Token(Token::new(TokenType::Plus, 1, 9, 8, 1, "+".to_string()))

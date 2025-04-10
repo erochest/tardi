@@ -41,6 +41,8 @@ pub enum OpCode {
     ScanToken,
     ScanTokenList,
     ScanValueList,
+    Const,
+    LitStack,
 }
 
 impl From<OpCode> for usize {
@@ -86,6 +88,11 @@ impl TryFrom<usize> for OpCode {
             29 => Ok(OpCode::Jump),
             30 => Ok(OpCode::JumpStack),
             31 => Ok(OpCode::Function),
+            32 => Ok(OpCode::ScanToken),
+            33 => Ok(OpCode::ScanTokenList),
+            34 => Ok(OpCode::ScanValueList),
+            35 => Ok(OpCode::Const),
+            36 => Ok(OpCode::LitStack),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

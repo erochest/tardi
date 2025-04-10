@@ -117,6 +117,7 @@ pub enum Value {
     Function(Callable),
     Address(usize),
     Token(Token),
+    Literal(Box<Value>),
 }
 
 impl Value {
@@ -147,6 +148,14 @@ impl Value {
     pub fn get_function_mut(&mut self) -> Option<&mut Callable> {
         if let Value::Function(callable) = self {
             Some(callable)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_address(&self) -> Option<usize> {
+        if let Value::Address(address) = self {
+            Some(*address)
         } else {
             None
         }
@@ -204,6 +213,7 @@ impl fmt::Display for Value {
             },
             Value::Address(addr) => write!(f, "<address {}>", addr),
             Value::Token(token) => write!(f, "{}", token),
+            Value::Literal(value) => write!(f, "<lit {}>", value),
         }
     }
 }
@@ -229,6 +239,8 @@ impl PartialEq for Value {
                 ptr::eq(a, b)
             }
             (Value::Address(a), Value::Address(b)) => a == b,
+            (Value::Token(a), Value::Token(b)) => a == b,
+            (Value::Literal(a), Value::Literal(b)) => a == b,
             _ => false,
         }
     }
@@ -263,7 +275,8 @@ impl PartialOrd for Value {
             }
             (Value::String(a), Value::String(b)) => a.partial_cmp(b),
             (Value::Function(_), Value::Function(_)) => None, // Functions cannot be ordered
-            (Value::Address(a), Value::Address(b)) => a.partial_cmp(b),
+            (Value::Token(a), Value::Token(b)) => a.partial_cmp(b),
+            (Value::Literal(a), Value::Literal(b)) => a.partial_cmp(b),
             _ => None,
         }
     }

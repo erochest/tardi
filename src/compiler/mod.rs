@@ -48,8 +48,6 @@ impl Compiler {
         scanner: &mut Scanner,
         input: &str,
     ) -> Result<Vec<Value>> {
-        // TODO: needs to populate scanning functions in environment
-        // TODO: needs to check if they're already there first though
         scanner.set_source(input);
         let mut buffer = Vec::new();
 
@@ -60,14 +58,14 @@ impl Compiler {
                 let function = self.compile_macro(executor, env.clone(), scanner)?;
                 env.borrow_mut().add_macro(function)?;
                 continue;
-            } else if let Some(function) = env.borrow().get_macro(&token.token_type) {
+            } else if let Some(function) = get_macro(env.clone(), &token.token_type) {
                 log::trace!("Compiler::pass1 executing macro {:?}", function);
                 buffer = executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
                     &token.token_type,
-                    function,
+                    &function,
                     &mut buffer,
                 )?;
                 continue;
@@ -103,6 +101,7 @@ impl Compiler {
                 }
             }
             Value::Token(token) => self.compile_token(token),
+            Value::Literal(lit_value) => self.compile_constant(*lit_value),
         }
     }
 
@@ -174,7 +173,12 @@ impl Compiler {
                 Ok(())
             }
             TokenType::MacroStart => unimplemented!("this gets handled by the scanner"),
+            TokenType::Const => self.compile_op(OpCode::Const),
+            TokenType::Lit => self.compile_op(OpCode::LitStack),
             TokenType::Lambda => todo!(),
+            TokenType::ScanToken => self.compile_op(OpCode::ScanToken),
+            TokenType::ScanTokenList => self.compile_op(OpCode::ScanTokenList),
+            TokenType::ScanValueList => self.compile_op(OpCode::ScanValueList),
             TokenType::Error => todo!(),
             TokenType::EndOfInput => {
                 self.compile_op(OpCode::Return)?;
@@ -342,12 +346,15 @@ impl Compiler {
         log::trace!("Compiler::compile_macro {:?} => {:?}", trigger.lexeme, body);
         self.start_function();
         self.pass2(body)?;
+        self.compile_op(OpCode::Return)?;
         let mut function = self.end_function()?;
         function.name = Some(trigger.lexeme.clone());
 
         Ok(function)
     }
 
+    // TODO: when this is done, can I reimplement `scan` to be
+    // `scan_value_list(TokenType::EOF)`?
     fn scan_value_list<E: Execute>(
         &mut self,
         executor: &mut E,
@@ -364,14 +371,14 @@ impl Compiler {
                 log::trace!("Compiler::scan_value_list returning {:?}", buffer);
                 return Ok(buffer);
             }
-            if let Some(function) = env.borrow().get_macro(&token.token_type) {
-                log::trace!("Complire::scan_value_list executing macro {:?}", function);
+            if let Some(function) = get_macro(env.clone(), &token.token_type) {
+                log::trace!("Compiler::scan_value_list executing macro {:?}", function);
                 buffer = executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
                     &token.token_type,
-                    function,
+                    &function,
                     &buffer,
                 )?;
             }
@@ -380,6 +387,10 @@ impl Compiler {
 
         Err(ScannerError::UnexpectedEndOfInput.into())
     }
+}
+
+fn get_macro(env: Shared<Environment>, trigger: &TokenType) -> Option<Function> {
+    env.borrow().get_macro(trigger).cloned()
 }
 
 impl Compile for Compiler {
@@ -391,7 +402,7 @@ impl Compile for Compiler {
         input: &str,
     ) -> Result<()> {
         self.environment = Some(env.clone());
-        let intermediate = self.pass1(executor, env.clone(), scanner, input)?;
+        let intermediate = self.pass1(executor, env, scanner, input)?;
         self.pass2(intermediate)?;
         Ok(())
     }

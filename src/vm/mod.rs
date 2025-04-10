@@ -14,7 +14,6 @@ use crate::value::{Callable, Function, SharedValue, Value};
 
 use crate::core::Execute;
 
-// TODO: define builtins for `scan-token`, `scan-token-list`, and `scan-value-list`
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM, &mut Compiler, &mut Scanner) -> Result<()>;
 
@@ -472,7 +471,8 @@ impl VM {
 
     fn debug_op(&self) {
         let env_loc = EnvLoc::new(self.environment.clone().unwrap(), self.ip);
-        log::debug!("{:?}", env_loc);
+        let debugged = format!("{:?}", env_loc);
+        log::debug!("{}", debugged.trim_end());
     }
 
     fn debug_stacks(&self) {
@@ -488,7 +488,7 @@ impl VM {
             .map(|v| format!("[{}]", v.borrow()))
             .collect::<Vec<_>>()
             .join(" ");
-        log::trace!("DATA  : {}\nRETURN: {}\n", stack_repr, rstack_repr);
+        log::trace!("DATA  : {}\nRETURN: {}", stack_repr, rstack_repr);
     }
 }
 
