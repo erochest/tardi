@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::core::{Compile, Execute, Scan};
 use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError};
@@ -48,6 +50,13 @@ impl Compiler {
         scanner: &mut Scanner,
         input: &str,
     ) -> Result<Vec<Value>> {
+        if log::log_enabled!(log::Level::Trace) {
+            if input.len() > 3 {
+                log::trace!("Compiler::pass1 {:?}...", &input[..3]);
+            } else {
+                log::trace!("Compiler::pass1 {:?}", input);
+            }
+        }
         scanner.set_source(input);
         let mut buffer = Vec::new();
 
@@ -77,6 +86,13 @@ impl Compiler {
     }
 
     fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
+        if log::log_enabled!(log::Level::Trace) {
+            if values.len() > 3 {
+                log::trace!("Compiler::pass2 {:?}...", &values[..3]);
+            } else {
+                log::trace!("Compiler::pass2 {:?}", values);
+            }
+        }
         for value in values {
             log::trace!("Compile::pass2 {:?}", value);
             self.compile_value(value)?;
@@ -87,6 +103,7 @@ impl Compiler {
     // TODO: I Suspect that this isn't handling the `}` correctly before
     // `scan-token-list`. (hint: it needs to be a literal.)
     fn compile_value(&mut self, value: Value) -> Result<()> {
+        log::trace!("Compiler::compile_value {:?}", value);
         match value {
             Value::Integer(_)
             | Value::Float(_)
@@ -108,6 +125,7 @@ impl Compiler {
     }
 
     fn compile_token(&mut self, token: Token) -> Result<()> {
+        log::trace!("Compiler::compile_token {:?}", token);
         match token.token_type {
             TokenType::Integer(value) => self.compile_constant(value),
             TokenType::Float(value) => self.compile_constant(value),
@@ -191,6 +209,7 @@ impl Compiler {
     /// Adds an opcode to the current function being defined,
     /// or to the main instruction list if no function is being defined
     pub fn compile_op(&mut self, op: OpCode) -> Result<()> {
+        log::trace!("Compiler::compile_op {:?}", op);
         if let Some(closure) = self.closure_stack.last_mut() {
             closure.instructions.push(op.into());
         } else if let Some(e) = self.environment.as_ref() {
@@ -202,12 +221,14 @@ impl Compiler {
     /// Adds an opcode and its argument to the current function being defined,
     /// or to the main instruction list if no function is being defined
     pub fn compile_op_arg(&mut self, op: OpCode, arg: usize) -> Result<()> {
+        log::trace!("Compiler::compile_op_arg {:?} {}", op, arg);
         self.compile_op(op)?;
         self.compile_instruction(arg);
         Ok(())
     }
 
     pub fn compile_instruction(&mut self, arg: usize) {
+        log::trace!("Compiler::comile_instruction {}", arg);
         if let Some(closure) = self.closure_stack.last_mut() {
             closure.instructions.push(arg);
         } else if let Some(e) = self.environment.as_ref() {
@@ -215,7 +236,8 @@ impl Compiler {
         }
     }
 
-    fn compile_constant<T: Into<Value>>(&mut self, value: T) -> Result<()> {
+    fn compile_constant<T: Into<Value> + Debug>(&mut self, value: T) -> Result<()> {
+        log::trace!("Compiler::compile_constant {:?}", value);
         let const_index = self
             .environment
             .as_ref()
@@ -264,6 +286,7 @@ impl Compiler {
         } else {
             // If there's no function being defined, return current instruction pointer
             // TODO: Should this be an error?
+            log::warn!("Compiler::end_function: missing closure");
             Ok(Function {
                 name: None,
                 words: vec![],
@@ -278,6 +301,7 @@ impl Compiler {
 
     /// Compiles a word as a function call
     fn compile_word_call(&mut self, word: &str) -> Result<()> {
+        log::trace!("Compiler::compile_word_call {:?}", word);
         if let Some(index) = self
             .environment
             .as_ref()
@@ -291,21 +315,30 @@ impl Compiler {
             self.compile_op_arg(OpCode::Call, index)?;
             Ok(())
         } else {
-            Err(Error::CompilerError(CompilerError::UndefinedWord(
-                word.to_string(),
-            )))
+            // TODO: get the actual token down here
+            self.compile_constant(Value::Token(Token {
+                token_type: TokenType::Word(word.to_string()),
+                line: 0,
+                column: 0,
+                offset: 0,
+                length: word.len(),
+                lexeme: word.to_string(),
+            }))?;
+            Ok(())
         }
     }
 
     /// Compiles a function definition
     fn compile_function(&mut self) -> Result<()> {
         // The Function opcode expects a name string and a lambda on the stack
+        log::trace!("Compiler::compile_function");
         self.compile_op(OpCode::Function)?;
         Ok(())
     }
 
     /// Compiles a lambda expression
     fn compile_lambda(&mut self) -> Result<()> {
+        log::trace!("Compiler::compile_lambda");
         self.compile_op(OpCode::Return)?;
 
         let function = self.end_function()?;
@@ -323,6 +356,7 @@ impl Compiler {
 
     /// Adds a function defined in a macro to the environment
     fn add_function(&mut self, callable: Callable) -> Result<()> {
+        log::trace!("Compiler::add_function {:?}", callable.get_name());
         if let Some(env) = self.environment.as_ref() {
             env.borrow_mut().add_to_op_table(shared(callable));
             Ok(())
@@ -337,6 +371,7 @@ impl Compiler {
         env: Shared<Environment>,
         scanner: &mut Scanner,
     ) -> Result<Callable> {
+        log::trace!("Compiler::compile_macro");
         let trigger = scanner
             .scan_token()
             .ok_or(ScannerError::UnexpectedEndOfInput)?;
@@ -364,6 +399,7 @@ impl Compiler {
         delimiter: TokenType,
         scanner: &mut Scanner,
     ) -> Result<Vec<Value>> {
+        log::trace!("Compiler::scan_value_list {:?}", delimiter);
         let mut buffer = Vec::new();
 
         while let Some(token) = scanner.scan_token() {

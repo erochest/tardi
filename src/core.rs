@@ -179,6 +179,8 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
     push_op(&mut op_table, "jump-stack", jump_stack);
     push_op(&mut op_table, "<function>", function);
     push_op(&mut op_table, "scan-token", scan_token);
+    push_op(&mut op_table, "scan-token-list", scan_token_list);
+    push_op(&mut op_table, "scan-value-list", scan_value_list);
     push_op(&mut op_table, "lit", lit_stack);
 
     op_table

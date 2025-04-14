@@ -91,13 +91,23 @@ fn test_compile_return_stack_operations() -> Result<()> {
 
 #[test]
 fn test_compile_word() -> Result<()> {
-    let result = compile("custom_word");
-    assert!(result.is_err());
-    if let Err(Error::CompilerError(CompilerError::UndefinedWord(msg))) = result {
-        assert_eq!(msg, "custom_word");
-    } else {
-        panic!("Expected UnsupportedToken error");
-    }
+    let result = compile("custom-word");
+    assert!(result.is_ok());
+    let env = result.unwrap().clone();
+    assert_eq!(
+        env.borrow().constants.last(),
+        // TODO: need to make these values reflect the actual token,
+        // not the half-assed values we're stubbing in
+        Some(&Value::Token(Token {
+            token_type: TokenType::Word("custom-word".to_string()),
+            // line: 1, column: 1, offset: 0,
+            line: 0,
+            column: 0,
+            offset: 0,
+            length: 11,
+            lexeme: "custom-word".to_string(),
+        }))
+    );
     Ok(())
 }
 
@@ -199,15 +209,15 @@ fn test_compile_macro_scan_token_list() {
 
     let result = tardi.execute_str(
         r#"
-            MACRO: {
+            MACRO: [
                 dup >r
-                } scan-token-list
+                ] scan-token-list
                 r> append ;
         "#,
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
-    let result = tardi.execute_str(r#"{ 40 41 42 }"#);
+    let result = tardi.execute_str(r#"[ 40 41 42 ]"#);
     assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
     let stack = tardi.stack();
     assert_eq!(stack.len(), 1);
