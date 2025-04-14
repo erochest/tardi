@@ -414,7 +414,7 @@ impl VM {
             .get_function_mut()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("lambda".to_string())))
             .and_then(|c| {
-                c.set_name(&name_str)?;
+                c.set_name(&name_str);
                 Ok(c.clone())
             })?;
 
@@ -541,7 +541,7 @@ impl Execute for VM {
             // Execute the operation
             let operation = operation.borrow();
             match *operation {
-                Callable::BuiltIn(f) => match f(self, compiler, scanner) {
+                Callable::BuiltIn { function, .. } => match function(self, compiler, scanner) {
                     Ok(()) => {}
                     Err(Error::VMError(VMError::Exit)) => {
                         return Ok(());
@@ -568,7 +568,7 @@ impl Execute for VM {
         compiler: &mut Compiler,
         scanner: &mut Scanner,
         _trigger: &TokenType,
-        function: &Function,
+        callable: &Callable,
         tokens: &[Value],
     ) -> Result<Vec<Value>> {
         if log::log_enabled!(Level::Trace) {
@@ -580,13 +580,25 @@ impl Execute for VM {
         self.stack.push(shared(value));
 
         // Set the IP to the macro, run it, and reset the IP to where it was.
-        let macro_ip = function.ip;
-        log::trace!("VM::execute_macro running: ip = {}", macro_ip);
-        let ip = self.ip;
-        self.ip = macro_ip;
-        self.run(env.clone(), compiler, scanner)?;
-        log::trace!("VM::execute_macro restoring ip to {}", ip);
-        self.ip = ip;
+        match callable {
+            Callable::BuiltIn { name, function } => {
+                log::trace!("VM::execute_macro running {}", name);
+                function(self, compiler, scanner)?;
+            }
+            Callable::Fn(function) => {
+                let macro_ip = function.ip;
+                log::trace!(
+                    "VM::execute_macro running {:?}: ip = {}",
+                    function.name,
+                    macro_ip
+                );
+                let ip = self.ip;
+                self.ip = macro_ip;
+                self.run(env.clone(), compiler, scanner)?;
+                log::trace!("VM::execute_macro restoring ip to {}", ip);
+                self.ip = ip;
+            }
+        }
 
         // Get the token list off the stack and return it to the compiler form.
         if let Some(value) = self.stack.pop() {

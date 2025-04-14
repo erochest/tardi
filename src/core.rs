@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -48,7 +50,7 @@ pub trait Execute {
         compiler: &mut Compiler,
         scanner: &mut Scanner,
         trigger: &TokenType,
-        function: &Function,
+        callable: &Callable,
         tokens: &[Value],
     ) -> Result<Vec<Value>>;
 }
@@ -90,6 +92,7 @@ impl Tardi {
     }
 
     pub fn compile(&mut self, input: &str) -> Result<Shared<Environment>> {
+        log::debug!("input : {}", input);
         self.compiler.compile(
             &mut self.executor,
             self.environment.clone(),
@@ -100,7 +103,7 @@ impl Tardi {
     }
 
     pub fn execute(&mut self) -> Result<()> {
-        log::debug!("environment:\n{:?}", self.environment);
+        log::debug!("environment:\n{:?}", self.environment.borrow());
         self.executor.run(
             self.environment.clone(),
             &mut self.compiler,
@@ -143,49 +146,64 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
     let mut op_table = Vec::with_capacity(size);
 
     // Set up the operation table
-    push_op(&mut op_table, lit);
-    push_op(&mut op_table, dup);
-    push_op(&mut op_table, swap);
-    push_op(&mut op_table, rot);
-    push_op(&mut op_table, drop_op);
-    push_op(&mut op_table, stack_size);
-    push_op(&mut op_table, add);
-    push_op(&mut op_table, subtract);
-    push_op(&mut op_table, multiply);
-    push_op(&mut op_table, divide);
-    push_op(&mut op_table, equal);
-    push_op(&mut op_table, less);
-    push_op(&mut op_table, greater);
-    push_op(&mut op_table, not);
-    push_op(&mut op_table, to_r);
-    push_op(&mut op_table, r_from);
-    push_op(&mut op_table, r_fetch);
-    push_op(&mut op_table, create_list);
-    push_op(&mut op_table, append);
-    push_op(&mut op_table, prepend);
-    push_op(&mut op_table, concat);
-    push_op(&mut op_table, split_head);
-    push_op(&mut op_table, create_string);
-    push_op(&mut op_table, to_string);
-    push_op(&mut op_table, utf8_to_string);
-    push_op(&mut op_table, string_concat);
-    push_op(&mut op_table, call);
-    push_op(&mut op_table, call_stack);
-    push_op(&mut op_table, return_op);
-    push_op(&mut op_table, jump);
-    push_op(&mut op_table, jump_stack);
-    push_op(&mut op_table, function);
-    push_op(&mut op_table, scan_token);
-    push_op(&mut op_table, scan_token_list);
-    push_op(&mut op_table, scan_value_list);
-    push_op(&mut op_table, const_op);
-    push_op(&mut op_table, lit_stack);
+    push_op(&mut op_table, "<lit>", lit);
+    push_op(&mut op_table, "dup", dup);
+    push_op(&mut op_table, "swap", swap);
+    push_op(&mut op_table, "rot", rot);
+    push_op(&mut op_table, "drop", drop_op);
+    push_op(&mut op_table, "stack-size", stack_size);
+    push_op(&mut op_table, "+", add);
+    push_op(&mut op_table, "-", subtract);
+    push_op(&mut op_table, "*", multiply);
+    push_op(&mut op_table, "/", divide);
+    push_op(&mut op_table, "==", equal);
+    push_op(&mut op_table, "<", less);
+    push_op(&mut op_table, ">", greater);
+    push_op(&mut op_table, "!", not);
+    push_op(&mut op_table, ">r", to_r);
+    push_op(&mut op_table, "r>", r_from);
+    push_op(&mut op_table, "r@", r_fetch);
+    push_op(&mut op_table, "create-list", create_list);
+    push_op(&mut op_table, "append", append);
+    push_op(&mut op_table, "prepend", prepend);
+    push_op(&mut op_table, "concat", concat);
+    push_op(&mut op_table, "split-head", split_head);
+    push_op(&mut op_table, "<string>", create_string);
+    push_op(&mut op_table, ">string", to_string);
+    push_op(&mut op_table, "utf8>string", utf8_to_string);
+    push_op(&mut op_table, "string-concat", string_concat);
+    push_op(&mut op_table, "call", call);
+    push_op(&mut op_table, "call-stack", call_stack);
+    push_op(&mut op_table, "return", return_op);
+    push_op(&mut op_table, "jump", jump);
+    push_op(&mut op_table, "jump-stack", jump_stack);
+    push_op(&mut op_table, "<function>", function);
+    push_op(&mut op_table, "scan-token", scan_token);
+    push_op(&mut op_table, "lit", lit_stack);
 
     op_table
 }
 
-fn push_op(op_table: &mut Vec<Shared<Callable>>, op: OpFn) {
-    op_table.push(shared(Callable::BuiltIn(op)));
+pub fn create_macro_table() -> HashMap<String, Callable> {
+    let mut map = HashMap::new();
+    // insert_macro(&mut map, "scan-token-list", scan_token_list);
+    map
+}
+
+fn push_op(op_table: &mut Vec<Shared<Callable>>, name: &str, op: OpFn) {
+    let callable = Callable::BuiltIn {
+        name: name.to_string(),
+        function: op,
+    };
+    op_table.push(shared(callable));
+}
+
+fn insert_macro(table: &mut HashMap<String, Callable>, name: &str, op: OpFn) {
+    let callable = Callable::BuiltIn {
+        name: name.to_string(),
+        function: op,
+    };
+    table.insert(name.to_string(), callable);
 }
 
 // Helper function to add an operation to the table and map
@@ -337,12 +355,42 @@ pub fn scan_token(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) 
     Ok(())
 }
 
-pub fn scan_token_list(
-    _vm: &mut VM,
-    _compiler: &mut Compiler,
-    _scanner: &mut Scanner,
-) -> Result<()> {
-    todo!("scan_token_list")
+// Ugh. This can't actually be a macro because it gets used when macros are executed,
+// not when they're defined.
+pub fn scan_token_list(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    // let value = vm.pop()?;
+
+    // let delimiter = value
+    //     .borrow_mut()
+    //     .get_list_mut()
+    //     .ok_or_else(|| VMError::TypeMismatch("expected list of tokens".to_string()))?
+    //     .pop()
+    //     .ok_or(ScannerError::UnexpectedEndOfInput)?;
+    // let delimiter: Value = Value::clone(Rc::unwrap_or_clone(delimiter).borrow().deref());
+    // let delimiter = TokenType::try_from(delimiter)?;
+
+    // let token_list = scanner.scan_token_list(&delimiter)?;
+    // let list = token_list.into_iter().map(shared).collect();
+    // let list = Value::List(list);
+
+    // value
+    //     .borrow_mut()
+    //     .get_list_mut()
+    //     .ok_or_else(|| VMError::TypeMismatch("expected list of tokens".to_string()))?
+    //     .push(shared(list));
+    // log::debug!("HHH");
+
+    let delimiter = vm.pop()?;
+
+    let delimiter: Value = Value::clone(Rc::unwrap_or_clone(delimiter).borrow().deref());
+    let delimiter = TokenType::try_from(delimiter)?;
+    let token_list = scanner.scan_token_list(&delimiter)?;
+    let list = token_list.into_iter().map(shared).collect();
+    let value = Value::List(list);
+
+    vm.push(shared(value))?;
+
+    Ok(())
 }
 
 pub fn scan_value_list(
@@ -353,44 +401,7 @@ pub fn scan_value_list(
     todo!("scan_value_list")
 }
 
-pub fn const_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
-    let value = vm.pop()?;
-    // This seems sus to me.
-    let value: Value = Value::clone(Rc::unwrap_or_clone(value).borrow().deref());
-
-    let index = if let Some(env) = vm.environment.as_ref() {
-        let env = env.clone();
-        let mut env = (*env).borrow_mut();
-        env.add_constant(value)
-    } else {
-        return Err(CompilerError::MissingEnvironment.into());
-    };
-
-    let address = Value::Address(index);
-    vm.push(shared(address))?;
-
-    Ok(())
-}
-
 pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
-    // let index = vm.pop()?;
-    // let index = index
-    //     .borrow()
-    //     .get_address()
-    //     .ok_or(VMError::TypeMismatch(format!("{:?}", index)))?;
-
-    // let value = {
-    //     let env = vm
-    //         .environment
-    //         .as_ref()
-    //         .ok_or_else(|| Error::CompilerError(CompilerError::MissingEnvironment))?
-    //         .borrow();
-    //     let value = env
-    //         .get_constant(index)
-    //         .ok_or_else(|| Error::VMError(VMError::InvalidConstantIndex(index)))?;
-    //     value.clone()
-    // };
-
     let value = vm.pop()?;
     let value: Value = Value::clone(Rc::unwrap_or_clone(value).borrow().deref());
 

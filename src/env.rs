@@ -1,4 +1,4 @@
-use crate::core::create_op_table;
+use crate::core::{create_macro_table, create_op_table};
 use crate::error::Result;
 use crate::scanner::TokenType;
 use crate::shared::Shared;
@@ -16,7 +16,7 @@ pub struct Environment {
     pub instructions: Vec<usize>,
     pub op_table: Vec<Shared<Callable>>,
     pub op_map: HashMap<String, usize>,
-    pub macro_table: HashMap<String, Function>,
+    pub macro_table: HashMap<String, Callable>,
 }
 
 pub struct EnvLoc {
@@ -60,7 +60,7 @@ impl Environment {
         instructions: Vec<usize>,
         op_table: Vec<Shared<Callable>>,
         op_map: HashMap<String, usize>,
-        macro_table: HashMap<String, Function>,
+        macro_table: HashMap<String, Callable>,
     ) -> Self {
         Environment {
             constants,
@@ -75,6 +75,8 @@ impl Environment {
         let mut env = Self::new();
         let op_table = create_op_table();
         env.set_op_table(op_table);
+        let macro_table = create_macro_table();
+        env.set_macro_table(macro_table);
         env
     }
 
@@ -103,6 +105,10 @@ impl Environment {
 
     pub fn set_op_table(&mut self, op_table: Vec<Shared<Callable>>) {
         self.op_table = op_table;
+    }
+
+    pub fn set_macro_table(&mut self, macro_table: HashMap<String, Callable>) {
+        self.macro_table = macro_table;
     }
 
     pub fn set_op_map(&mut self, op_map: HashMap<String, usize>) {
@@ -154,10 +160,10 @@ impl Environment {
         index
     }
 
-    pub fn add_macro(&mut self, function: Function) -> Result<()> {
-        let key = function.name.clone().unwrap_or_default();
-        log::trace!("Environment::add_macro {:?} {}", key, function.ip);
-        self.macro_table.insert(key, function);
+    pub fn add_macro(&mut self, callable: Callable) -> Result<()> {
+        let key = callable.get_name().unwrap_or_default();
+        log::trace!("Environment::add_macro {:?}", key);
+        self.macro_table.insert(key, callable);
         Ok(())
     }
 
@@ -165,7 +171,7 @@ impl Environment {
         self.macro_table.contains_key(&trigger.to_string())
     }
 
-    pub fn get_macro(&self, trigger: &TokenType) -> Option<&Function> {
+    pub fn get_macro(&self, trigger: &TokenType) -> Option<&Callable> {
         self.macro_table.get(&trigger.to_string())
     }
 
@@ -213,7 +219,6 @@ impl Environment {
             | OpCode::ScanToken
             | OpCode::ScanTokenList
             | OpCode::ScanValueList
-            | OpCode::Const
             | OpCode::LitStack => self.debug_simple(op, f, ip),
             OpCode::Jump => self.debug_jump(op, f, ip),
         }

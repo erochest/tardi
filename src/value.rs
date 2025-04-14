@@ -26,15 +26,16 @@ pub struct Function {
 pub enum Callable {
     // TODO: Need to store names for built-in functions
     /// Built-in function implemented in Rust
-    BuiltIn(OpFn),
+    BuiltIn { name: String, function: OpFn },
     /// User-defined function or lambda
     Fn(Function),
+    // TODO: can I fold `Function` into here?
 }
 
 impl Callable {
     pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
         match self {
-            Callable::BuiltIn(f) => f(vm, compiler, scanner),
+            Callable::BuiltIn { function, .. } => function(vm, compiler, scanner),
             Callable::Fn(Function {
                 ip: instructions, ..
             }) => {
@@ -44,13 +45,20 @@ impl Callable {
         }
     }
 
-    pub fn set_name(&mut self, name: &str) -> Result<()> {
+    pub fn get_name(&self) -> Option<String> {
         match self {
-            Callable::BuiltIn(_) => Err(VMError::TypeMismatch("lambda".to_string()).into()),
-            Callable::Fn(f) => {
-                f.name = Some(name.to_string());
-                Ok(())
+            Callable::BuiltIn { name, .. } => Some(name.clone()),
+            Callable::Fn(function) => function.name.clone(),
+        }
+    }
+
+    pub fn set_name(&mut self, name: &str) {
+        match self {
+            Callable::BuiltIn { name, .. } => {
+                // TODO: :skeptical: do I need to test this?
+                *name = name.to_string()
             }
+            Callable::Fn(f) => f.name = Some(name.to_string()),
         }
     }
 
@@ -205,7 +213,7 @@ impl fmt::Display for Value {
             }
             Value::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
             Value::Function(callable) => match callable {
-                Callable::BuiltIn(_) => write!(f, "<built-in function>"),
+                Callable::BuiltIn { .. } => write!(f, "<built-in function>"),
                 Callable::Fn(func) => match &func.name {
                     Some(name) => write!(f, "<function {}>", name),
                     None => write!(f, "<lambda>"),

@@ -122,6 +122,7 @@ pub enum CompilerError {
     UndefinedWord(String),
     InvalidFunction(String),
     MissingEnvironment,
+    ValueHasNoTokenType(String),
 }
 
 impl fmt::Display for CompilerError {
@@ -133,6 +134,7 @@ impl fmt::Display for CompilerError {
             CompilerError::UndefinedWord(s) => write!(f, "Undefined word: {}", s),
             CompilerError::InvalidFunction(s) => write!(f, "Invalid function: {}", s),
             CompilerError::MissingEnvironment => write!(f, "Compiling with environment"),
+            CompilerError::ValueHasNoTokenType(s) => write!(f, "Value has to TokenType: {}", s),
         }
     }
 }

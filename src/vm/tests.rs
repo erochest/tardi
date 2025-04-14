@@ -62,7 +62,8 @@ fn test_basic_vm_execution() {
     environment.borrow_mut().constants = vec![Value::Integer(123)];
     environment.borrow_mut().instructions = vec![0, 0];
 
-    tardi.execute_ip(0);
+    let result = tardi.execute_ip(0);
+    assert!(result.is_ok(), "basic-vm-execution error: {:?}", result);
 
     // Verify the result
     let value = tardi.executor.stack.pop().unwrap();

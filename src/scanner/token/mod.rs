@@ -1,7 +1,8 @@
-use crate::error::ScannerError;
+use crate::error::{CompilerError, Error, ScannerError};
 use crate::value::Value;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::fmt::Display;
+use std::result;
 
 /// Represents a token's type and any associated literal value
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -43,7 +44,6 @@ pub enum TokenType {
     // Words
     Word(String),
     MacroStart, // MACRO:
-    Const,
     Lit,
 
     // List Operations
@@ -120,7 +120,6 @@ impl Display for TokenType {
             TokenType::Bang => write!(f, "!"),
             TokenType::Word(word) => write!(f, "{}", word),
             TokenType::MacroStart => write!(f, "MACRO:"),
-            TokenType::Const => write!(f, "const"),
             TokenType::Lit => write!(f, "lit"),
             TokenType::CreateList => write!(f, "<list>"),
             TokenType::Append => write!(f, "append"),
@@ -141,6 +140,31 @@ impl Display for TokenType {
             TokenType::ScanValueList => write!(f, "scan-value-list"),
             TokenType::Error => write!(f, "<error>"),
             TokenType::EndOfInput => write!(f, "<end-of-input>"),
+        }
+    }
+}
+
+impl TryFrom<Value> for TokenType {
+    type Error = Error;
+
+    fn try_from(value: Value) -> result::Result<Self, Error> {
+        match value {
+            Value::Integer(v) => Ok(TokenType::Integer(v)),
+            Value::Float(v) => Ok(TokenType::Float(v)),
+            Value::Boolean(v) => Ok(TokenType::Boolean(v)),
+            Value::Char(v) => Ok(TokenType::Char(v)),
+            Value::List(vec) => {
+                Err(CompilerError::ValueHasNoTokenType(format!("{}", Value::List(vec))).into())
+            }
+            Value::String(s) => Ok(TokenType::String(s)),
+            Value::Function(callable) => Ok(TokenType::Word(
+                callable
+                    .get_name()
+                    .unwrap_or_else(|| "<lambda>".to_string()),
+            )),
+            Value::Address(v) => Ok(TokenType::Integer(v as i64)),
+            Value::Token(token) => Ok(token.token_type),
+            Value::Literal(value) => TokenType::try_from(*value),
         }
     }
 }

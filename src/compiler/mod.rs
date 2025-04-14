@@ -58,14 +58,14 @@ impl Compiler {
                 let function = self.compile_macro(executor, env.clone(), scanner)?;
                 env.borrow_mut().add_macro(function)?;
                 continue;
-            } else if let Some(function) = get_macro(env.clone(), &token.token_type) {
-                log::trace!("Compiler::pass1 executing macro {:?}", function);
+            } else if let Some(callable) = get_macro(env.clone(), &token.token_type) {
+                log::trace!("Compiler::pass1 executing macro {:?}", callable);
                 buffer = executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
                     &token.token_type,
-                    &function,
+                    &callable,
                     &mut buffer,
                 )?;
                 continue;
@@ -84,6 +84,8 @@ impl Compiler {
         Ok(())
     }
 
+    // TODO: I Suspect that this isn't handling the `}` correctly before
+    // `scan-token-list`. (hint: it needs to be a literal.)
     fn compile_value(&mut self, value: Value) -> Result<()> {
         match value {
             Value::Integer(_)
@@ -173,7 +175,6 @@ impl Compiler {
                 Ok(())
             }
             TokenType::MacroStart => unimplemented!("this gets handled by the scanner"),
-            TokenType::Const => self.compile_op(OpCode::Const),
             TokenType::Lit => self.compile_op(OpCode::LitStack),
             TokenType::Lambda => todo!(),
             TokenType::ScanToken => self.compile_op(OpCode::ScanToken),
@@ -335,11 +336,12 @@ impl Compiler {
         executor: &mut E,
         env: Shared<Environment>,
         scanner: &mut Scanner,
-    ) -> Result<Function> {
+    ) -> Result<Callable> {
         let trigger = scanner
             .scan_token()
             .ok_or(ScannerError::UnexpectedEndOfInput)?;
         let trigger = trigger?;
+        log::trace!("macro trigger {:?}", trigger);
 
         let body =
             self.scan_value_list(executor, env, TokenType::Word(";".to_string()), scanner)?;
@@ -350,7 +352,7 @@ impl Compiler {
         let mut function = self.end_function()?;
         function.name = Some(trigger.lexeme.clone());
 
-        Ok(function)
+        Ok(Callable::Fn(function))
     }
 
     // TODO: when this is done, can I reimplement `scan` to be
@@ -389,7 +391,7 @@ impl Compiler {
     }
 }
 
-fn get_macro(env: Shared<Environment>, trigger: &TokenType) -> Option<Function> {
+fn get_macro(env: Shared<Environment>, trigger: &TokenType) -> Option<Callable> {
     env.borrow().get_macro(trigger).cloned()
 }
 

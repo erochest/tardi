@@ -378,7 +378,6 @@ impl Scanner {
             "scan-token" => TokenType::ScanToken,
             "scan-token-list" => TokenType::ScanTokenList,
             "scan-value-list" => TokenType::ScanValueList,
-            "const" => TokenType::Const,
             "lit" => TokenType::Lit,
 
             // If it's not a known operator or keyword, it's a word
@@ -387,6 +386,7 @@ impl Scanner {
     }
 
     pub fn scan_token_list(&mut self, delimiter: &TokenType) -> Result<Vec<Value>> {
+        log::trace!("Scanner::scan_token_list {:?}", delimiter);
         let mut buffer = Vec::new();
 
         loop {

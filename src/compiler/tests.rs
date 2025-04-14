@@ -166,7 +166,7 @@ fn test_compile_macro_basic() {
 
 #[test]
 fn test_compile_macro_scan_token() {
-    env_logger::init();
+    // env_logger::init();
     let mut tardi = Tardi::default();
 
     let result = tardi.execute_str(
@@ -190,4 +190,27 @@ fn test_compile_macro_scan_token() {
         stack[2],
         Value::Token(Token::new(TokenType::Plus, 1, 9, 8, 1, "+".to_string()))
     );
+}
+
+#[test]
+fn test_compile_macro_scan_token_list() {
+    env_logger::init();
+    let mut tardi = Tardi::default();
+
+    let result = tardi.execute_str(
+        r#"
+            MACRO: {
+                dup >r
+                } scan-token-list
+                r> append ;
+        "#,
+    );
+    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+
+    let result = tardi.execute_str(r#"{ 40 41 42 }"#);
+    assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
+    let stack = tardi.stack();
+    assert_eq!(stack.len(), 1);
+    assert!(matches!(stack[0], Value::List(_)));
+    // TODO: check the contents
 }
