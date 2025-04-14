@@ -488,7 +488,7 @@ impl VM {
             .map(|v| format!("[{}]", v.borrow()))
             .collect::<Vec<_>>()
             .join(" ");
-        log::trace!("DATA  : {}\nRETURN: {}", stack_repr, rstack_repr);
+        log::trace!("DATA  : {}\tRETURN: {}", stack_repr, rstack_repr);
     }
 }
 
@@ -592,11 +592,13 @@ impl Execute for VM {
                     function.name,
                     macro_ip
                 );
-                let ip = self.ip;
+                let ip = Value::Address(self.ip);
+                self.push_return(shared(ip))?;
+                // let ip = self.ip;
                 self.ip = macro_ip;
                 self.run(env.clone(), compiler, scanner)?;
-                log::trace!("VM::execute_macro restoring ip to {}", ip);
-                self.ip = ip;
+                // log::trace!("VM::execute_macro restoring ip to {}", ip);
+                // self.ip = ip;
             }
         }
 
@@ -607,9 +609,7 @@ impl Execute for VM {
                     .into_iter()
                     .map(|item| item.borrow().clone())
                     .collect::<Vec<_>>();
-                if log::log_enabled!(Level::Trace) {
-                    trace_list("VM::execute_macro output", 8, &list);
-                }
+                log::trace!("VM::execute_macro <<< {:#?}", list);
                 Ok(list)
             } else {
                 Err(VMError::StackUnderflow.into())

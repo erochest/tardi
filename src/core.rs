@@ -7,7 +7,7 @@ use crate::compiler::Compiler;
 use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
 use crate::scanner::{Scanner, Token, TokenType};
-use crate::shared::{shared, Shared};
+use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::{Callable, Function, Value};
 use crate::vm::{OpCode, OpFn, VM};
 
@@ -357,35 +357,11 @@ pub fn scan_token(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) 
     Ok(())
 }
 
-// Ugh. This can't actually be a macro because it gets used when macros are executed,
-// not when they're defined.
 pub fn scan_token_list(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-    // let value = vm.pop()?;
-
-    // let delimiter = value
-    //     .borrow_mut()
-    //     .get_list_mut()
-    //     .ok_or_else(|| VMError::TypeMismatch("expected list of tokens".to_string()))?
-    //     .pop()
-    //     .ok_or(ScannerError::UnexpectedEndOfInput)?;
-    // let delimiter: Value = Value::clone(Rc::unwrap_or_clone(delimiter).borrow().deref());
-    // let delimiter = TokenType::try_from(delimiter)?;
-
-    // let token_list = scanner.scan_token_list(&delimiter)?;
-    // let list = token_list.into_iter().map(shared).collect();
-    // let list = Value::List(list);
-
-    // value
-    //     .borrow_mut()
-    //     .get_list_mut()
-    //     .ok_or_else(|| VMError::TypeMismatch("expected list of tokens".to_string()))?
-    //     .push(shared(list));
-    // log::debug!("HHH");
-
     let delimiter = vm.pop()?;
-
-    let delimiter: Value = Value::clone(Rc::unwrap_or_clone(delimiter).borrow().deref());
+    let delimiter: Value = unshare_clone(delimiter);
     let delimiter = TokenType::try_from(delimiter)?;
+
     let token_list = scanner.scan_token_list(&delimiter)?;
     let list = token_list.into_iter().map(shared).collect();
     let value = Value::List(list);
@@ -395,17 +371,25 @@ pub fn scan_token_list(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scan
     Ok(())
 }
 
-pub fn scan_value_list(
-    _vm: &mut VM,
-    _compiler: &mut Compiler,
-    _scanner: &mut Scanner,
-) -> Result<()> {
-    todo!("scan_value_list")
+pub fn scan_value_list(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    let delimiter = vm.pop()?;
+    let delimiter: Value = unshare_clone(delimiter);
+    let delimiter = TokenType::try_from(delimiter)?;
+
+    // call Compiler::scan_value_list
+    let env = vm.environment.clone().unwrap();
+    let values = compiler.scan_value_list(vm, env, delimiter, scanner)?;
+    let list = values.into_iter().map(shared).collect();
+    let value = Value::List(list);
+
+    vm.push(shared(value))?;
+
+    Ok(())
 }
 
 pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     let value = vm.pop()?;
-    let value: Value = Value::clone(Rc::unwrap_or_clone(value).borrow().deref());
+    let value: Value = unshare_clone(value);
 
     vm.push(shared(Value::Literal(Box::new(value))))?;
 

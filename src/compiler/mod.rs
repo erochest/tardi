@@ -51,8 +51,8 @@ impl Compiler {
         input: &str,
     ) -> Result<Vec<Value>> {
         if log::log_enabled!(log::Level::Trace) {
-            if input.len() > 3 {
-                log::trace!("Compiler::pass1 {:?}...", &input[..3]);
+            if input.len() > 24 {
+                log::trace!("Compiler::pass1 {:?}...", &input[..24]);
             } else {
                 log::trace!("Compiler::pass1 {:?}", input);
             }
@@ -210,11 +210,7 @@ impl Compiler {
     /// or to the main instruction list if no function is being defined
     pub fn compile_op(&mut self, op: OpCode) -> Result<()> {
         log::trace!("Compiler::compile_op {:?}", op);
-        if let Some(closure) = self.closure_stack.last_mut() {
-            closure.instructions.push(op.into());
-        } else if let Some(e) = self.environment.as_ref() {
-            e.borrow_mut().add_instruction(op.into())
-        }
+        self.compile_instruction(op.into());
         Ok(())
     }
 
@@ -228,7 +224,7 @@ impl Compiler {
     }
 
     pub fn compile_instruction(&mut self, arg: usize) {
-        log::trace!("Compiler::comile_instruction {}", arg);
+        log::trace!("Compiler::compile_instruction {}", arg);
         if let Some(closure) = self.closure_stack.last_mut() {
             closure.instructions.push(arg);
         } else if let Some(e) = self.environment.as_ref() {
@@ -392,7 +388,7 @@ impl Compiler {
 
     // TODO: when this is done, can I reimplement `scan` to be
     // `scan_value_list(TokenType::EOF)`?
-    fn scan_value_list<E: Execute>(
+    pub fn scan_value_list<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
@@ -419,6 +415,7 @@ impl Compiler {
                     &function,
                     &buffer,
                 )?;
+                continue;
             }
             buffer.push(Value::Token(token));
         }

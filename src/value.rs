@@ -129,6 +129,14 @@ pub enum Value {
 }
 
 impl Value {
+    pub fn get_integer(&self) -> Option<i64> {
+        if let Value::Integer(i) = self {
+            Some(*i)
+        } else {
+            None
+        }
+    }
+
     pub fn get_list(&self) -> Option<&Vec<SharedValue>> {
         if let Value::List(list) = self {
             Some(list)
@@ -219,7 +227,7 @@ impl fmt::Display for Value {
                     None => write!(f, "<lambda>"),
                 },
             },
-            Value::Address(addr) => write!(f, "<address {}>", addr),
+            Value::Address(addr) => write!(f, "<@{}>", addr),
             Value::Token(token) => write!(f, "{}", token),
             Value::Literal(value) => write!(f, "<lit {}>", value),
         }

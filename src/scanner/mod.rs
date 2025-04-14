@@ -8,6 +8,7 @@ use crate::error::{Error, Result, ScannerError};
 use crate::shared::{shared, Shared};
 use crate::value::{Callable, Function, SharedValue};
 use crate::{Compile, Execute, Value};
+use std::convert::TryInto;
 use std::{char, result};
 
 /// Scanner that converts source text into a stream of tokens
@@ -395,12 +396,13 @@ impl Scanner {
                 if token.token_type == *delimiter {
                     break;
                 }
-                buffer.push(Value::Token(token));
+                buffer.push(token.try_into()?);
             } else {
                 return Err(ScannerError::UnexpectedEndOfInput.into());
             }
         }
 
+        log::trace!("Scanner::scan_token_list <<< {:?}", buffer);
         Ok(buffer)
     }
 }

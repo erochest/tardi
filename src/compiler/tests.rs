@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 use super::*;
 use crate::core::Tardi;
 use crate::env::Environment;
+use crate::shared::unshare_clone;
 use crate::value::Value;
 
 use pretty_assertions::assert_eq;
@@ -222,5 +223,170 @@ fn test_compile_macro_scan_token_list() {
     let stack = tardi.stack();
     assert_eq!(stack.len(), 1);
     assert!(matches!(stack[0], Value::List(_)));
-    // TODO: check the contents
+    let list = stack[0].get_list().unwrap();
+    assert_eq!(3, list.len());
+    assert_eq!(
+        Value::Integer(40),
+        unshare_clone(list.get(0).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(41),
+        unshare_clone(list.get(1).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(42),
+        unshare_clone(list.get(2).cloned().unwrap())
+    );
+}
+
+#[test]
+fn test_compile_macro_scan_value_list_handles_flat_structures() {
+    env_logger::init();
+    let mut tardi = Tardi::default();
+
+    let result = tardi.execute_str(
+        r#"
+            MACRO: [
+                dup >r
+                ] scan-value-list
+                r> append ;
+        "#,
+    );
+    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+
+    let result = tardi.execute_str(r#"[ 40 41 42  ]"#);
+    assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
+    let stack = tardi.stack();
+
+    assert_eq!(stack.len(), 1);
+    assert!(matches!(stack[0], Value::List(_)));
+
+    // TODO: these are getting wrapped in Token's. i'm probably
+    // not thinking clearly about code-as-data and when it should
+    // be code and when it should be data. Maybe I need to
+    // revisit the differences between `Taken`, `TokenType`,
+    // and `Value`.
+    let list = stack[0].get_list().unwrap();
+    assert_eq!(3, list.len());
+    assert_eq!(
+        Value::Integer(40),
+        unshare_clone(list.get(0).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(41),
+        unshare_clone(list.get(1).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(42),
+        unshare_clone(list.get(2).cloned().unwrap())
+    );
+}
+
+#[test]
+fn test_compile_macro_scan_value_list_allows_embedded_structures() {
+    env_logger::init();
+    let mut tardi = Tardi::default();
+
+    let result = tardi.execute_str(
+        r#"
+            "over" { >r dup >r swap } <function>
+            MACRO: [
+                ] scan-value-list
+                over append ;
+        "#,
+    );
+    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+
+    let result = tardi.execute_str(r#"[ 40 41 42 [ 43 44 45 ] ]"#);
+    assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
+    let stack = tardi.stack();
+
+    assert_eq!(stack.len(), 1);
+    assert!(matches!(stack[0], Value::List(_)));
+
+    let list = stack[0].get_list().unwrap();
+    assert_eq!(4, list.len());
+    assert_eq!(
+        Value::Integer(40),
+        unshare_clone(list.get(0).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(41),
+        unshare_clone(list.get(1).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(42),
+        unshare_clone(list.get(2).cloned().unwrap())
+    );
+
+    let sublist: Value = unshare_clone(list.get(3).cloned().unwrap());
+    let sublist = sublist.get_list();
+    assert!(sublist.is_some());
+    let sublist = sublist.unwrap();
+    assert_eq!(3, sublist.len());
+    assert_eq!(
+        Value::Integer(43),
+        unshare_clone(sublist.get(0).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(44),
+        unshare_clone(sublist.get(1).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::Integer(45),
+        unshare_clone(sublist.get(2).cloned().unwrap())
+    );
+}
+
+// TODO: it seems like previous tests works because the outer macro call is
+// building a list on the stack, just like the list that the scanner exposes for
+// macros. But this will break if the outer macro is building something else,
+// like a hashmap or set. Maybe I need a new test to build this out.
+#[test]
+fn test_compile_macro_scan_value_list_allows_heterogeneous_embedded_structures() {
+    env_logger::init();
+    let mut tardi = Tardi::default();
+
+    let result = tardi.execute_str(
+        r#"
+            "over" { >r dup >r swap } <function>
+            MACRO: [
+                ] scan-value-list
+                over append ;
+            MACRO: :
+                scan-token
+                ; scan-value-list
+                <function>
+                over append ;
+        "#,
+    );
+    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+
+    let result = tardi.execute_str(
+        r#"
+        : double * 2 ;
+        4 double
+        : >name [ "name" ] append ;
+        "Zaphod" >name
+        "#,
+    );
+    assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
+    let stack = tardi.stack();
+
+    assert_eq!(stack.len(), 2);
+    assert!(matches!(stack[0], Value::List(_)));
+
+    let doubled = stack[0].get_integer();
+    assert_eq!(Some(8), doubled);
+
+    let list = stack[1].get_list().unwrap();
+    assert_eq!(2, list.len());
+    assert_eq!(
+        Value::String(">name".to_string()),
+        unshare_clone(list.get(0).cloned().unwrap())
+    );
+    assert_eq!(
+        Value::String("Zaphod".to_string()),
+        unshare_clone(list.get(1).cloned().unwrap())
+    );
 }
