@@ -1,4 +1,5 @@
 use pretty_assertions::assert_eq;
+use value::ValueData;
 
 use super::*;
 
@@ -10,5 +11,5 @@ fn test_tardi_execute_str() {
     assert!(result.is_ok());
 
     let stack = tardi.stack();
-    assert_eq!(vec![Value::Integer(42)], stack);
+    assert_eq!(stack, vec![ValueData::Integer(42).into()]);
 }

@@ -1,8 +1,8 @@
 use crate::core::{create_macro_table, create_op_table};
 use crate::error::Result;
-use crate::scanner::TokenType;
 use crate::shared::Shared;
-use crate::value::{Callable, Function, Value};
+use crate::value::lambda::Lambda;
+use crate::value::{Value, ValueData};
 use crate::vm::OpCode;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -14,9 +14,9 @@ use std::result;
 pub struct Environment {
     pub constants: Vec<Value>,
     pub instructions: Vec<usize>,
-    pub op_table: Vec<Shared<Callable>>,
+    pub op_table: Vec<Shared<Lambda>>,
     pub op_map: HashMap<String, usize>,
-    pub macro_table: HashMap<String, Callable>,
+    pub macro_table: HashMap<String, Lambda>,
 }
 
 pub struct EnvLoc {
@@ -58,9 +58,9 @@ impl Environment {
     pub fn from_parameters(
         constants: Vec<Value>,
         instructions: Vec<usize>,
-        op_table: Vec<Shared<Callable>>,
+        op_table: Vec<Shared<Lambda>>,
         op_map: HashMap<String, usize>,
-        macro_table: HashMap<String, Callable>,
+        macro_table: HashMap<String, Lambda>,
     ) -> Self {
         Environment {
             constants,
@@ -103,11 +103,11 @@ impl Environment {
         self.constants.get(index)
     }
 
-    pub fn set_op_table(&mut self, op_table: Vec<Shared<Callable>>) {
+    pub fn set_op_table(&mut self, op_table: Vec<Shared<Lambda>>) {
         self.op_table = op_table;
     }
 
-    pub fn set_macro_table(&mut self, macro_table: HashMap<String, Callable>) {
+    pub fn set_macro_table(&mut self, macro_table: HashMap<String, Lambda>) {
         self.macro_table = macro_table;
     }
 
@@ -138,7 +138,7 @@ impl Environment {
         self.instructions.get(ip).copied()
     }
 
-    pub fn get_op(&self, index: usize) -> Option<Shared<Callable>> {
+    pub fn get_op(&self, index: usize) -> Option<Shared<Lambda>> {
         self.op_table.get(index).cloned()
     }
 
@@ -146,32 +146,36 @@ impl Environment {
         self.instructions.len()
     }
 
-    pub fn add_to_op_table(&mut self, callable: Shared<Callable>) -> usize {
+    /// Add a new function to the op_table. If the function has a name, add it to the op_map.
+    /// The value in `op_map` is the index of the function in `op_table`.
+    /// The value in `op_table` is the function itself.
+    pub fn add_to_op_table(&mut self, lambda: Shared<Lambda>) -> usize {
         let index = self.op_table.len();
 
-        if let Callable::Fn(Function {
-            name: Some(ref n), ..
-        }) = *callable.borrow()
-        {
-            self.op_map.insert(n.clone(), index);
+        if let Some(ref n) = lambda.borrow().name {
+            self.op_map.insert(n.to_string(), index);
         }
-        self.op_table.push(callable);
+        self.op_table.push(lambda);
 
         index
     }
 
-    pub fn add_macro(&mut self, callable: Callable) -> Result<()> {
-        let key = callable.get_name().unwrap_or_default();
+    pub fn get_callable(&self, index: usize) -> Option<Shared<Lambda>> {
+        self.op_table.get(index).cloned()
+    }
+
+    pub fn add_macro(&mut self, lambda: Lambda) -> Result<()> {
+        let key = lambda.name.clone().unwrap_or_default();
         log::trace!("Environment::add_macro {:?}", key);
-        self.macro_table.insert(key, callable);
+        self.macro_table.insert(key.to_string(), lambda);
         Ok(())
     }
 
-    pub fn is_macro_trigger(&self, trigger: &TokenType) -> bool {
+    pub fn is_macro_trigger(&self, trigger: &ValueData) -> bool {
         self.macro_table.contains_key(&trigger.to_string())
     }
 
-    pub fn get_macro(&self, trigger: &TokenType) -> Option<&Callable> {
+    pub fn get_macro(&self, trigger: &ValueData) -> Option<&Lambda> {
         self.macro_table.get(&trigger.to_string())
     }
 
@@ -186,7 +190,8 @@ impl Environment {
         ip: usize,
     ) -> result::Result<usize, fmt::Error> {
         match op {
-            OpCode::Lit | OpCode::Call => self.debug_const(op, f, ip),
+            OpCode::Lit => self.debug_const(op, f, ip),
+            OpCode::Call => self.debug_call(op, f, ip),
             OpCode::Dup
             | OpCode::Swap
             | OpCode::Rot
@@ -216,10 +221,11 @@ impl Environment {
             | OpCode::Return
             | OpCode::JumpStack
             | OpCode::Function
-            | OpCode::ScanToken
-            | OpCode::ScanTokenList
+            | OpCode::ScanValue
             | OpCode::ScanValueList
-            | OpCode::LitStack => self.debug_simple(op, f, ip),
+            | OpCode::ScanObjectList
+            | OpCode::LitStack
+            | OpCode::Compile => self.debug_simple(op, f, ip),
             OpCode::Jump => self.debug_jump(op, f, ip),
         }
     }
@@ -269,6 +275,30 @@ impl Environment {
         ip += 1;
         let index = self.instructions[ip];
         writeln!(f, " {:0>4}", index)?;
+
+        Ok(ip)
+    }
+
+    fn debug_call(
+        &self,
+        op: &OpCode,
+        f: &mut fmt::Formatter<'_>,
+        ip: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut ip = ip;
+
+        self.write_ip_number(f, ip)?;
+        self.write_op_code(f, op)?;
+
+        ip += 1;
+        let index = self.instructions[ip];
+        let op = self.op_table[index].clone();
+        let name = op
+            .borrow()
+            .name
+            .clone()
+            .unwrap_or_else(|| "<lambda>".to_string());
+        writeln!(f, " {:0>4}. {: <16}", index, name)?;
 
         Ok(ip)
     }

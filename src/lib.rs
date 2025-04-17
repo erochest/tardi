@@ -20,9 +20,7 @@ pub use compiler::Compiler;
 pub use env::Environment;
 pub use error::Result;
 pub use scanner::Scanner;
-use scanner::{Token, TokenType};
 pub use value::Value;
-use value::{Callable, Function};
 pub use vm::VM;
 
 /// Run a Tardi source file

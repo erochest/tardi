@@ -1,21 +1,18 @@
-use crate::shared::{shared, Shared};
+use crate::shared::{shared, unshare_clone, Shared};
+use crate::value::lambda::{Callable, Lambda};
 use crate::{Compiler, Scanner};
 use log::{log_enabled, Level};
 use std::fmt::Debug;
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
-use crate::scanner::TokenType;
 
 pub mod ops;
 pub use self::ops::OpCode;
 
-use crate::value::{Callable, Function, SharedValue, Value};
+use crate::value::{SharedValue, Value, ValueData};
 
 use crate::core::Execute;
-
-/// Function pointer type for VM operations
-pub type OpFn = fn(&mut VM, &mut Compiler, &mut Scanner) -> Result<()>;
 
 /// The Virtual Machine implementation using Indirect Threaded Code (ITC)
 pub struct VM {
@@ -49,9 +46,16 @@ impl VM {
         }
     }
 
+    /// Pushes the current instruction pointer onto the return stack
+    pub fn push_ip(&mut self) -> Result<()> {
+        log::trace!("pushing instruction pointer onto return stack {}", self.ip);
+        self.push_return(shared(ValueData::Address(self.ip).into()))
+    }
+
     /// Pushes a shared value onto the return stack
     pub fn push_return(&mut self, value: SharedValue) -> Result<()> {
-        if self.return_stack.len() >= 1024 {
+        // TODO: change back to 1024
+        if self.return_stack.len() >= 12 {
             return Err(VMError::ReturnStackOverflow.into());
         }
         self.return_stack.push(value);
@@ -97,7 +101,10 @@ impl VM {
 
     /// Pops a shared value from the data stack
     pub fn pop(&mut self) -> Result<SharedValue> {
-        self.stack.pop().ok_or(VMError::StackUnderflow.into())
+        self.stack.pop().ok_or_else(|| {
+            log::warn!("VM::pop VMError::StackUnderflow");
+            VMError::StackUnderflow.into()
+        })
     }
 
     /// Returns the current size of the data stack
@@ -164,7 +171,7 @@ impl VM {
     /// Returns the current size of the data stack
     pub fn stack_size_op(&mut self) -> Result<()> {
         self.stack
-            .push(shared(Value::Integer(self.stack_size() as i64)));
+            .push(shared(ValueData::Integer(self.stack_size() as i64).into()));
         Ok(())
     }
 
@@ -207,7 +214,7 @@ impl VM {
         if a.partial_cmp(&b).is_none() {
             return Err(VMError::TypeMismatch("equality comparison".to_string()).into());
         }
-        self.push(shared(Value::Boolean(a == b)))
+        self.push(shared(ValueData::Boolean(a == b).into()))
     }
 
     /// Compares if a is less than b
@@ -215,7 +222,7 @@ impl VM {
         let b = self.pop()?.borrow().clone();
         let a = self.pop()?.borrow().clone();
         match a.partial_cmp(&b) {
-            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_lt()))),
+            Some(ordering) => self.push(shared(ValueData::Boolean(ordering.is_lt()).into())),
             None => Err(VMError::TypeMismatch("less than comparison".to_string()).into()),
         }
     }
@@ -225,7 +232,7 @@ impl VM {
         let b = self.pop()?.borrow().clone();
         let a = self.pop()?.borrow().clone();
         match a.partial_cmp(&b) {
-            Some(ordering) => self.push(shared(Value::Boolean(ordering.is_gt()))),
+            Some(ordering) => self.push(shared(ValueData::Boolean(ordering.is_gt()).into())),
             None => Err(VMError::TypeMismatch("greater than comparison".to_string()).into()),
         }
     }
@@ -233,15 +240,15 @@ impl VM {
     /// Performs logical NOT operation on the top stack item
     pub fn not(&mut self) -> Result<()> {
         let value = self.pop()?.borrow().clone();
-        match value {
-            Value::Boolean(b) => self.push(shared(Value::Boolean(!b))),
+        match value.data {
+            ValueData::Boolean(b) => self.push(shared(ValueData::Boolean(!b).into())),
             _ => Err(VMError::TypeMismatch("logical NOT".to_string()).into()),
         }
     }
 
     /// Creates a new empty list and pushes it onto the stack
     pub fn create_list(&mut self) -> Result<()> {
-        self.push(shared(Value::List(Vec::new())))
+        self.push(shared(ValueData::List(Vec::new()).into()))
     }
 
     /// Appends a value to the end of a list
@@ -249,11 +256,11 @@ impl VM {
         let list = self.pop()?;
         let value = self.pop()?;
 
-        (*list)
-            .borrow_mut()
-            .get_list_mut()
-            .map(|l| l.push(value))
-            .ok_or_else(|| VMError::TypeMismatch("append to list".to_string()))?;
+        if let Some(list) = (*list).borrow_mut().get_list_mut() {
+            list.push(value);
+        } else {
+            return Err(VMError::TypeMismatch(format!("[ {:?} ] {:?} append", list, value)).into());
+        }
 
         Ok(())
     }
@@ -278,10 +285,12 @@ impl VM {
         let list1 = self.pop()?;
 
         let new_items = {
-            let list1_ref = list1.borrow();
-            let list2_ref = list2.borrow();
-            match (&*list1_ref, &*list2_ref) {
-                (Value::List(items1), Value::List(items2)) => {
+            let list1 = list1.borrow();
+            let list2 = list2.borrow();
+            let list1_ref = list1.get_list();
+            let list2_ref = list2.get_list();
+            match (list1_ref, list2_ref) {
+                (Some(items1), Some(items2)) => {
                     let mut new_items = items1.clone();
                     new_items.extend(items2.iter().cloned());
                     Ok(new_items)
@@ -292,7 +301,7 @@ impl VM {
             }
         }?;
 
-        self.push(shared(Value::List(new_items)))
+        self.push(shared(ValueData::List(new_items).into()))
     }
 
     /// Removes and returns the first element of a list
@@ -315,31 +324,35 @@ impl VM {
 
     /// Creates a new empty string and pushes it onto the stack
     pub fn create_string(&mut self) -> Result<()> {
-        self.push(shared(Value::String(String::new())))
+        self.push(shared(ValueData::String(String::new()).into()))
     }
 
     /// Converts a value to its string representation
     pub fn to_string(&mut self) -> Result<()> {
         let value = self.pop()?.borrow().clone();
-        self.push(shared(Value::String(value.to_string())))
+        self.push(shared(ValueData::String(value.to_string()).into()))
     }
 
     /// Converts a list of UTF-8 byte values to a string
     pub fn utf8_to_string(&mut self) -> Result<()> {
         let list = self.pop()?;
-        let list_ref = list.borrow();
+        let list = list.borrow();
+        let list = list.get_list();
 
-        if let Value::List(items) = &*list_ref {
+        if let Some(items) = list {
             let mut bytes = Vec::new();
             for item in items {
-                match &*item.borrow() {
-                    Value::Integer(n) if *n >= 0 && *n <= 255 => bytes.push(*n as u8),
-                    _ => return Err(VMError::TypeMismatch("UTF-8 byte value".to_string()).into()),
+                if let Some(n) = item.borrow().get_integer() {
+                    if n >= 0 && n <= 255 {
+                        bytes.push(n as u8);
+                        continue;
+                    }
                 }
+                return Err(VMError::TypeMismatch("UTF-8 byte value".to_string()).into());
             }
 
             match String::from_utf8(bytes) {
-                Ok(s) => self.push(shared(Value::String(s))),
+                Ok(s) => self.push(shared(ValueData::String(s).into())),
                 Err(_) => Err(VMError::TypeMismatch("invalid UTF-8 sequence".to_string()).into()),
             }
         } else {
@@ -353,11 +366,13 @@ impl VM {
         let a = self.pop()?;
 
         let result = {
-            let a_ref = a.borrow();
-            let b_ref = b.borrow();
-            match (&*a_ref, &*b_ref) {
-                (Value::String(s1), Value::String(s2)) => {
-                    let mut new_string = s1.clone();
+            let a = a.borrow();
+            let a = a.get_string();
+            let b = b.borrow();
+            let b = b.get_string();
+            match (a, b) {
+                (Some(s1), Some(s2)) => {
+                    let mut new_string = s1.to_string();
                     new_string.push_str(s2);
                     Ok(new_string)
                 }
@@ -365,23 +380,27 @@ impl VM {
             }
         }?;
 
-        self.push(shared(Value::String(result)))
+        self.push(shared(ValueData::String(result).into()))
     }
 
     /// Calls a function by its index in the op_table
-    pub fn call(&mut self) -> Result<()> {
-        let fn_index = self
+    pub fn call(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+        let op_table_index = self
             .environment
             .as_ref()
             .and_then(|e| e.borrow().get_instruction(self.ip))
             .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip += 1;
 
-        // Save the current IP on the return stack
-        self.push_return(shared(Value::Address(self.ip)))?;
+        let lambda = self
+            .environment
+            .as_ref()
+            .unwrap()
+            .borrow()
+            .get_callable(op_table_index)
+            .ok_or(VMError::InvalidAddress(op_table_index))?;
+        lambda.borrow().call(self, compiler, scanner)?;
 
-        // Jump to the function's code
-        self.ip = fn_index;
         Ok(())
     }
 
@@ -394,7 +413,7 @@ impl VM {
             .borrow()
             .get_function()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("function call".to_string())))
-            .and_then(|c| c.call(vm, compiler, scanner))?;
+            .and_then(|c| c.callable.call(vm, compiler, scanner))?;
 
         Ok(())
     }
@@ -404,8 +423,9 @@ impl VM {
         let lambda = self.pop()?;
         let name = self.pop()?;
 
-        let name_str = match &*name.borrow() {
-            Value::String(s) => s.clone(),
+        let name_str = match name.borrow().data {
+            ValueData::String(ref s) => s.to_string(),
+            ValueData::Word(ref w) => w.to_string(),
             _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
         };
 
@@ -414,9 +434,10 @@ impl VM {
             .get_function_mut()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("lambda".to_string())))
             .and_then(|c| {
-                c.set_name(&name_str);
+                c.name = Some(name_str);
                 Ok(c.clone())
             })?;
+        log::trace!("function: {}", callable);
 
         // Add the function to the op_table
         if let Some(env) = self.environment.as_ref() {
@@ -436,13 +457,12 @@ impl VM {
 
         let return_addr = self.pop_return()?;
         let return_addr = return_addr.borrow();
-        match &*return_addr {
-            Value::Address(addr) => {
-                self.ip = *addr;
-                Ok(())
-            }
-            _ => Err(VMError::TypeMismatch("return address".to_string()).into()),
-        }
+        let addr = return_addr
+            .get_address()
+            .ok_or_else(|| VMError::TypeMismatch("return addres".to_string()))?;
+        self.ip = addr;
+
+        Ok(())
     }
 
     /// Jumps to a specific instruction
@@ -460,13 +480,29 @@ impl VM {
     pub fn jump_stack(&mut self) -> Result<()> {
         let target = self.pop()?;
         let target = target.borrow();
-        match &*target {
-            Value::Address(addr) => {
-                self.ip = *addr;
-                Ok(())
-            }
-            _ => Err(VMError::TypeMismatch("jump address".to_string()).into()),
+        let addr = target
+            .get_address()
+            .ok_or_else(|| VMError::TypeMismatch("jump addres".to_string()))?;
+        self.ip = addr;
+        Ok(())
+    }
+
+    /// Takes a list off the stack and compiles it into an anonymous lambda
+    pub fn compile(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+        let value = self.pop()?;
+        let value = unshare_clone(value);
+        if let ValueData::List(words) = value.data {
+            let words = words
+                .into_iter()
+                .map(|word| unshare_clone(word))
+                .collect::<Vec<_>>();
+            let lambda =
+                compiler.compile_list(self, self.environment.clone().unwrap(), scanner, &words)?;
+            let value = Value::new(ValueData::Function(lambda));
+            self.push(shared(value))?;
         }
+
+        Ok(())
     }
 
     fn debug_op(&self) {
@@ -522,11 +558,11 @@ impl Execute for VM {
                 .and_then(|e| e.borrow().get_instruction(self.ip))
                 .ok_or(Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
 
-            if log_enabled!(Level::Debug) {
-                self.debug_op();
-            }
             if log_enabled!(Level::Trace) {
                 self.debug_stacks();
+            }
+            if log_enabled!(Level::Debug) {
+                self.debug_op();
             }
 
             self.ip += 1;
@@ -540,22 +576,15 @@ impl Execute for VM {
 
             // Execute the operation
             let operation = operation.borrow();
-            match *operation {
-                Callable::BuiltIn { function, .. } => match function(self, compiler, scanner) {
-                    Ok(()) => {}
-                    Err(Error::VMError(VMError::Exit)) => {
-                        return Ok(());
-                    }
-                    err => {
-                        // Reset for the next input
-                        self.ip = max_ip;
-                        self.return_stack.clear();
-                        return err;
-                    }
-                },
-                Callable::Fn(Function {
-                    ip: instructions, ..
-                }) => self.ip = instructions,
+            let result = operation.callable.call(self, compiler, scanner);
+            match result {
+                Ok(()) => {}
+                Err(Error::VMError(VMError::Exit)) => return Ok(()),
+                err => {
+                    self.ip = max_ip;
+                    self.return_stack.clear();
+                    return err;
+                }
             }
         }
 
@@ -567,54 +596,79 @@ impl Execute for VM {
         env: Shared<Environment>,
         compiler: &mut Compiler,
         scanner: &mut Scanner,
-        _trigger: &TokenType,
-        callable: &Callable,
+        _trigger: &ValueData,
+        lambda: &Lambda,
         tokens: &[Value],
     ) -> Result<Vec<Value>> {
         if log::log_enabled!(Level::Trace) {
-            trace_list("VM::execute_macro input", 8, tokens);
+            let tokens = tokens
+                .iter()
+                .map(|t| t.lexeme.clone().unwrap_or_else(|| "<lambda>".to_string()))
+                .collect::<Vec<_>>();
+            log::trace!("VM::execute_macro input [ {} ]", tokens.join(" "));
         }
         // Convert the tokens seen already to a form we can work on.
         let shared_tokens = tokens.into_iter().cloned().map(shared).collect::<Vec<_>>();
-        let value = Value::List(shared_tokens);
-        self.stack.push(shared(value));
+        let value = ValueData::List(shared_tokens);
+        self.stack.push(shared(value.into()));
 
-        // Set the IP to the macro, run it, and reset the IP to where it was.
-        match callable {
-            Callable::BuiltIn { name, function } => {
-                log::trace!("VM::execute_macro running {}", name);
-                function(self, compiler, scanner)?;
-            }
-            Callable::Fn(function) => {
-                let macro_ip = function.ip;
-                log::trace!(
-                    "VM::execute_macro running {:?}: ip = {}",
-                    function.name,
-                    macro_ip
-                );
-                let ip = Value::Address(self.ip);
-                self.push_return(shared(ip))?;
-                // let ip = self.ip;
-                self.ip = macro_ip;
-                self.run(env.clone(), compiler, scanner)?;
-                // log::trace!("VM::execute_macro restoring ip to {}", ip);
-                // self.ip = ip;
-            }
+        lambda.call(self, compiler, scanner)?;
+        if lambda.is_compiled() {
+            self.run(env.clone(), compiler, scanner)?;
         }
 
+        // // Set the IP to the macro, run it, and reset the IP to where it was.
+        // match lambda.callable {
+        //     Callable::BuiltIn { function } => {
+        //         log::trace!("VM::execute_macro running {:?}", lambda.name);
+        //         function(self, compiler, scanner)?;
+        //     }
+        //     Callable::Compiled { ip, .. } => {
+        //         log::trace!("VM::execute_macro running {:?}: ip = {}", lambda.name, ip);
+        //         let return_ip = ValueData::Address(self.ip);
+        //         self.push_return(shared(return_ip.into()))?;
+        //         if log::log_enabled!(Level::Trace) {
+        //             log::trace!("VM::execute_macro compiled:\n{:?}", env.borrow());
+        //             self.debug_op();
+        //             self.debug_stacks();
+        //         }
+        //         // let ip = self.ip;
+        //         self.ip = ip;
+        //         self.run(env.clone(), compiler, scanner)?;
+        //         // log::trace!("VM::execute_macro restoring ip to {}", ip);
+        //         // self.ip = ip;
+        //     }
+        // }
+
         // Get the token list off the stack and return it to the compiler form.
+        // TODO: I don't think I need to pop both of these here. Just the accumulator is probably enough.
+        if log::log_enabled!(Level::Trace) {
+            log::trace!("VM::execute_macro cleaning up");
+            self.debug_stacks();
+        }
         if let Some(value) = self.stack.pop() {
-            if let Some(list) = value.borrow_mut().get_list_mut() {
-                let list = list
-                    .into_iter()
-                    .map(|item| item.borrow().clone())
-                    .collect::<Vec<_>>();
-                log::trace!("VM::execute_macro <<< {:#?}", list);
-                Ok(list)
-            } else {
-                Err(VMError::StackUnderflow.into())
-            }
+            value
+                .borrow_mut()
+                .get_list_mut()
+                .map(|list| {
+                    let list = list
+                        .into_iter()
+                        .map(|item| item.borrow().clone())
+                        .collect::<Vec<_>>();
+                    log::trace!("VM::execute_macro <<< {:#?}", list);
+                    list
+                })
+                .ok_or_else(|| {
+                    log::warn!(
+                        "VM::execute_macro: VMError::TypeMismatch: pop accumulator not a list"
+                    );
+                    Error::VMError(VMError::TypeMismatch(format!(
+                        "Expected accumulator list from macro output: {:?}",
+                        value.borrow()
+                    )))
+                })
         } else {
+            log::warn!("VM::execute_macro: VMError::StackUnderflow: pop value to accumulate");
             Err(VMError::StackUnderflow.into())
         }
     }

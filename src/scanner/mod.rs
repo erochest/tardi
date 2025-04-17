@@ -1,13 +1,7 @@
-mod token;
-pub use token::{Token, TokenType};
-
 use super::Scan;
 
-use crate::env::Environment;
 use crate::error::{Error, Result, ScannerError};
-use crate::shared::{shared, Shared};
-use crate::value::{Callable, Function, SharedValue};
-use crate::{Compile, Execute, Value};
+use crate::value::{Value, ValueData};
 use std::convert::TryInto;
 use std::{char, result};
 
@@ -130,16 +124,16 @@ impl Scanner {
     }
 
     /// Scans a character literal
-    fn scan_char(&mut self) -> Result<TokenType> {
+    fn scan_char(&mut self) -> Result<ValueData> {
         match self.next_char() {
-            Some('\\') => self.process_escape_sequence().map(TokenType::Char),
+            Some('\\') => self.process_escape_sequence().map(ValueData::Char),
             Some(c) => {
                 if c == '\'' {
                     Err(Error::ScannerError(ScannerError::InvalidLiteral(
                         "Empty character literal".to_string(),
                     )))
                 } else {
-                    Ok(TokenType::Char(c))
+                    Ok(ValueData::Char(c))
                 }
             }
             None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
@@ -147,12 +141,12 @@ impl Scanner {
     }
 
     /// Scans a string literal
-    fn scan_string(&mut self) -> Result<TokenType> {
+    fn scan_string(&mut self) -> Result<ValueData> {
         let mut string = String::new();
 
         while let Some(c) = self.next_char() {
             match c {
-                '"' => return Ok(TokenType::String(string)),
+                '"' => return Ok(ValueData::String(string)),
                 '\\' => {
                     let escaped_char = self.process_escape_sequence()?;
                     string.push(escaped_char);
@@ -165,7 +159,7 @@ impl Scanner {
     }
 
     /// Scans a triple-quoted string literal
-    fn scan_long_string(&mut self) -> Result<TokenType> {
+    fn scan_long_string(&mut self) -> Result<ValueData> {
         // Consume the remaining two quotes
         if self.next_char() != Some('"') || self.next_char() != Some('"') {
             return Err(Error::ScannerError(ScannerError::InvalidLiteral(
@@ -181,7 +175,7 @@ impl Scanner {
                 '"' => {
                     quote_count += 1;
                     if quote_count == 3 {
-                        return Ok(TokenType::String(string));
+                        return Ok(ValueData::String(string));
                     }
                 }
                 _ => {
@@ -243,7 +237,7 @@ impl Scanner {
     }
 
     /// Scans a number (integer or float)
-    fn scan_number(&mut self, first_digit: char) -> Result<TokenType> {
+    fn scan_number(&mut self, first_digit: char) -> Result<ValueData> {
         let mut number = String::from(first_digit);
         let mut is_float = false;
 
@@ -287,22 +281,22 @@ impl Scanner {
         // Parse the number
         if is_float {
             match number.parse::<f64>() {
-                Ok(n) => Ok(TokenType::Float(n)),
+                Ok(n) => Ok(ValueData::Float(n)),
                 Err(_) => Err(Error::ScannerError(ScannerError::InvalidNumber(number))),
             }
         } else {
             match number.parse::<i64>() {
-                Ok(n) => Ok(TokenType::Integer(n)),
+                Ok(n) => Ok(ValueData::Integer(n)),
                 Err(_) => Err(Error::ScannerError(ScannerError::InvalidNumber(number))),
             }
         }
     }
 
     /// Scans a potential boolean value
-    fn scan_boolean(&mut self) -> Result<TokenType> {
+    fn scan_boolean(&mut self) -> Result<ValueData> {
         match self.next_char() {
-            Some('t') => Ok(TokenType::Boolean(true)),
-            Some('f') => Ok(TokenType::Boolean(false)),
+            Some('t') => Ok(ValueData::Boolean(true)),
+            Some('f') => Ok(ValueData::Boolean(false)),
             _ => Err(Error::ScannerError(ScannerError::InvalidLiteral(
                 "#".to_string(),
             ))),
@@ -310,7 +304,7 @@ impl Scanner {
     }
 
     /// Scans a word (any sequence of non-whitespace characters)
-    fn scan_word(&mut self, first_char: char) -> Result<Option<TokenType>> {
+    fn scan_word(&mut self, first_char: char) -> Result<Option<ValueData>> {
         let mut word = String::from(first_char);
 
         // Scan the rest of the word
@@ -327,76 +321,24 @@ impl Scanner {
             return Ok(None);
         }
 
-        // Check for keywords and operators
-        Ok(Some(match word.as_str() {
-            // Stack operations
-            "dup" => TokenType::Dup,
-            "swap" => TokenType::Swap,
-            "rot" => TokenType::Rot,
-            "drop" => TokenType::Drop,
-            "stack-size" => TokenType::StackSize,
-
-            // Return stack operations
-            ">r" => TokenType::ToR,
-            "r>" => TokenType::RFrom,
-            "r@" => TokenType::RFetch,
-
-            // Arithmetic operators
-            "+" => TokenType::Plus,
-            "-" => TokenType::Dash,
-            "*" => TokenType::Star,
-            "/" => TokenType::Slash,
-
-            // Comparison operators
-            "==" => TokenType::EqualEqual,
-            "!=" => TokenType::BangEqual,
-            "<" => TokenType::Less,
-            ">" => TokenType::Greater,
-            "<=" => TokenType::LessEqual,
-            ">=" => TokenType::GreaterEqual,
-            "!" => TokenType::Bang,
-
-            // List operations
-            "<list>" => TokenType::CreateList,
-            "append" => TokenType::Append,
-            "prepend" => TokenType::Prepend,
-            "concat" => TokenType::Concat,
-            "split-head!" => TokenType::SplitHead,
-
-            // String operations
-            "<string>" => TokenType::CreateString,
-            ">string" => TokenType::ToString,
-            "utf8>string" => TokenType::Utf8ToString,
-            "string-concat" => TokenType::StringConcat,
-
-            // Function operations
-            "<function>" => TokenType::Function,
-            "<lambda>" => TokenType::Lambda,
-            "call" => TokenType::Call,
-
-            // Macros and scanning functions used in macros
-            "MACRO:" => TokenType::MacroStart,
-            "scan-token" => TokenType::ScanToken,
-            "scan-token-list" => TokenType::ScanTokenList,
-            "scan-value-list" => TokenType::ScanValueList,
-            "lit" => TokenType::Lit,
-
-            // If it's not a known operator or keyword, it's a word
-            _ => TokenType::Word(word),
-        }))
+        if word == "MACRO:" {
+            Ok(Some(ValueData::Macro))
+        } else {
+            Ok(Some(ValueData::Word(word)))
+        }
     }
 
-    pub fn scan_token_list(&mut self, delimiter: &TokenType) -> Result<Vec<Value>> {
+    pub fn scan_value_list(&mut self, delimiter: &ValueData) -> Result<Vec<Value>> {
         log::trace!("Scanner::scan_token_list {:?}", delimiter);
         let mut buffer = Vec::new();
 
         loop {
-            if let Some(token) = self.next() {
-                let token = token?;
-                if token.token_type == *delimiter {
+            if let Some(value) = self.next() {
+                let value = value?;
+                if value.data == *delimiter {
                     break;
                 }
-                buffer.push(token.try_into()?);
+                buffer.push(value);
             } else {
                 return Err(ScannerError::UnexpectedEndOfInput.into());
             }
@@ -414,7 +356,7 @@ impl Default for Scanner {
 }
 
 impl Scan for Scanner {
-    fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
+    fn scan(&mut self, input: &str) -> Result<Vec<Result<Value>>> {
         self.set_source(input);
         let tokens = self.collect();
         Ok(tokens)
@@ -430,20 +372,20 @@ impl Scan for Scanner {
         self.end_of_input = false;
     }
 
-    fn scan_token(&mut self) -> Option<Result<Token>> {
+    fn scan_value(&mut self) -> Option<Result<Value>> {
         self.next()
     }
 
-    fn scan_tokens_until(&mut self, token_type: TokenType) -> Result<Vec<Result<Token>>> {
+    fn scan_values_until(&mut self, value_data: ValueData) -> Result<Vec<Result<Value>>> {
         let mut buffer = Vec::new();
 
-        while let Some(token) = self.scan_token() {
-            match token {
-                Ok(token) if token.token_type == token_type => break,
-                Ok(token) if token.token_type == TokenType::EndOfInput => {
+        while let Some(value) = self.scan_value() {
+            match value {
+                Ok(value) if value.data == value_data => break,
+                Ok(value) if value.data == ValueData::EndOfInput => {
                     return Err(ScannerError::UnexpectedEndOfInput.into())
                 }
-                _ => buffer.push(token),
+                _ => buffer.push(value),
             }
         }
 
@@ -473,7 +415,7 @@ impl Scan for Scanner {
 }
 
 impl Iterator for Scanner {
-    type Item = result::Result<Token, Error>;
+    type Item = result::Result<Value, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.end_of_input {
@@ -493,26 +435,28 @@ impl Iterator for Scanner {
 
         if c.is_none() {
             self.end_of_input = true;
-            return Some(Ok(Token::new(
-                TokenType::EndOfInput,
+            return Some(Ok(Value::from_parts(
+                ValueData::EndOfInput,
+                "",
                 self.line,
                 self.column,
                 self.offset,
                 0,
-                String::new(),
             )));
         }
-        let c = c.unwrap();
 
         // Create token based on character
+        let c = c.unwrap();
         let result = match c {
             '0'..='9' => self.scan_number(c),
+            // TODO: could move `scan_boolean` to Compiler
             '#' => self.scan_boolean(),
-            '{' => Ok(TokenType::LeftCurly),
-            '}' => Ok(TokenType::RightCurly),
+            // TODO: process these in Compiler
+            // '{' => Ok(TokenType::LeftCurly),
+            // '}' => Ok(TokenType::RightCurly),
             '\'' => {
                 let char_result = self.scan_char();
-                if let Ok(TokenType::Char(_)) = char_result {
+                if let Ok(ValueData::Char(_)) = char_result {
                     // Consume the closing single quote
                     if self.next_char() != Some('\'') {
                         return Some(Err(Error::ScannerError(ScannerError::UnterminatedChar)));
@@ -546,14 +490,14 @@ impl Iterator for Scanner {
         let length = self.offset - start_offset;
 
         // Wrap successful tokens with position information
-        Some(result.map(|token_type| {
-            Token::new(
-                token_type,
+        Some(result.map(|value_data| {
+            Value::from_parts(
+                value_data,
+                &self.source[start_offset..self.offset],
                 start_line,
                 start_column,
                 start_offset,
                 length,
-                self.source[start_offset..self.offset].to_string(),
             )
         }))
     }

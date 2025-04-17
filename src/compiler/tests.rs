@@ -4,7 +4,7 @@ use super::*;
 use crate::core::Tardi;
 use crate::env::Environment;
 use crate::shared::unshare_clone;
-use crate::value::Value;
+use crate::value::{Pos, Value};
 
 use pretty_assertions::assert_eq;
 
@@ -95,20 +95,12 @@ fn test_compile_word() -> Result<()> {
     let result = compile("custom-word");
     assert!(result.is_ok());
     let env = result.unwrap().clone();
-    assert_eq!(
-        env.borrow().constants.last(),
-        // TODO: need to make these values reflect the actual token,
-        // not the half-assed values we're stubbing in
-        Some(&Value::Token(Token {
-            token_type: TokenType::Word("custom-word".to_string()),
-            // line: 1, column: 1, offset: 0,
-            line: 0,
-            column: 0,
-            offset: 0,
-            length: 11,
-            lexeme: "custom-word".to_string(),
-        }))
-    );
+    let env = env.borrow();
+    let constant = env.constants.last();
+    assert!(constant.is_some());
+    let constant = constant.unwrap();
+    assert_eq!(constant.data, ValueData::Word("custom-word".to_string()));
+    assert_eq!(constant.lexeme, Some("custom-word".to_string()));
     Ok(())
 }
 
@@ -132,15 +124,69 @@ fn test_compile_character_literals() -> Result<()> {
             let const_index = instructions[i + 1];
             let constant = environment.get_constant(const_index).unwrap();
             match (i / 2, constant) {
-                (0, Value::Char('a')) => (),
-                (1, Value::Char('\n')) => (),
-                (2, Value::Char('\t')) => (),
-                (3, Value::Char('\r')) => (),
-                (4, Value::Char('\'')) => (),
-                (5, Value::Char('\\')) => (),
-                (6, Value::Char('🦀')) => (),
-                (7, Value::Char('A')) => (),  // '\u41'
-                (8, Value::Char('😀')) => (), // '\u{1F600}'
+                (
+                    0,
+                    Value {
+                        data: ValueData::Char('a'),
+                        ..
+                    },
+                ) => (),
+                (
+                    1,
+                    Value {
+                        data: ValueData::Char('\n'),
+                        ..
+                    },
+                ) => (),
+                (
+                    2,
+                    Value {
+                        data: ValueData::Char('\t'),
+                        ..
+                    },
+                ) => (),
+                (
+                    3,
+                    Value {
+                        data: ValueData::Char('\r'),
+                        ..
+                    },
+                ) => (),
+                (
+                    4,
+                    Value {
+                        data: ValueData::Char('\''),
+                        ..
+                    },
+                ) => (),
+                (
+                    5,
+                    Value {
+                        data: ValueData::Char('\\'),
+                        ..
+                    },
+                ) => (),
+                (
+                    6,
+                    Value {
+                        data: ValueData::Char('🦀'),
+                        ..
+                    },
+                ) => (),
+                (
+                    7,
+                    Value {
+                        data: ValueData::Char('A'),
+                        ..
+                    },
+                ) => (), // '\u41'
+                (
+                    8,
+                    Value {
+                        data: ValueData::Char('😀'),
+                        ..
+                    },
+                ) => (), // '\u{1F600}'
                 _ => panic!("Unexpected constant at index {}: {:?}", i / 2, constant),
             }
             i += 2;
@@ -164,19 +210,19 @@ fn test_compile_macro_basic() {
     assert!(tardi
         .environment
         .borrow()
-        .is_macro_trigger(&TokenType::Word("&".to_string())));
+        .is_macro_trigger(&ValueData::Word("&".to_string())));
 
     let result = tardi.execute_str("40 41 & 42");
 
     assert!(result.is_ok(), "ERROR MACRO use: {:?}", result);
     assert_eq!(
         tardi.stack(),
-        vec![Value::Integer(40), 41.into(), 42.into()]
+        vec![ValueData::Integer(40).into(), 41.into(), 42.into()]
     );
 }
 
 #[test]
-fn test_compile_macro_scan_token() {
+fn test_compile_macro_scan_value() {
     // env_logger::init();
     let mut tardi = Tardi::default();
 
@@ -184,7 +230,7 @@ fn test_compile_macro_scan_token() {
         r#"
         MACRO: \
             dup >r
-            scan-token lit
+            scan-value lit
             r> append ;
         "#,
     );
@@ -199,20 +245,33 @@ fn test_compile_macro_scan_token() {
     eprintln!("{:#?}", stack[2]);
     assert_eq!(
         stack[2],
-        Value::Token(Token::new(TokenType::Plus, 1, 9, 8, 1, "+".to_string()))
+        Value {
+            data: ValueData::Literal(Box::new(Value {
+                data: ValueData::Word("+".to_string()),
+                lexeme: Some("+".to_string()),
+                pos: Some(Pos {
+                    line: 1,
+                    column: 9,
+                    offset: 8,
+                    length: 1,
+                }),
+            })),
+            lexeme: None,
+            pos: None,
+        }
     );
 }
 
 #[test]
-fn test_compile_macro_scan_token_list() {
-    env_logger::init();
+fn test_compile_macro_scan_value_list() {
+    // env_logger::init();
     let mut tardi = Tardi::default();
 
     let result = tardi.execute_str(
         r#"
             MACRO: [
                 dup >r
-                ] scan-token-list
+                ] scan-value-list
                 r> append ;
         "#,
     );
@@ -222,25 +281,25 @@ fn test_compile_macro_scan_token_list() {
     assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
     let stack = tardi.stack();
     assert_eq!(stack.len(), 1);
-    assert!(matches!(stack[0], Value::List(_)));
+    assert!(matches!(stack[0].data, ValueData::List(_)));
     let list = stack[0].get_list().unwrap();
     assert_eq!(3, list.len());
     assert_eq!(
-        Value::Integer(40),
-        unshare_clone(list.get(0).cloned().unwrap())
+        ValueData::Integer(40),
+        unshare_clone(list.get(0).cloned().unwrap()).data,
     );
     assert_eq!(
-        Value::Integer(41),
-        unshare_clone(list.get(1).cloned().unwrap())
+        ValueData::Integer(41),
+        unshare_clone(list.get(1).cloned().unwrap()).data,
     );
     assert_eq!(
-        Value::Integer(42),
-        unshare_clone(list.get(2).cloned().unwrap())
+        ValueData::Integer(42),
+        unshare_clone(list.get(2).cloned().unwrap()).data,
     );
 }
 
 #[test]
-fn test_compile_macro_scan_value_list_handles_flat_structures() {
+fn test_compile_macro_scan_object_list_handles_flat_structures() {
     env_logger::init();
     let mut tardi = Tardi::default();
 
@@ -248,7 +307,7 @@ fn test_compile_macro_scan_value_list_handles_flat_structures() {
         r#"
             MACRO: [
                 dup >r
-                ] scan-value-list
+                ] scan-object-list
                 r> append ;
         "#,
     );
@@ -259,7 +318,7 @@ fn test_compile_macro_scan_value_list_handles_flat_structures() {
     let stack = tardi.stack();
 
     assert_eq!(stack.len(), 1);
-    assert!(matches!(stack[0], Value::List(_)));
+    assert!(matches!(stack[0].data, ValueData::List(_)));
 
     // TODO: these are getting wrapped in Token's. i'm probably
     // not thinking clearly about code-as-data and when it should
@@ -269,30 +328,30 @@ fn test_compile_macro_scan_value_list_handles_flat_structures() {
     let list = stack[0].get_list().unwrap();
     assert_eq!(3, list.len());
     assert_eq!(
-        Value::Integer(40),
-        unshare_clone(list.get(0).cloned().unwrap())
+        ValueData::Integer(40),
+        unshare_clone(list.get(0).cloned().unwrap()).data
     );
     assert_eq!(
-        Value::Integer(41),
-        unshare_clone(list.get(1).cloned().unwrap())
+        ValueData::Integer(41),
+        unshare_clone(list.get(1).cloned().unwrap()).data
     );
     assert_eq!(
-        Value::Integer(42),
-        unshare_clone(list.get(2).cloned().unwrap())
+        ValueData::Integer(42),
+        unshare_clone(list.get(2).cloned().unwrap()).data
     );
 }
 
 #[test]
-fn test_compile_macro_scan_value_list_allows_embedded_structures() {
+fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     env_logger::init();
     let mut tardi = Tardi::default();
 
     let result = tardi.execute_str(
         r#"
-            "over" { >r dup >r swap } <function>
             MACRO: [
-                ] scan-value-list
-                over append ;
+                dup
+                ] scan-object-list
+                swap append ;
         "#,
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
@@ -302,21 +361,21 @@ fn test_compile_macro_scan_value_list_allows_embedded_structures() {
     let stack = tardi.stack();
 
     assert_eq!(stack.len(), 1);
-    assert!(matches!(stack[0], Value::List(_)));
+    assert!(matches!(stack[0].data, ValueData::List(_)));
 
     let list = stack[0].get_list().unwrap();
     assert_eq!(4, list.len());
     assert_eq!(
-        Value::Integer(40),
-        unshare_clone(list.get(0).cloned().unwrap())
+        ValueData::Integer(40),
+        unshare_clone(list.get(0).cloned().unwrap()).data
     );
     assert_eq!(
-        Value::Integer(41),
-        unshare_clone(list.get(1).cloned().unwrap())
+        ValueData::Integer(41),
+        unshare_clone(list.get(1).cloned().unwrap()).data
     );
     assert_eq!(
-        Value::Integer(42),
-        unshare_clone(list.get(2).cloned().unwrap())
+        ValueData::Integer(42),
+        unshare_clone(list.get(2).cloned().unwrap()).data
     );
 
     let sublist: Value = unshare_clone(list.get(3).cloned().unwrap());
@@ -325,17 +384,40 @@ fn test_compile_macro_scan_value_list_allows_embedded_structures() {
     let sublist = sublist.unwrap();
     assert_eq!(3, sublist.len());
     assert_eq!(
-        Value::Integer(43),
-        unshare_clone(sublist.get(0).cloned().unwrap())
+        ValueData::Integer(43),
+        unshare_clone(sublist.get(0).cloned().unwrap()).data,
     );
     assert_eq!(
-        Value::Integer(44),
-        unshare_clone(sublist.get(1).cloned().unwrap())
+        ValueData::Integer(44),
+        unshare_clone(sublist.get(1).cloned().unwrap()).data,
     );
     assert_eq!(
-        Value::Integer(45),
-        unshare_clone(sublist.get(2).cloned().unwrap())
+        ValueData::Integer(45),
+        unshare_clone(sublist.get(2).cloned().unwrap()).data,
     );
+}
+
+#[test]
+fn test_compile_define_use_function() {
+    // env_logger::init();
+    let mut tardi = Tardi::default();
+
+    tardi
+        .execute_str(
+            r#"
+        over { >r dup r> swap } <function>
+        "#,
+        )
+        .unwrap();
+
+    let result = tardi.execute_str("42 7 over");
+    assert!(result.is_ok(), "ERROR executing over: {:?}", result);
+    let stack = tardi.stack();
+
+    assert_eq!(stack.len(), 3);
+    assert!(matches!(stack[0].data, ValueData::Integer(42)));
+    assert!(matches!(stack[1].data, ValueData::Integer(7)));
+    assert!(matches!(stack[2].data, ValueData::Integer(42)));
 }
 
 // TODO: it seems like previous tests works because the outer macro call is
@@ -343,38 +425,60 @@ fn test_compile_macro_scan_value_list_allows_embedded_structures() {
 // macros. But this will break if the outer macro is building something else,
 // like a hashmap or set. Maybe I need a new test to build this out.
 #[test]
-fn test_compile_macro_scan_value_list_allows_heterogeneous_embedded_structures() {
+fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures() {
     env_logger::init();
     let mut tardi = Tardi::default();
 
+    tardi
+        .execute_str(
+            r#"
+        over { >r dup r> swap } <function>
+        "#,
+        )
+        .unwrap();
+
     let result = tardi.execute_str(
         r#"
-            "over" { >r dup >r swap } <function>
+            MACRO: \ scan-value over append ;
             MACRO: [
-                ] scan-value-list
+                ] scan-object-list
                 over append ;
             MACRO: :
-                scan-token
-                ; scan-value-list
-                <function>
-                over append ;
+                scan-value
+                \ ; scan-object-list compile
+                <function> ;
         "#,
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
+    // I think that when these get compiled, the instructions to jump over >name
+    // end up pointing at `append`, not the following return
+    //     0039. Jump             |  0044
+    //     0041. Lit              |  0004. 2
+    //     0043. Multiply         |
+    //     0044. Jump             |  0048
+    //     0046. Lit              |  0005. [ "name" ]
+    //     0048. Append           |
+    //     0049. Return           |
     let result = tardi.execute_str(
         r#"
-        : double * 2 ;
-        4 double
+        : double 2 * ;
         : >name [ "name" ] append ;
+        "#,
+    );
+    assert!(result.is_ok(), "ERROR FUNCTION definition: {:?}", result);
+
+    let result = tardi.execute_str(
+        r#"
+        4 double
         "Zaphod" >name
         "#,
     );
-    assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
+    assert!(result.is_ok(), "ERROR FUNCTION execution: {:?}", result);
     let stack = tardi.stack();
 
     assert_eq!(stack.len(), 2);
-    assert!(matches!(stack[0], Value::List(_)));
+    assert!(matches!(stack[0].data, ValueData::List(_)));
 
     let doubled = stack[0].get_integer();
     assert_eq!(Some(8), doubled);
@@ -382,11 +486,11 @@ fn test_compile_macro_scan_value_list_allows_heterogeneous_embedded_structures()
     let list = stack[1].get_list().unwrap();
     assert_eq!(2, list.len());
     assert_eq!(
-        Value::String(">name".to_string()),
-        unshare_clone(list.get(0).cloned().unwrap())
+        ValueData::String(">name".to_string()),
+        unshare_clone(list.get(0).cloned().unwrap()).data,
     );
     assert_eq!(
-        Value::String("Zaphod".to_string()),
-        unshare_clone(list.get(1).cloned().unwrap())
+        ValueData::String("Zaphod".to_string()),
+        unshare_clone(list.get(1).cloned().unwrap()).data,
     );
 }

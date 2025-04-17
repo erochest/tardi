@@ -1,11 +1,13 @@
 use std::fmt::Debug;
 
+use log::Level;
+
 use crate::core::{Compile, Execute, Scan};
 use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError};
-use crate::scanner::{Token, TokenType};
 use crate::shared::{shared, Shared};
-use crate::value::{Callable, Function, SharedValue, Value};
+use crate::value::lambda::{Callable, Lambda};
+use crate::value::{SharedValue, Value, ValueData};
 use crate::vm::OpCode;
 use crate::Scanner;
 
@@ -60,26 +62,26 @@ impl Compiler {
         scanner.set_source(input);
         let mut buffer = Vec::new();
 
-        while let Some(token) = scanner.scan_token() {
-            let token = token?;
-            log::trace!("Compiler::pass1 {:?}", token);
-            if token.token_type == TokenType::MacroStart {
-                let function = self.compile_macro(executor, env.clone(), scanner)?;
-                env.borrow_mut().add_macro(function)?;
-                continue;
-            } else if let Some(callable) = get_macro(env.clone(), &token.token_type) {
+        // TODO: this needs to convert to the `TokenType::Dup` style codes
+        while let Some(result) = scanner.scan_value() {
+            let value = result?;
+            log::trace!("Compiler::pass1 {:?}", value);
+            if value.data == ValueData::Macro {
+                let lambda = self.compile_macro(executor, env.clone(), scanner)?;
+                env.borrow_mut().add_macro(lambda)?;
+            } else if let Some(callable) = get_macro(env.clone(), &value.data) {
                 log::trace!("Compiler::pass1 executing macro {:?}", callable);
                 buffer = executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
-                    &token.token_type,
+                    &value.data,
                     &callable,
                     &mut buffer,
                 )?;
-                continue;
+            } else {
+                buffer.push(value);
             }
-            buffer.push(Value::Token(token));
         }
 
         Ok(buffer)
@@ -87,6 +89,7 @@ impl Compiler {
 
     fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
         if log::log_enabled!(log::Level::Trace) {
+            // TODO: clean up these and other places that log lists of values or values to only output the lexemes
             if values.len() > 3 {
                 log::trace!("Compiler::pass2 {:?}...", &values[..3]);
             } else {
@@ -101,82 +104,91 @@ impl Compiler {
     }
 
     // TODO: I Suspect that this isn't handling the `}` correctly before
-    // `scan-token-list`. (hint: it needs to be a literal.)
+    // `scan-value-list`. (hint: it needs to be a literal.)
     fn compile_value(&mut self, value: Value) -> Result<()> {
         log::trace!("Compiler::compile_value {:?}", value);
-        match value {
-            Value::Integer(_)
-            | Value::Float(_)
-            | Value::Boolean(_)
-            | Value::Char(_)
-            | Value::List(_)
-            | Value::String(_)
-            | Value::Address(_) => self.compile_constant(value),
-            Value::Function(ref callable) => {
-                if callable.is_lambda() {
+        // If we're collecting words for a function/lambda, add to the current word list
+        if let Some(closure) = self.closure_stack.last_mut() {
+            if let Some(ref lexeme) = value.lexeme {
+                closure.words.push(lexeme.clone());
+            }
+        }
+        match value.data {
+            ValueData::Integer(_)
+            | ValueData::Float(_)
+            | ValueData::Boolean(_)
+            | ValueData::Char(_)
+            | ValueData::List(_)
+            | ValueData::String(_)
+            | ValueData::Address(_)
+            | ValueData::Literal(_) => self.compile_constant(value),
+            ValueData::Function(ref lambda) => {
+                if lambda.name.is_none() {
                     self.compile_constant(value)
                 } else {
-                    self.add_function(callable.clone())
+                    self.add_function(lambda)
                 }
             }
-            Value::Token(token) => self.compile_token(token),
-            Value::Literal(lit_value) => self.compile_constant(*lit_value),
+            ValueData::Word(_) => self.compile_word(value),
+            ValueData::Macro => unreachable!("This is handled by the Scanner."),
+            ValueData::EndOfInput => self.compile_op(OpCode::Return),
         }
     }
 
-    fn compile_token(&mut self, token: Token) -> Result<()> {
-        log::trace!("Compiler::compile_token {:?}", token);
-        match token.token_type {
-            TokenType::Integer(value) => self.compile_constant(value),
-            TokenType::Float(value) => self.compile_constant(value),
-            TokenType::Boolean(value) => self.compile_constant(value),
-            TokenType::Char(value) => self.compile_constant(value),
-            TokenType::Dup => self.compile_op(OpCode::Dup),
-            TokenType::Swap => self.compile_op(OpCode::Swap),
-            TokenType::Rot => self.compile_op(OpCode::Rot),
-            TokenType::Drop => self.compile_op(OpCode::Drop),
-            TokenType::StackSize => self.compile_op(OpCode::StackSize),
-            TokenType::ToR => self.compile_op(OpCode::ToR),
-            TokenType::RFrom => self.compile_op(OpCode::RFrom),
-            TokenType::RFetch => self.compile_op(OpCode::RFetch),
-            TokenType::Plus => self.compile_op(OpCode::Add),
-            TokenType::Dash => self.compile_op(OpCode::Subtract),
-            TokenType::Star => self.compile_op(OpCode::Multiply),
-            TokenType::Slash => self.compile_op(OpCode::Divide),
-            TokenType::EqualEqual => self.compile_op(OpCode::Equal),
-            TokenType::BangEqual => {
+    fn compile_word(&mut self, value: Value) -> Result<()> {
+        log::trace!("Compiler::compile_word {:?}", value);
+        let word = if let ValueData::Word(w) = value.data {
+            Ok(w)
+        } else {
+            Err(CompilerError::UnsupportedToken(format!("{:?}", value)))
+        }?;
+
+        match word.as_str() {
+            "dup" => self.compile_op(OpCode::Dup),
+            "swap" => self.compile_op(OpCode::Swap),
+            "rot" => self.compile_op(OpCode::Rot),
+            "drop" => self.compile_op(OpCode::Drop),
+            "stack-size" => self.compile_op(OpCode::StackSize),
+            ">r" => self.compile_op(OpCode::ToR),
+            "r>" => self.compile_op(OpCode::RFrom),
+            "r@" => self.compile_op(OpCode::RFetch),
+            "+" => self.compile_op(OpCode::Add),
+            "-" => self.compile_op(OpCode::Subtract),
+            "*" => self.compile_op(OpCode::Multiply),
+            "/" => self.compile_op(OpCode::Divide),
+            "==" => self.compile_op(OpCode::Equal),
+            "!=" => {
                 self.compile_op(OpCode::Equal)?;
                 self.compile_op(OpCode::Not)
             }
-            TokenType::Less => self.compile_op(OpCode::Less),
-            TokenType::Greater => self.compile_op(OpCode::Greater),
-            TokenType::LessEqual => {
+            "<" => self.compile_op(OpCode::Less),
+            ">" => self.compile_op(OpCode::Greater),
+            "<=" => {
                 self.compile_op(OpCode::Greater)?;
                 self.compile_op(OpCode::Not)
             }
-            TokenType::GreaterEqual => {
+            ">=" => {
                 self.compile_op(OpCode::Less)?;
                 self.compile_op(OpCode::Not)
             }
-            TokenType::Bang => self.compile_op(OpCode::Not),
-            TokenType::CreateList => self.compile_op(OpCode::CreateList),
-            TokenType::Append => self.compile_op(OpCode::Append),
-            TokenType::Prepend => self.compile_op(OpCode::Prepend),
-            TokenType::Concat => self.compile_op(OpCode::Concat),
-            TokenType::SplitHead => self.compile_op(OpCode::SplitHead),
-            TokenType::String(value) => self.compile_constant(value),
-            TokenType::CreateString => self.compile_op(OpCode::CreateString),
-            TokenType::ToString => self.compile_op(OpCode::ToString),
-            TokenType::Utf8ToString => self.compile_op(OpCode::Utf8ToString),
-            TokenType::StringConcat => self.compile_op(OpCode::StringConcat),
-            TokenType::Function => self.compile_op(OpCode::Function),
-            TokenType::Call => self.compile_op(OpCode::CallStack),
-            TokenType::LeftCurly => {
+            "!" => self.compile_op(OpCode::Not),
+            "<list>" => self.compile_op(OpCode::CreateList),
+            "append" => self.compile_op(OpCode::Append),
+            "prepend" => self.compile_op(OpCode::Prepend),
+            "concat" => self.compile_op(OpCode::Concat),
+            "split-head" => self.compile_op(OpCode::SplitHead),
+            "<string>" => self.compile_op(OpCode::CreateString),
+            ">string" => self.compile_op(OpCode::ToString),
+            "utf8>string" => self.compile_op(OpCode::Utf8ToString),
+            "string-concat" => self.compile_op(OpCode::StringConcat),
+            "<function>" => self.compile_op(OpCode::Function),
+            "call" => self.compile_op(OpCode::CallStack),
+            "{" => {
                 // Start a new function compilation
                 self.start_function();
                 Ok(())
             }
-            TokenType::RightCurly => {
+            "}" => {
                 // End the current function/lambda
                 if !self.closure_stack.is_empty() {
                     self.compile_lambda()
@@ -184,26 +196,44 @@ impl Compiler {
                     Err(Error::CompilerError(CompilerError::UnmatchedBrace))
                 }
             }
-            TokenType::Word(word) => {
-                // If we're collecting words for a function/lambda, add to the current word list
-                if let Some(closure) = self.closure_stack.last_mut() {
-                    closure.words.push(word.clone());
-                }
-                self.compile_word_call(&word)?;
-                Ok(())
-            }
-            TokenType::MacroStart => unimplemented!("this gets handled by the scanner"),
-            TokenType::Lit => self.compile_op(OpCode::LitStack),
-            TokenType::Lambda => todo!(),
-            TokenType::ScanToken => self.compile_op(OpCode::ScanToken),
-            TokenType::ScanTokenList => self.compile_op(OpCode::ScanTokenList),
-            TokenType::ScanValueList => self.compile_op(OpCode::ScanValueList),
-            TokenType::Error => todo!(),
-            TokenType::EndOfInput => {
-                self.compile_op(OpCode::Return)?;
-                Ok(())
+            "lit" => self.compile_op(OpCode::LitStack),
+            "scan-value" => self.compile_op(OpCode::ScanValue),
+            "scan-value-list" => self.compile_op(OpCode::ScanValueList),
+            "scan-object-list" => self.compile_op(OpCode::ScanObjectList),
+            "compile" => self.compile_op(OpCode::Compile),
+            _ => self.compile_word_call(&word),
+        }
+    }
+
+    /// Compile a list of words into a lambda.
+    pub fn compile_list<E: Execute>(
+        &mut self,
+        executor: &mut E,
+        env: Shared<Environment>,
+        scanner: &mut Scanner,
+        words: &[Value],
+    ) -> Result<Lambda> {
+        self.start_function();
+        let mut buffer = Vec::new();
+
+        for word in words {
+            if let Some(lambda) = get_macro(env.clone(), &word.data) {
+                buffer = executor.execute_macro(
+                    env.clone(),
+                    self,
+                    scanner,
+                    &word.data,
+                    &lambda,
+                    &mut buffer,
+                )?;
+            } else {
+                buffer.push(word.clone());
             }
         }
+
+        self.pass2(buffer)?;
+        self.compile_op(OpCode::Return)?;
+        self.end_function()
     }
 
     /// Adds an opcode to the current function being defined,
@@ -254,9 +284,16 @@ impl Compiler {
 
     /// Ends a function definition by popping the top Vec<usize> from function_stack,
     /// appending it to the main instructions, and returning the start index
-    pub fn end_function(&mut self) -> Result<Function> {
+    pub fn end_function(&mut self) -> Result<Lambda> {
         log::trace!("Compiler::end_function");
-        if let Some(closure) = self.closure_stack.pop() {
+        if let Some(mut closure) = self.closure_stack.pop() {
+            if log::log_enabled!(Level::Trace) {
+                log::trace!(
+                    "Compiler::end_function closure: [ {} ] {:?}",
+                    closure.words.join(" "),
+                    closure.instructions
+                );
+            }
             let jump_target = self
                 .environment
                 .as_ref()
@@ -273,53 +310,41 @@ impl Compiler {
                         .extend_instructions(closure.instructions.clone())
                 })
                 .unwrap_or_default();
+            while closure.words.last().map(|w| w == "}").unwrap_or(false) {
+                closure.words.pop();
+            }
             log::trace!("Compiler::end_function: {} ({:?})", ip, closure.words);
-            Ok(Function {
+            // TODO: get the pos for this value
+            Ok(Lambda {
                 name: None,
-                words: closure.words,
-                ip,
+                immediate: false,
+                callable: Callable::Compiled {
+                    words: closure.words,
+                    ip,
+                },
             })
         } else {
-            // If there's no function being defined, return current instruction pointer
-            // TODO: Should this be an error?
-            log::warn!("Compiler::end_function: missing closure");
-            Ok(Function {
-                name: None,
-                words: vec![],
-                ip: self
-                    .environment
-                    .as_ref()
-                    .map(|e| e.borrow().instructions_len())
-                    .unwrap_or_default(),
-            })
+            Err(CompilerError::InvalidOperation("missing begin function".to_string()).into())
         }
     }
 
     /// Compiles a word as a function call
     fn compile_word_call(&mut self, word: &str) -> Result<()> {
         log::trace!("Compiler::compile_word_call {:?}", word);
-        if let Some(index) = self
+        if let Some(op_table_index) = self
             .environment
             .as_ref()
-            .map(|e| e.borrow().get_op_map().get(word).copied())
-            .unwrap_or_default()
+            .and_then(|e| e.borrow().get_op_map().get(word).copied())
         {
             // Right now this only handles non-recursive calls.
             // TODO: to handle recursive calls, if the function doesn't
             // have a valid address (say zero), then put the function's
             // index on the stack and use CallStack.
-            self.compile_op_arg(OpCode::Call, index)?;
+            self.compile_op_arg(OpCode::Call, op_table_index)?;
             Ok(())
         } else {
             // TODO: get the actual token down here
-            self.compile_constant(Value::Token(Token {
-                token_type: TokenType::Word(word.to_string()),
-                line: 0,
-                column: 0,
-                offset: 0,
-                length: word.len(),
-                lexeme: word.to_string(),
-            }))?;
+            self.compile_constant(Value::with_lexeme(ValueData::Word(word.to_string()), word))?;
             Ok(())
         }
     }
@@ -333,16 +358,16 @@ impl Compiler {
     }
 
     /// Compiles a lambda expression
-    fn compile_lambda(&mut self) -> Result<()> {
+    pub fn compile_lambda(&mut self) -> Result<()> {
         log::trace!("Compiler::compile_lambda");
         self.compile_op(OpCode::Return)?;
 
-        let function = self.end_function()?;
-        let callable = Callable::Fn(function);
+        let lambda = self.end_function()?;
+        let value = Value::new(ValueData::Function(lambda));
         let const_index = self
             .environment
             .as_ref()
-            .map(|e| e.borrow_mut().add_constant(Value::Function(callable)))
+            .map(|e| e.borrow_mut().add_constant(value))
             .unwrap_or_default();
 
         self.compile_op_arg(OpCode::Lit, const_index)?;
@@ -351,10 +376,10 @@ impl Compiler {
     }
 
     /// Adds a function defined in a macro to the environment
-    fn add_function(&mut self, callable: Callable) -> Result<()> {
-        log::trace!("Compiler::add_function {:?}", callable.get_name());
+    fn add_function(&mut self, lambda: &Lambda) -> Result<()> {
+        log::trace!("Compiler::add_function {:?}", lambda.name);
         if let Some(env) = self.environment.as_ref() {
-            env.borrow_mut().add_to_op_table(shared(callable));
+            env.borrow_mut().add_to_op_table(shared(lambda.clone()));
             Ok(())
         } else {
             Err(Error::CompilerError(CompilerError::MissingEnvironment))
@@ -366,65 +391,76 @@ impl Compiler {
         executor: &mut E,
         env: Shared<Environment>,
         scanner: &mut Scanner,
-    ) -> Result<Callable> {
+    ) -> Result<Lambda> {
         log::trace!("Compiler::compile_macro");
         let trigger = scanner
-            .scan_token()
+            .scan_value()
             .ok_or(ScannerError::UnexpectedEndOfInput)?;
         let trigger = trigger?;
         log::trace!("macro trigger {:?}", trigger);
 
         let body =
-            self.scan_value_list(executor, env, TokenType::Word(";".to_string()), scanner)?;
+            self.scan_value_list(executor, env, ValueData::Word(";".to_string()), scanner)?;
+        // TODO: body.map(to_string)
         log::trace!("Compiler::compile_macro {:?} => {:?}", trigger.lexeme, body);
         self.start_function();
         self.pass2(body)?;
         self.compile_op(OpCode::Return)?;
-        let mut function = self.end_function()?;
-        function.name = Some(trigger.lexeme.clone());
+        let mut lambda = self.end_function()?;
+        lambda.name = trigger.lexeme.clone();
+        lambda.immediate = true;
 
-        Ok(Callable::Fn(function))
+        Ok(lambda)
     }
 
     // TODO: when this is done, can I reimplement `scan` to be
-    // `scan_value_list(TokenType::EOF)`?
+    // `scan_value_list(ValueData::EndOfInput)`?
     pub fn scan_value_list<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        delimiter: TokenType,
+        delimiter: ValueData,
         scanner: &mut Scanner,
     ) -> Result<Vec<Value>> {
         log::trace!("Compiler::scan_value_list {:?}", delimiter);
         let mut buffer = Vec::new();
 
-        while let Some(token) = scanner.scan_token() {
-            let token = token?;
-            log::trace!("Compiler::scan_value_list {:?}", token);
-            if token.token_type == delimiter {
-                log::trace!("Compiler::scan_value_list returning {:?}", buffer);
+        while let Some(value) = scanner.scan_value() {
+            let value = value?;
+            log::trace!("Compiler::scan_value_list {:?}", value);
+            if value.data == delimiter {
+                if log::log_enabled!(Level::Trace) {
+                    let words = buffer
+                        .iter()
+                        .map(|v: &Value| v.to_string())
+                        .collect::<Vec<_>>();
+                    log::trace!(
+                        "Compiler::scan_value_list returning [ {} ]",
+                        words.join(" ")
+                    );
+                }
                 return Ok(buffer);
             }
-            if let Some(function) = get_macro(env.clone(), &token.token_type) {
-                log::trace!("Compiler::scan_value_list executing macro {:?}", function);
+            if let Some(lambda) = get_macro(env.clone(), &value.data) {
+                log::trace!("Compiler::scan_value_list executing macro {:?}", lambda);
                 buffer = executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
-                    &token.token_type,
-                    &function,
+                    &value.data,
+                    &lambda,
                     &buffer,
                 )?;
                 continue;
             }
-            buffer.push(Value::Token(token));
+            buffer.push(value);
         }
 
         Err(ScannerError::UnexpectedEndOfInput.into())
     }
 }
 
-fn get_macro(env: Shared<Environment>, trigger: &TokenType) -> Option<Callable> {
+fn get_macro(env: Shared<Environment>, trigger: &ValueData) -> Option<Lambda> {
     env.borrow().get_macro(trigger).cloned()
 }
 

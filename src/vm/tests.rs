@@ -2,7 +2,7 @@ use super::*;
 use crate::core::create_op_table;
 use crate::env::Environment;
 use crate::error::{Error, VMError};
-use crate::value::{Callable, Function, Value};
+use crate::value::Value;
 use crate::Tardi;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -28,38 +28,92 @@ fn test_stack_operations() {
     let mut stack = eval("42").unwrap();
     assert_eq!(stack.len(), 1);
     let value = stack.pop().unwrap();
-    assert!(matches!(value, Value::Integer(42)));
+    assert!(matches!(
+        value,
+        Value {
+            data: ValueData::Integer(42),
+            ..
+        }
+    ));
 
     // Test dup
     let mut stack = eval("1 dup").unwrap();
     assert_eq!(stack.len(), 2);
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(1)));
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(1)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(1),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(1),
+            ..
+        }
+    ));
 
     // Test swap
     let mut stack = eval("1 2 swap").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(1)));
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(2)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(1),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(2),
+            ..
+        }
+    ));
 
     // Test rot
     let mut stack = eval("1 2 3 rot").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(1)));
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(3)));
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(2)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(1),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(3),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(2),
+            ..
+        }
+    ));
 
     // Test drop_op
     let mut stack = eval("42 drop").unwrap();
     assert_eq!(stack.len(), 0);
 
     let mut stack = eval("10 11 12 13 stack-size").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(4)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(4),
+            ..
+        }
+    ));
 }
 
 #[test]
 fn test_basic_vm_execution() {
     let mut tardi = Tardi::default();
     let environment = tardi.environment.clone();
-    environment.borrow_mut().constants = vec![Value::Integer(123)];
+    environment.borrow_mut().constants = vec![ValueData::Integer(123).into()];
     environment.borrow_mut().instructions = vec![0, 0];
 
     let result = tardi.execute_ip(0);
@@ -67,7 +121,13 @@ fn test_basic_vm_execution() {
 
     // Verify the result
     let value = tardi.executor.stack.pop().unwrap();
-    assert!(matches!(*value.borrow(), Value::Integer(123)));
+    assert!(matches!(
+        *value.borrow(),
+        Value {
+            data: ValueData::Integer(123),
+            ..
+        }
+    ));
 }
 
 #[test]
@@ -90,13 +150,9 @@ fn test_function_and_lambda_operations() {
     let env = tardi.environment.clone();
 
     env.borrow_mut().constants = vec![
-        Value::Function(Callable::Fn(Function {
-            name: None,
-            words: vec!["2".to_string(), "3".to_string(), "*".to_string()],
-            ip: 5, // Index where the lambda instructions start
-        })),
-        Value::Integer(2),
-        Value::Integer(3),
+        Value::new(ValueData::Function(Lambda::new_lambda(vec![], 5))),
+        ValueData::Integer(2).into(),
+        ValueData::Integer(3).into(),
     ];
     env.borrow_mut().instructions = vec![
         0,
@@ -117,19 +173,18 @@ fn test_function_and_lambda_operations() {
     // Verify the result of lambda execution (2 * 3 = 6)
     assert!(matches!(
         *tardi.executor.stack.pop().unwrap().borrow(),
-        Value::Integer(6)
+        Value {
+            data: ValueData::Integer(6),
+            ..
+        },
     ));
 
     // Test function definition and execution
     env.borrow_mut().constants = vec![
-        Value::String("triple".to_string()),
-        Value::Function(Callable::Fn(Function {
-            name: None,
-            words: vec!["3".to_string(), "*".to_string()],
-            ip: 7, // Index where the function instructions start
-        })),
-        Value::Integer(3),
-        Value::Integer(4),
+        ValueData::String("triple".to_string()).into(),
+        ValueData::Function(Lambda::new_lambda(vec![], 7)).into(),
+        ValueData::Integer(3).into(),
+        ValueData::Integer(4).into(),
     ];
     env.borrow_mut().instructions = vec![
         0,
@@ -154,7 +209,10 @@ fn test_function_and_lambda_operations() {
     // Verify the result of function execution (4 * 3 = 12)
     assert!(matches!(
         *tardi.executor.stack.pop().unwrap().borrow(),
-        Value::Integer(12)
+        Value {
+            data: ValueData::Integer(12),
+            ..
+        },
     ));
 }
 
@@ -164,19 +222,49 @@ fn test_return_stack_operations() {
     let result = eval("42 >r stack-size r> drop");
     assert_is_ok("42 >r stack-size r> drop", &result);
     let mut stack = result.unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(0)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(0),
+            ..
+        }
+    ));
 
     // Test r> (r_from)
     let mut stack = eval("42 >r 7 r>").unwrap();
     assert_eq!(stack.len(), 2);
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(42)));
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(7)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(42),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(7),
+            ..
+        }
+    ));
 
     // Test r@ (r_fetch)
     let mut stack = eval("10 >r r@ r>").unwrap();
     assert_eq!(stack.len(), 2);
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(10)));
-    assert!(matches!(stack.pop().unwrap(), Value::Integer(10)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(10),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Integer(10),
+            ..
+        }
+    ));
 
     // Test return stack overflow
     let script = (0..2048)
@@ -208,32 +296,98 @@ fn test_arithmetic_operations() {
     // Test integer addition
     let mut stack = eval("3 4 +").unwrap();
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Integer(7)), "{:?} != {:?}", top, 7);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Integer(7),
+                ..
+            }
+        ),
+        "{:?} != {:?}",
+        top,
+        7
+    );
 
     // Test float addition
     let mut stack = eval("3.5 1.5 +").unwrap();
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Float(5.0)), "{:?} != {:?}", top, 5.0);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Float(5.0),
+                ..
+            }
+        ),
+        "{:?} != {:?}",
+        top,
+        5.0
+    );
 
     // Test mixed addition (integer + float)
     let mut stack = eval("2 1.5 +").unwrap();
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Float(3.5)), "{:?} != {:?}", top, 3.5);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Float(3.5),
+                ..
+            }
+        ),
+        "{:?} != {:?}",
+        top,
+        3.5
+    );
 
     // Test subtraction
     let mut stack = eval("5 3 -").unwrap();
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Integer(2)), "{:?} != {:?}", top, 2);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Integer(2),
+                ..
+            }
+        ),
+        "{:?} != {:?}",
+        top,
+        2
+    );
 
     // Test multiplication
     let mut stack = eval("4 3 *").unwrap();
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Integer(12)), "{:?} != {:?}", top, 12);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Integer(12),
+                ..
+            }
+        ),
+        "{:?} != {:?}",
+        top,
+        12
+    );
 
     // Test division
     let mut stack = eval("10 2 /").unwrap();
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Integer(5)), "{:?} != {:?}", top, 5);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Integer(5),
+                ..
+            }
+        ),
+        "{:?} != {:?}",
+        top,
+        5
+    );
 }
 
 #[test]
@@ -275,31 +429,97 @@ fn test_arithmetic_errors() {
 fn test_character_operations() {
     // Test basic character handling
     let mut stack = eval("'a'").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Char('a')));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Char('a'),
+            ..
+        }
+    ));
 
     // Test character literals in environment execution
     let mut stack = eval("'a' '\n' '🦀'").unwrap();
 
     // Verify the characters were pushed onto the stack in the correct order
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Char('🦀')), "stack top: {:?}", top);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Char('🦀'),
+                ..
+            }
+        ),
+        "stack top: {:?}",
+        top
+    );
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Char('\n')), "stack top: {:?}", top);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Char('\n'),
+                ..
+            }
+        ),
+        "stack top: {:?}",
+        top
+    );
     let top = stack.pop().unwrap();
-    assert!(matches!(top, Value::Char('a')), "stack top: {:?}", top);
+    assert!(
+        matches!(
+            top,
+            Value {
+                data: ValueData::Char('a'),
+                ..
+            }
+        ),
+        "stack top: {:?}",
+        top
+    );
 
     // Test stack operations with characters
     let mut stack = eval("'x' 'y' dup").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Char('y')));
-    assert!(matches!(stack.pop().unwrap(), Value::Char('y')));
-    assert!(matches!(stack.pop().unwrap(), Value::Char('x')));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Char('y'),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Char('y'),
+            ..
+        }
+    ));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Char('x'),
+            ..
+        }
+    ));
 
     // Test comparison operations with characters
     let mut stack = eval("'a' 'a' ==").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(true)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(true),
+            ..
+        }
+    ));
 
     let mut stack = eval("'a' 'b' <").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(true)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(true),
+            ..
+        }
+    ));
 
     // Test type mismatch with characters
     let result = eval("'a' 1 ==");
@@ -313,22 +533,52 @@ fn test_character_operations() {
 fn test_comparison_operations() {
     // Test equal
     let mut stack = eval("5 5 ==").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(true)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(true),
+            ..
+        }
+    ));
 
     let mut stack = eval("5 6 ==").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(false)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(false),
+            ..
+        }
+    ));
 
     // Test less than
     let mut stack = eval("5 6 <").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(true)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(true),
+            ..
+        }
+    ));
 
     // Test greater than
     let mut stack = eval("6 5 >").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(true)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(true),
+            ..
+        }
+    ));
 
     // Test comparison with different types
     let mut stack = eval("5 5.0 ==").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(true)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(true),
+            ..
+        }
+    ));
 
     // Test comparison error
     let result = eval("5 #t ==");
@@ -339,10 +589,22 @@ fn test_comparison_operations() {
 
     // Test NOT operation
     let mut stack = eval("#t !").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(false)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(false),
+            ..
+        }
+    ));
 
     let mut stack = eval("#f !").unwrap();
-    assert!(matches!(stack.pop().unwrap(), Value::Boolean(true)));
+    assert!(matches!(
+        stack.pop().unwrap(),
+        Value {
+            data: ValueData::Boolean(true),
+            ..
+        }
+    ));
 }
 
 #[test]
@@ -382,7 +644,11 @@ fn test_jump_operations() {
     let env = tardi.environment.clone();
 
     // Test basic jump
-    env.borrow_mut().constants = vec![Value::Integer(1), Value::Integer(2), Value::Integer(3)];
+    env.borrow_mut().constants = vec![
+        ValueData::Integer(1).into(),
+        ValueData::Integer(2).into(),
+        ValueData::Integer(3).into(),
+    ];
     env.borrow_mut().instructions = vec![
         0,
         0, // lit 1
@@ -400,19 +666,25 @@ fn test_jump_operations() {
     // Should have pushed 1 and 3, skipping 2
     assert!(matches!(
         *tardi.executor.stack.pop().unwrap().borrow(),
-        Value::Integer(3)
+        Value {
+            data: ValueData::Integer(3),
+            ..
+        }
     ));
     assert!(matches!(
         *tardi.executor.stack.pop().unwrap().borrow(),
-        Value::Integer(1)
+        Value {
+            data: ValueData::Integer(1),
+            ..
+        }
     ));
 
     // Test jump_stack
     env.borrow_mut().constants = vec![
-        Value::Integer(1),
-        Value::Address(7),
-        Value::Integer(2),
-        Value::Integer(3),
+        ValueData::Integer(1).into(),
+        ValueData::Address(7).into(),
+        ValueData::Integer(2).into(),
+        ValueData::Integer(3).into(),
     ];
     env.borrow_mut().instructions = vec![
         0,
@@ -431,11 +703,17 @@ fn test_jump_operations() {
     // Should have pushed 1 and 3, skipping 2
     assert!(matches!(
         *tardi.executor.stack.pop().unwrap().borrow(),
-        Value::Integer(3)
+        Value {
+            data: ValueData::Integer(3),
+            ..
+        }
     ));
     assert!(matches!(
         *tardi.executor.stack.pop().unwrap().borrow(),
-        Value::Integer(1)
+        Value {
+            data: ValueData::Integer(1),
+            ..
+        }
     ));
 
     // TODO: uncomment once there's a word for <jump-stack>

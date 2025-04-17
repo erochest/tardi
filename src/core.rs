@@ -6,16 +6,17 @@ use std::rc::Rc;
 use crate::compiler::Compiler;
 use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
-use crate::scanner::{Scanner, Token, TokenType};
+use crate::scanner::Scanner;
 use crate::shared::{shared, unshare_clone, Shared};
-use crate::value::{Callable, Function, Value};
-use crate::vm::{OpCode, OpFn, VM};
+use crate::value::lambda::{Callable, Lambda, OpFn};
+use crate::value::{Value, ValueData};
+use crate::vm::{OpCode, VM};
 
 pub trait Scan {
-    fn scan(&mut self, input: &str) -> Result<Vec<Result<Token>>>;
+    fn scan(&mut self, input: &str) -> Result<Vec<Result<Value>>>;
     fn set_source(&mut self, input: &str);
-    fn scan_token(&mut self) -> Option<Result<Token>>;
-    fn scan_tokens_until(&mut self, token_type: TokenType) -> Result<Vec<Result<Token>>>;
+    fn scan_value(&mut self) -> Option<Result<Value>>;
+    fn scan_values_until(&mut self, value_data: ValueData) -> Result<Vec<Result<Value>>>;
     fn read_string_until(&mut self, delimiter: &str) -> Result<String>;
 }
 
@@ -49,8 +50,8 @@ pub trait Execute {
         env: Shared<Environment>,
         compiler: &mut Compiler,
         scanner: &mut Scanner,
-        trigger: &TokenType,
-        callable: &Callable,
+        trigger: &ValueData,
+        lambda: &Lambda,
         tokens: &[Value],
     ) -> Result<Vec<Value>>;
 }
@@ -84,7 +85,7 @@ impl Tardi {
         self.input = None;
     }
 
-    pub fn scan_str(&mut self, input: &str) -> Result<Vec<Result<Token>>> {
+    pub fn scan_str(&mut self, input: &str) -> Result<Vec<Result<Value>>> {
         log::debug!("input : {:?}", input);
         let input = input.to_string();
         self.input = Some(input);
@@ -141,7 +142,7 @@ impl Default for Tardi {
 }
 
 // Create the default operation table
-pub fn create_op_table() -> Vec<Shared<Callable>> {
+pub fn create_op_table() -> Vec<Shared<Lambda>> {
     let size = OpCode::StringConcat as usize + 1;
     let mut op_table = Vec::with_capacity(size);
 
@@ -178,34 +179,29 @@ pub fn create_op_table() -> Vec<Shared<Callable>> {
     push_op(&mut op_table, "jump", jump);
     push_op(&mut op_table, "jump-stack", jump_stack);
     push_op(&mut op_table, "<function>", function);
-    push_op(&mut op_table, "scan-token", scan_token);
-    push_op(&mut op_table, "scan-token-list", scan_token_list);
+    push_op(&mut op_table, "scan-value", scan_value);
     push_op(&mut op_table, "scan-value-list", scan_value_list);
+    push_op(&mut op_table, "scan-object-list", scan_object_list);
     push_op(&mut op_table, "lit", lit_stack);
+    push_op(&mut op_table, "compile", compile);
 
     op_table
 }
 
-pub fn create_macro_table() -> HashMap<String, Callable> {
+pub fn create_macro_table() -> HashMap<String, Lambda> {
     let mut map = HashMap::new();
-    // insert_macro(&mut map, "scan-token-list", scan_token_list);
+    // insert_macro(&mut map, "scan-value-list", scan_token_list);
     map
 }
 
-fn push_op(op_table: &mut Vec<Shared<Callable>>, name: &str, op: OpFn) {
-    let callable = Callable::BuiltIn {
-        name: name.to_string(),
-        function: op,
-    };
-    op_table.push(shared(callable));
+fn push_op(op_table: &mut Vec<Shared<Lambda>>, name: &str, op: OpFn) {
+    let lambda = Lambda::new_builtin(name, op);
+    op_table.push(shared(lambda));
 }
 
-fn insert_macro(table: &mut HashMap<String, Callable>, name: &str, op: OpFn) {
-    let callable = Callable::BuiltIn {
-        name: name.to_string(),
-        function: op,
-    };
-    table.insert(name.to_string(), callable);
+fn insert_macro(table: &mut HashMap<String, Lambda>, name: &str, op: OpFn) {
+    let lambda = Lambda::new_builtin_macro(name, op);
+    table.insert(name.to_string(), lambda);
 }
 
 // Helper function to add an operation to the table and map
@@ -324,8 +320,8 @@ pub fn string_concat(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scann
 }
 
 // Function operations
-pub fn call(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
-    vm.call()
+pub fn call(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    vm.call(compiler, scanner)
 }
 
 pub fn call_stack(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
@@ -348,39 +344,41 @@ pub fn function(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -
     vm.function()
 }
 
-pub fn scan_token(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-    let token = scanner
-        .scan_token()
+pub fn scan_value(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    let value = scanner
+        .scan_value()
         .ok_or(ScannerError::UnexpectedEndOfInput)??;
-    let value = shared(Value::Token(token));
+    let value = shared(value);
     vm.push(value)?;
     Ok(())
 }
 
-pub fn scan_token_list(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+pub fn scan_value_list(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
     let delimiter = vm.pop()?;
     let delimiter: Value = unshare_clone(delimiter);
-    let delimiter = TokenType::try_from(delimiter)?;
+    let delimiter = &delimiter.data;
 
-    let token_list = scanner.scan_token_list(&delimiter)?;
+    let token_list = scanner.scan_value_list(delimiter)?;
     let list = token_list.into_iter().map(shared).collect();
-    let value = Value::List(list);
+    let value_data = ValueData::List(list);
+    let value = Value::new(value_data);
 
     vm.push(shared(value))?;
 
     Ok(())
 }
 
-pub fn scan_value_list(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
     let delimiter = vm.pop()?;
     let delimiter: Value = unshare_clone(delimiter);
-    let delimiter = TokenType::try_from(delimiter)?;
+    let delimiter = delimiter.data;
 
     // call Compiler::scan_value_list
     let env = vm.environment.clone().unwrap();
     let values = compiler.scan_value_list(vm, env, delimiter, scanner)?;
     let list = values.into_iter().map(shared).collect();
-    let value = Value::List(list);
+    let value_data = ValueData::List(list);
+    let value = Value::new(value_data);
 
     vm.push(shared(value))?;
 
@@ -390,8 +388,12 @@ pub fn scan_value_list(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scann
 pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     let value = vm.pop()?;
     let value: Value = unshare_clone(value);
-
-    vm.push(shared(Value::Literal(Box::new(value))))?;
+    let literal = Value::new(ValueData::Literal(Box::new(value)));
+    vm.push(shared(literal))?;
 
     Ok(())
+}
+
+pub fn compile(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    vm.compile(compiler, scanner)
 }

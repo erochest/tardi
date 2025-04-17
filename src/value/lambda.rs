@@ -1,0 +1,136 @@
+use std::fmt;
+
+use crate::error::Result;
+use crate::{Compiler, Scanner, VM};
+
+use super::ValueData;
+
+/// Function pointer type for VM operations
+pub type OpFn = fn(&mut VM, &mut Compiler, &mut Scanner) -> Result<()>;
+
+/// Function structure for user-defined functions and lambdas
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Lambda {
+    /// Optional name (None for lambdas)
+    pub name: Option<String>,
+
+    pub immediate: bool,
+
+    pub callable: Callable,
+}
+
+impl Lambda {
+    pub fn new_lambda(words: Vec<String>, ip: usize) -> Self {
+        let callable = Callable::Compiled { words, ip };
+        Lambda {
+            name: None,
+            immediate: false,
+            callable,
+        }
+    }
+
+    pub fn new_builtin(name: &str, function: OpFn) -> Self {
+        let name = Some(name.to_string());
+        let callable = Callable::BuiltIn { function };
+        Lambda {
+            name,
+            immediate: false,
+            callable,
+        }
+    }
+
+    pub fn new_compiled(name: &str, words: &[String], ip: usize) -> Self {
+        todo!("Lambda::new_compiled")
+    }
+
+    pub fn new_macro(name: &str, words: &[String], ip: usize) -> Self {
+        todo!("Lambda::new_macro")
+    }
+
+    pub fn new_builtin_macro(name: &str, function: OpFn) -> Self {
+        let name = Some(name.to_string());
+        let callable = Callable::BuiltIn { function };
+        Lambda {
+            name,
+            immediate: true,
+            callable,
+        }
+    }
+
+    pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+        log::trace!("calling {}", self.name.as_deref().unwrap_or("<lambda>"));
+        self.callable.call(vm, compiler, scanner)
+    }
+
+    pub fn is_builtin(&self) -> bool {
+        matches!(self.callable, Callable::BuiltIn { .. })
+    }
+
+    pub fn is_compiled(&self) -> bool {
+        matches!(self.callable, Callable::Compiled { .. })
+    }
+}
+
+// TODO: impl Display for Callable
+/// Enum representing different types of callable objects
+#[derive(Debug, Clone)]
+pub enum Callable {
+    /// Built-in function implemented in Rust
+    BuiltIn { function: OpFn },
+    /// User-defined function or lambda
+    Compiled { words: Vec<String>, ip: usize },
+}
+
+impl Callable {
+    pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+        match self {
+            Callable::BuiltIn { function, .. } => {
+                log::trace!("calling built-in function");
+                function(vm, compiler, scanner)
+            }
+            Callable::Compiled {
+                ip: instructions,
+                words,
+            } => {
+                log::trace!("calling compiled function: {:?}", words);
+                vm.push_ip()?;
+                log::trace!("moving instruction pointer to {}", instructions);
+                vm.ip = *instructions;
+                Ok(())
+            }
+        }
+    }
+}
+
+impl PartialEq for Callable {
+    fn eq(&self, other: &Self) -> bool {
+        todo!("Callable::eq")
+        // // Functions are equal if they point to the same memory location
+        // ptr::eq(a, b)
+    }
+}
+
+impl PartialOrd for Callable {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        todo!("Callable::partial_cmp")
+    }
+}
+
+impl fmt::Display for Lambda {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(ref name) = self.name {
+            write!(f, "{}", name)
+        } else {
+            write!(f, "{}", self.callable)
+        }
+    }
+}
+
+impl fmt::Display for Callable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Callable::BuiltIn { .. } => write!(f, "fn"),
+            Callable::Compiled { words, ip } => write!(f, "{{ {} }} @ {}", words.join(" "), ip),
+        }
+    }
+}

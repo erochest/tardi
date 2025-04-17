@@ -1,113 +1,34 @@
 use std::cell::RefCell;
+use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
+use std::ptr;
 use std::rc::Rc;
-use std::{fmt, ptr};
+
+use lambda::Lambda;
 
 use crate::error::{Result, VMError};
-use crate::scanner::{Token, TokenType};
-use crate::vm::{OpFn, VM};
+use crate::shared::unshare_clone;
 use crate::{Compiler, Scanner};
 
-// TODO: add flag or something for a macro
-/// Function structure for user-defined functions and lambdas
-#[derive(Debug, Clone)]
-pub struct Function {
-    /// Optional name (None for lambdas)
-    pub name: Option<String>,
-    /// List of words that make up the function body
-    pub words: Vec<String>,
-    /// Pointer to the beginning of instructions in the main VM instructions
-    pub ip: usize,
-}
-
-// TODO: impl Display for Callable
-/// Enum representing different types of callable objects
-#[derive(Debug, Clone)]
-pub enum Callable {
-    // TODO: Need to store names for built-in functions
-    /// Built-in function implemented in Rust
-    BuiltIn { name: String, function: OpFn },
-    /// User-defined function or lambda
-    Fn(Function),
-    // TODO: can I fold `Function` into here?
-}
-
-impl Callable {
-    pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-        match self {
-            Callable::BuiltIn { function, .. } => function(vm, compiler, scanner),
-            Callable::Fn(Function {
-                ip: instructions, ..
-            }) => {
-                vm.ip = *instructions;
-                Ok(())
-            }
-        }
-    }
-
-    pub fn get_name(&self) -> Option<String> {
-        match self {
-            Callable::BuiltIn { name, .. } => Some(name.clone()),
-            Callable::Fn(function) => function.name.clone(),
-        }
-    }
-
-    pub fn set_name(&mut self, name: &str) {
-        match self {
-            Callable::BuiltIn { name, .. } => {
-                // TODO: :skeptical: do I need to test this?
-                *name = name.to_string()
-            }
-            Callable::Fn(f) => f.name = Some(name.to_string()),
-        }
-    }
-
-    pub fn is_lambda(&self) -> bool {
-        if let Callable::Fn(f) = self {
-            f.name.is_none()
-        } else {
-            false
-        }
-    }
-}
+pub mod lambda;
 
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
 
-// From implementations for each of the contained values
-impl From<i64> for Value {
-    fn from(value: i64) -> Self {
-        Value::Integer(value)
-    }
+#[derive(Debug, Clone, PartialOrd)]
+pub struct Value {
+    pub data: ValueData,
+
+    // TODO: make this optional
+    /// The actual text of the token from source
+    pub lexeme: Option<String>,
+
+    pub pos: Option<Pos>,
 }
 
-impl From<f64> for Value {
-    fn from(value: f64) -> Self {
-        Value::Float(value)
-    }
-}
-
-impl From<bool> for Value {
-    fn from(value: bool) -> Self {
-        Value::Boolean(value)
-    }
-}
-
-impl From<char> for Value {
-    fn from(value: char) -> Self {
-        Value::Char(value)
-    }
-}
-
-impl From<String> for Value {
-    fn from(value: String) -> Self {
-        Value::String(value)
-    }
-}
-
-impl From<Vec<SharedValue>> for Value {
-    fn from(value: Vec<SharedValue>) -> Self {
-        Value::List(value)
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
     }
 }
 
@@ -115,30 +36,96 @@ impl From<Vec<SharedValue>> for Value {
 // bridges across layers
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
-pub enum Value {
+pub enum ValueData {
     Integer(i64),
     Float(f64),
     Boolean(bool),
     Char(char),
-    List(Vec<SharedValue>),
     String(String),
-    Function(Callable),
+    List(Vec<SharedValue>),
+    Function(Lambda),
     Address(usize),
-    Token(Token),
+    Word(String),
+    Macro,
     Literal(Box<Value>),
+    EndOfInput,
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Pos {
+    /// Line number in source (1-based)
+    pub line: usize,
+
+    /// Column number in source (1-based)
+    pub column: usize,
+
+    /// Offset from start of source (0-based)
+    pub offset: usize,
+
+    /// Length of the token in characters
+    pub length: usize,
 }
 
 impl Value {
+    pub fn new(data: ValueData) -> Self {
+        Value {
+            data,
+            lexeme: None,
+            pos: None,
+        }
+    }
+
+    pub fn with_lexeme(data: ValueData, lexeme: &str) -> Self {
+        Value {
+            data,
+            lexeme: Some(lexeme.to_string()),
+            pos: None,
+        }
+    }
+
+    pub fn with_pos(data: ValueData, lexeme: &str, pos: Pos) -> Self {
+        Value {
+            data,
+            lexeme: Some(lexeme.to_string()),
+            pos: Some(pos),
+        }
+    }
+
+    pub fn from_parts(
+        data: ValueData,
+        lexeme: &str,
+        line: usize,
+        column: usize,
+        offset: usize,
+        length: usize,
+    ) -> Self {
+        let pos = Pos {
+            line,
+            column,
+            offset,
+            length,
+        };
+        Value::with_pos(data, lexeme, pos)
+    }
+
     pub fn get_integer(&self) -> Option<i64> {
-        if let Value::Integer(i) = self {
-            Some(*i)
+        if let ValueData::Integer(i) = self.data {
+            Some(i)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_string(&self) -> Option<&str> {
+        if let ValueData::String(ref s) = self.data {
+            Some(s)
         } else {
             None
         }
     }
 
     pub fn get_list(&self) -> Option<&Vec<SharedValue>> {
-        if let Value::List(list) = self {
+        if let ValueData::List(ref list) = self.data {
             Some(list)
         } else {
             None
@@ -146,23 +133,23 @@ impl Value {
     }
 
     pub fn get_list_mut(&mut self) -> Option<&mut Vec<SharedValue>> {
-        if let Value::List(list) = self {
+        if let ValueData::List(ref mut list) = self.data {
             Some(list)
         } else {
             None
         }
     }
 
-    pub fn get_function(&self) -> Option<&Callable> {
-        if let Value::Function(callable) = self {
+    pub fn get_function(&self) -> Option<&Lambda> {
+        if let ValueData::Function(ref callable) = self.data {
             Some(callable)
         } else {
             None
         }
     }
 
-    pub fn get_function_mut(&mut self) -> Option<&mut Callable> {
-        if let Value::Function(callable) = self {
+    pub fn get_function_mut(&mut self) -> Option<&mut Lambda> {
+        if let ValueData::Function(ref mut callable) = self.data {
             Some(callable)
         } else {
             None
@@ -170,31 +157,75 @@ impl Value {
     }
 
     pub fn get_address(&self) -> Option<usize> {
-        if let Value::Address(address) = self {
-            Some(*address)
+        if let ValueData::Address(address) = self.data {
+            Some(address)
         } else {
             None
         }
     }
+}
 
-    pub fn get_token(&self) -> Option<&Token> {
-        if let Value::Token(token) = self {
-            Some(token)
-        } else {
-            None
-        }
+// From implementations for each of the contained values
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Value::with_lexeme(ValueData::Integer(value), &value.to_string())
     }
+}
 
-    pub fn get_token_type(&self) -> Option<&TokenType> {
-        self.get_token().map(|t| &t.token_type)
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::with_lexeme(ValueData::Float(value), &value.to_string())
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::with_lexeme(ValueData::Boolean(value), &value.to_string())
+    }
+}
+
+impl From<char> for Value {
+    fn from(value: char) -> Self {
+        Value::with_lexeme(ValueData::Char(value), &value.to_string())
+    }
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        let value = ValueData::String(value);
+        let lexeme = format!("{}", value);
+        Value::with_lexeme(value, &lexeme)
+    }
+}
+
+impl From<Vec<SharedValue>> for Value {
+    fn from(value: Vec<SharedValue>) -> Self {
+        let repr = value
+            .iter()
+            .map(|v| format!("{}", &v.borrow()))
+            .collect::<Vec<_>>();
+        let repr = format!("[ {} ]", repr.join(" "));
+        Value::with_lexeme(ValueData::List(value), &repr)
+    }
+}
+
+impl From<ValueData> for Value {
+    fn from(value: ValueData) -> Self {
+        Value::new(value)
     }
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.data)
+    }
+}
+
+impl fmt::Display for ValueData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Integer(n) => write!(f, "{}", n),
-            Value::Float(x) => {
+            ValueData::Integer(n) => write!(f, "{}", n),
+            ValueData::Float(x) => {
                 let s = format!("{}", x);
                 if !s.contains('.') {
                     write!(f, "{}.0", s)
@@ -202,9 +233,9 @@ impl fmt::Display for Value {
                     write!(f, "{}", s)
                 }
             }
-            Value::Boolean(true) => write!(f, "#t"),
-            Value::Boolean(false) => write!(f, "#f"),
-            Value::Char(c) => match c {
+            ValueData::Boolean(true) => write!(f, "#t"),
+            ValueData::Boolean(false) => write!(f, "#f"),
+            ValueData::Char(c) => match c {
                 '\n' => write!(f, "'\\n'"),
                 '\r' => write!(f, "'\\r'"),
                 '\t' => write!(f, "'\\t'"),
@@ -212,66 +243,61 @@ impl fmt::Display for Value {
                 '\'' => write!(f, "'\\''"),
                 c => write!(f, "'{}'", c),
             },
-            Value::List(list) => {
+            ValueData::List(list) => {
                 write!(f, "[")?;
                 for item in list.iter() {
                     write!(f, " {}", item.borrow())?;
                 }
                 write!(f, " ]")
             }
-            Value::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
-            Value::Function(callable) => match callable {
-                Callable::BuiltIn { .. } => write!(f, "<built-in function>"),
-                Callable::Fn(func) => match &func.name {
-                    Some(name) => write!(f, "<function {}>", name),
-                    None => write!(f, "<lambda>"),
-                },
-            },
-            Value::Address(addr) => write!(f, "<@{}>", addr),
-            Value::Token(token) => write!(f, "{}", token),
-            Value::Literal(value) => write!(f, "<lit {}>", value),
+            ValueData::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
+            ValueData::Function(lambda) => write!(f, "{}", lambda),
+            ValueData::Address(addr) => write!(f, "<@{}>", addr),
+            ValueData::Word(word) => write!(f, "{}", word),
+            ValueData::Macro => write!(f, "MACRO:"),
+            ValueData::Literal(value) => write!(f, "\\ {}", value),
+            ValueData::EndOfInput => write!(f, "<EOI>"),
         }
     }
 }
 
-impl PartialEq for Value {
+impl PartialEq for ValueData {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Value::Integer(a), Value::Integer(b)) => a == b,
-            (Value::Float(a), Value::Float(b)) => a == b,
-            (Value::Integer(a), Value::Float(b)) => (*a as f64) == *b,
-            (Value::Float(a), Value::Integer(b)) => *a == (*b as f64),
-            (Value::Boolean(a), Value::Boolean(b)) => a == b,
-            (Value::Char(a), Value::Char(b)) => a == b,
-            (Value::List(a), Value::List(b)) => {
+            (ValueData::Integer(a), ValueData::Integer(b)) => a == b,
+            (ValueData::Float(a), ValueData::Float(b)) => a == b,
+            (ValueData::Integer(a), ValueData::Float(b)) => (*a as f64) == *b,
+            (ValueData::Float(a), ValueData::Integer(b)) => *a == (*b as f64),
+            (ValueData::Boolean(a), ValueData::Boolean(b)) => a == b,
+            (ValueData::Char(a), ValueData::Char(b)) => a == b,
+            (ValueData::String(a), ValueData::String(b)) => a == b,
+            (ValueData::List(a), ValueData::List(b)) => {
                 a.len() == b.len()
                     && a.iter()
                         .zip(b.iter())
                         .all(|(x, y)| *x.borrow() == *y.borrow())
             }
-            (Value::String(a), Value::String(b)) => a == b,
-            (Value::Function(a), Value::Function(b)) => {
-                // Functions are equal if they point to the same memory location
-                ptr::eq(a, b)
-            }
-            (Value::Address(a), Value::Address(b)) => a == b,
-            (Value::Token(a), Value::Token(b)) => a == b,
-            (Value::Literal(a), Value::Literal(b)) => a == b,
+            (ValueData::Function(a), ValueData::Function(b)) => a == b,
+            (ValueData::Address(a), ValueData::Address(b)) => a == b,
+            (ValueData::Word(a), ValueData::Word(b)) => a == b,
+            (ValueData::Macro, ValueData::Macro) => true,
+            (ValueData::Literal(a), ValueData::Literal(b)) => a == b,
+            (ValueData::EndOfInput, ValueData::EndOfInput) => true,
             _ => false,
         }
     }
 }
 
-impl PartialOrd for Value {
+impl PartialOrd for ValueData {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
-            (Value::Integer(a), Value::Integer(b)) => a.partial_cmp(b),
-            (Value::Float(a), Value::Float(b)) => a.partial_cmp(b),
-            (Value::Integer(a), Value::Float(b)) => (*a as f64).partial_cmp(b),
-            (Value::Float(a), Value::Integer(b)) => a.partial_cmp(&(*b as f64)),
-            (Value::Char(a), Value::Char(b)) => a.partial_cmp(b),
-            (Value::Boolean(a), Value::Boolean(b)) => a.partial_cmp(b),
-            (Value::List(a), Value::List(b)) => {
+            (ValueData::Integer(a), ValueData::Integer(b)) => a.partial_cmp(b),
+            (ValueData::Float(a), ValueData::Float(b)) => a.partial_cmp(b),
+            (ValueData::Integer(a), ValueData::Float(b)) => (*a as f64).partial_cmp(b),
+            (ValueData::Float(a), ValueData::Integer(b)) => a.partial_cmp(&(*b as f64)),
+            (ValueData::Char(a), ValueData::Char(b)) => a.partial_cmp(b),
+            (ValueData::Boolean(a), ValueData::Boolean(b)) => a.partial_cmp(b),
+            (ValueData::List(a), ValueData::List(b)) => {
                 // First compare lengths
                 match a.len().partial_cmp(&b.len()) {
                     Some(std::cmp::Ordering::Equal) => {
@@ -289,10 +315,9 @@ impl PartialOrd for Value {
                     other => other,
                 }
             }
-            (Value::String(a), Value::String(b)) => a.partial_cmp(b),
-            (Value::Function(_), Value::Function(_)) => None, // Functions cannot be ordered
-            (Value::Token(a), Value::Token(b)) => a.partial_cmp(b),
-            (Value::Literal(a), Value::Literal(b)) => a.partial_cmp(b),
+            (ValueData::String(a), ValueData::String(b)) => a.partial_cmp(b),
+            (ValueData::Function(a), ValueData::Function(b)) => a.partial_cmp(b), // Functions cannot be ordered
+            (ValueData::Word(a), ValueData::Word(b)) => a.partial_cmp(b),
             _ => None,
         }
     }
@@ -302,12 +327,20 @@ impl Add for Value {
     type Output = Result<Self>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
-            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
-            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(a as f64 + b)),
-            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a + b as f64)),
-            _ => Err(VMError::TypeMismatch("addition".to_string()).into()),
+        Ok(Value::new((self.data + rhs.data)?))
+    }
+}
+
+impl Add for ValueData {
+    type Output = Result<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (&self, &rhs) {
+            (ValueData::Integer(a), ValueData::Integer(b)) => Ok(ValueData::Integer(a + b)),
+            (ValueData::Float(a), ValueData::Float(b)) => Ok(ValueData::Float(a + b)),
+            (ValueData::Integer(a), ValueData::Float(b)) => Ok(ValueData::Float(*a as f64 + b)),
+            (ValueData::Float(a), ValueData::Integer(b)) => Ok(ValueData::Float(a + *b as f64)),
+            _ => Err(VMError::TypeMismatch(format!("{:?} + {:?}", &self, &rhs)).into()),
         }
     }
 }
@@ -316,11 +349,19 @@ impl Sub for Value {
     type Output = Result<Self>;
 
     fn sub(self, rhs: Self) -> Self::Output {
+        todo!("Value::sub")
+    }
+}
+
+impl Sub for ValueData {
+    type Output = Result<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
-            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a - b)),
-            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(a as f64 - b)),
-            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a - b as f64)),
+            (ValueData::Integer(a), ValueData::Integer(b)) => Ok(ValueData::Integer(a - b)),
+            (ValueData::Float(a), ValueData::Float(b)) => Ok(ValueData::Float(a - b)),
+            (ValueData::Integer(a), ValueData::Float(b)) => Ok(ValueData::Float(a as f64 - b)),
+            (ValueData::Float(a), ValueData::Integer(b)) => Ok(ValueData::Float(a - b as f64)),
             _ => Err(VMError::TypeMismatch("subtraction".to_string()).into()),
         }
     }
@@ -330,11 +371,19 @@ impl Mul for Value {
     type Output = Result<Self>;
 
     fn mul(self, rhs: Self) -> Self::Output {
+        Ok(Value::new(self.data.mul(rhs.data)?))
+    }
+}
+
+impl Mul for ValueData {
+    type Output = Result<Self>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
-            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a * b)),
-            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(a as f64 * b)),
-            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a * b as f64)),
+            (ValueData::Integer(a), ValueData::Integer(b)) => Ok(ValueData::Integer(a * b)),
+            (ValueData::Float(a), ValueData::Float(b)) => Ok(ValueData::Float(a * b)),
+            (ValueData::Integer(a), ValueData::Float(b)) => Ok(ValueData::Float(a as f64 * b)),
+            (ValueData::Float(a), ValueData::Integer(b)) => Ok(ValueData::Float(a * b as f64)),
             _ => Err(VMError::TypeMismatch("multiplication".to_string()).into()),
         }
     }
@@ -344,33 +393,41 @@ impl Div for Value {
     type Output = Result<Self>;
 
     fn div(self, rhs: Self) -> Self::Output {
+        todo!("Value::div")
+    }
+}
+
+impl Div for ValueData {
+    type Output = Result<Self>;
+
+    fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Integer(a), Value::Integer(b)) => {
+            (ValueData::Integer(a), ValueData::Integer(b)) => {
                 if b == 0 {
                     Err(VMError::DivisionByZero.into())
                 } else {
-                    Ok(Value::Integer(a / b))
+                    Ok(ValueData::Integer(a / b))
                 }
             }
-            (Value::Float(a), Value::Float(b)) => {
+            (ValueData::Float(a), ValueData::Float(b)) => {
                 if b == 0.0 {
                     Err(VMError::DivisionByZero.into())
                 } else {
-                    Ok(Value::Float(a / b))
+                    Ok(ValueData::Float(a / b))
                 }
             }
-            (Value::Integer(a), Value::Float(b)) => {
+            (ValueData::Integer(a), ValueData::Float(b)) => {
                 if b == 0.0 {
                     Err(VMError::DivisionByZero.into())
                 } else {
-                    Ok(Value::Float(a as f64 / b))
+                    Ok(ValueData::Float(a as f64 / b))
                 }
             }
-            (Value::Float(a), Value::Integer(b)) => {
+            (ValueData::Float(a), ValueData::Integer(b)) => {
                 if b == 0 {
                     Err(VMError::DivisionByZero.into())
                 } else {
-                    Ok(Value::Float(a / b as f64))
+                    Ok(ValueData::Float(a / b as f64))
                 }
             }
             _ => Err(VMError::TypeMismatch("division".to_string()).into()),

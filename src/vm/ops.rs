@@ -38,10 +38,11 @@ pub enum OpCode {
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
-    ScanToken,
-    ScanTokenList,
+    ScanValue,
     ScanValueList,
+    ScanObjectList,
     LitStack,
+    Compile,
 }
 
 impl From<OpCode> for usize {
@@ -87,10 +88,11 @@ impl TryFrom<usize> for OpCode {
             29 => Ok(OpCode::Jump),
             30 => Ok(OpCode::JumpStack),
             31 => Ok(OpCode::Function),
-            32 => Ok(OpCode::ScanToken),
-            33 => Ok(OpCode::ScanTokenList),
-            34 => Ok(OpCode::ScanValueList),
+            32 => Ok(OpCode::ScanValue),
+            33 => Ok(OpCode::ScanObjectList),
+            34 => Ok(OpCode::ScanObjectList),
             35 => Ok(OpCode::LitStack),
+            36 => Ok(OpCode::Compile),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }
