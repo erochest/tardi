@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::convert::TryFrom;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
 use std::ptr;
@@ -6,8 +7,8 @@ use std::rc::Rc;
 
 use lambda::Lambda;
 
-use crate::error::{Result, VMError};
-use crate::shared::unshare_clone;
+use crate::error::{Error, Result, VMError};
+use crate::shared::{shared, unshare_clone};
 use crate::{Compiler, Scanner};
 
 pub mod lambda;
@@ -124,6 +125,10 @@ impl Value {
         }
     }
 
+    pub fn is_list(&self) -> bool {
+        matches!(self.data, ValueData::List(_))
+    }
+
     pub fn get_list(&self) -> Option<&Vec<SharedValue>> {
         if let ValueData::List(ref list) = self.data {
             Some(list)
@@ -212,6 +217,42 @@ impl From<Vec<SharedValue>> for Value {
 impl From<ValueData> for Value {
     fn from(value: ValueData) -> Self {
         Value::new(value)
+    }
+}
+
+impl From<Vec<Value>> for Value {
+    fn from(value: Vec<Value>) -> Self {
+        ValueData::List(value.into_iter().map(shared).collect()).into()
+    }
+}
+
+impl TryFrom<Value> for Vec<Value> {
+    type Error = Error;
+
+    fn try_from(value: Value) -> Result<Self> {
+        match value.data {
+            ValueData::List(list) => Ok(list.into_iter().map(unshare_clone).collect()),
+            _ => {
+                Err(VMError::TypeMismatch(format!("cannot convert to list {}", value.data)).into())
+            }
+        }
+    }
+}
+
+pub struct ValueVec<'a>(pub &'a Vec<Value>);
+
+impl fmt::Display for ValueVec<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ValueVec(values) = self;
+        write!(
+            f,
+            "[ {} ]",
+            values
+                .iter()
+                .map(|v| format!("{}", v))
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
     }
 }
 
@@ -349,7 +390,7 @@ impl Sub for Value {
     type Output = Result<Self>;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        todo!("Value::sub")
+        Ok(Value::new((self.data - rhs.data)?))
     }
 }
 
@@ -393,7 +434,7 @@ impl Div for Value {
     type Output = Result<Self>;
 
     fn div(self, rhs: Self) -> Self::Output {
-        todo!("Value::div")
+        Ok(Value::new(self.data.div(rhs.data)?))
     }
 }
 

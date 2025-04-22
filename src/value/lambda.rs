@@ -69,6 +69,20 @@ impl Lambda {
     pub fn is_compiled(&self) -> bool {
         matches!(self.callable, Callable::Compiled { .. })
     }
+
+    pub fn get_compiled(&self) -> Option<&Callable> {
+        match self.callable {
+            Callable::Compiled { .. } => Some(&self.callable),
+            _ => None,
+        }
+    }
+
+    pub fn get_ip(&self) -> Option<usize> {
+        match self.callable {
+            Callable::Compiled { ip, .. } => Some(ip),
+            _ => None,
+        }
+    }
 }
 
 // TODO: impl Display for Callable

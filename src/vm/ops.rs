@@ -33,8 +33,10 @@ pub enum OpCode {
     // Function-related operations
     Call,      // Call a function by its index in the op_table
     CallStack, // Call a function from the stack
-    Return,    // Return from a function
-    Jump,      // Jump to a specific instruction
+    // TODO: change to `Exit` to be more forthy?
+    Return, // Return from a function
+    Exit,   // Shortcut execution at the end of macros
+    Jump,   // Jump to a specific instruction
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
@@ -85,14 +87,15 @@ impl TryFrom<usize> for OpCode {
             26 => Ok(OpCode::Call),
             27 => Ok(OpCode::CallStack),
             28 => Ok(OpCode::Return),
-            29 => Ok(OpCode::Jump),
-            30 => Ok(OpCode::JumpStack),
-            31 => Ok(OpCode::Function),
-            32 => Ok(OpCode::ScanValue),
-            33 => Ok(OpCode::ScanObjectList),
+            29 => Ok(OpCode::Exit),
+            30 => Ok(OpCode::Jump),
+            31 => Ok(OpCode::JumpStack),
+            32 => Ok(OpCode::Function),
+            33 => Ok(OpCode::ScanValue),
             34 => Ok(OpCode::ScanObjectList),
-            35 => Ok(OpCode::LitStack),
-            36 => Ok(OpCode::Compile),
+            35 => Ok(OpCode::ScanObjectList),
+            36 => Ok(OpCode::LitStack),
+            37 => Ok(OpCode::Compile),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

@@ -426,9 +426,10 @@ fn test_compile_define_use_function() {
 // like a hashmap or set. Maybe I need a new test to build this out.
 #[test]
 fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures() {
-    env_logger::init();
+    // env_logger::init();
     let mut tardi = Tardi::default();
 
+    // TODO: can I embed a list in a `{ ... }` lambda?
     tardi
         .execute_str(
             r#"
@@ -440,30 +441,31 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     let result = tardi.execute_str(
         r#"
             MACRO: \ scan-value over append ;
+            "#,
+    );
+    assert!(result.is_ok(), "ERROR MACRO \\ definition: {:?}", result);
+    let result = tardi.execute_str(
+        r#"
             MACRO: [
                 ] scan-object-list
                 over append ;
+            "#,
+    );
+    assert!(result.is_ok(), "ERROR MACRO [ definition: {:?}", result);
+    let result = tardi.execute_str(
+        r#"
             MACRO: :
                 scan-value
                 \ ; scan-object-list compile
                 <function> ;
         "#,
     );
-    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+    assert!(result.is_ok(), "ERROR MACRO : definition: {:?}", result);
 
-    // I think that when these get compiled, the instructions to jump over >name
-    // end up pointing at `append`, not the following return
-    //     0039. Jump             |  0044
-    //     0041. Lit              |  0004. 2
-    //     0043. Multiply         |
-    //     0044. Jump             |  0048
-    //     0046. Lit              |  0005. [ "name" ]
-    //     0048. Append           |
-    //     0049. Return           |
     let result = tardi.execute_str(
         r#"
         : double 2 * ;
-        : >name [ "name" ] append ;
+        : >name [ "name" ] swap over append ;
         "#,
     );
     assert!(result.is_ok(), "ERROR FUNCTION definition: {:?}", result);
@@ -477,8 +479,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     assert!(result.is_ok(), "ERROR FUNCTION execution: {:?}", result);
     let stack = tardi.stack();
 
-    assert_eq!(stack.len(), 2);
-    assert!(matches!(stack[0].data, ValueData::List(_)));
+    assert_eq!(stack.len(), 2, "stack = {}", ValueVec(&stack));
 
     let doubled = stack[0].get_integer();
     assert_eq!(Some(8), doubled);
@@ -486,7 +487,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     let list = stack[1].get_list().unwrap();
     assert_eq!(2, list.len());
     assert_eq!(
-        ValueData::String(">name".to_string()),
+        ValueData::String("name".to_string()),
         unshare_clone(list.get(0).cloned().unwrap()).data,
     );
     assert_eq!(

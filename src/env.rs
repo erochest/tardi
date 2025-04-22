@@ -189,7 +189,7 @@ impl Environment {
         f: &mut fmt::Formatter<'_>,
         ip: usize,
     ) -> result::Result<usize, fmt::Error> {
-        match op {
+        let next_ip = match op {
             OpCode::Lit => self.debug_const(op, f, ip),
             OpCode::Call => self.debug_call(op, f, ip),
             OpCode::Dup
@@ -219,6 +219,7 @@ impl Environment {
             | OpCode::StringConcat
             | OpCode::CallStack
             | OpCode::Return
+            | OpCode::Exit
             | OpCode::JumpStack
             | OpCode::Function
             | OpCode::ScanValue
@@ -227,7 +228,12 @@ impl Environment {
             | OpCode::LitStack
             | OpCode::Compile => self.debug_simple(op, f, ip),
             OpCode::Jump => self.debug_jump(op, f, ip),
-        }
+        }?;
+
+        self.write_function_names(f, ip)?;
+        writeln!(f)?;
+
+        Ok(next_ip)
     }
 
     fn debug_const(
@@ -244,7 +250,7 @@ impl Environment {
         ip += 1;
         let index = self.instructions[ip];
         let value = &self.constants[index];
-        writeln!(f, " {:0>4}. {: <16}", index, value)?;
+        write!(f, " {:0>4}. {: <16}", index, value)?;
 
         Ok(ip)
     }
@@ -257,7 +263,6 @@ impl Environment {
     ) -> result::Result<usize, fmt::Error> {
         self.write_ip_number(f, ip)?;
         self.write_op_code(f, op)?;
-        writeln!(f)?;
         Ok(ip)
     }
 
@@ -274,7 +279,7 @@ impl Environment {
 
         ip += 1;
         let index = self.instructions[ip];
-        writeln!(f, " {:0>4}", index)?;
+        write!(f, " {:0>4}", index)?;
 
         Ok(ip)
     }
@@ -298,7 +303,7 @@ impl Environment {
             .name
             .clone()
             .unwrap_or_else(|| "<lambda>".to_string());
-        writeln!(f, " {:0>4}. {: <16}", index, name)?;
+        write!(f, " {:0>4}. {: <16}", index, name)?;
 
         Ok(ip)
     }
@@ -310,6 +315,36 @@ impl Environment {
     fn write_op_code(&self, f: &mut fmt::Formatter<'_>, op_code: &OpCode) -> fmt::Result {
         let debugged = format!("{:?}", op_code);
         write!(f, "{: <16} | ", debugged)
+    }
+
+    fn write_function_names(&self, f: &mut fmt::Formatter<'_>, ip: usize) -> fmt::Result {
+        let mut names = self
+            .op_map
+            .iter()
+            .filter(|(_n, index)| {
+                self.op_table.get(**index).is_some_and(|lambda| {
+                    lambda
+                        .borrow()
+                        .get_ip()
+                        .is_some_and(|lambda_ip| lambda_ip == ip)
+                })
+            })
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        names.extend(
+            self.macro_table
+                .iter()
+                .filter(|(_n, lambda)| lambda.get_ip().is_some_and(|lambda_ip| lambda_ip == ip))
+                .map(|(name, _)| name.clone()),
+        );
+        let names = names.join(" ");
+
+        // TODO: sometimes the column before this is omitted. Make them line up.
+        if !names.is_empty() {
+            write!(f, " {: <16} | ", names)?;
+        }
+
+        Ok(())
     }
 }
 

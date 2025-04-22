@@ -465,6 +465,11 @@ impl VM {
         Ok(())
     }
 
+    /// Return from a macro
+    pub fn exit(&self) -> Result<()> {
+        Err(VMError::Exit.into())
+    }
+
     /// Jumps to a specific instruction
     pub fn jump(&mut self) -> Result<()> {
         let target = self
@@ -598,47 +603,31 @@ impl Execute for VM {
         scanner: &mut Scanner,
         _trigger: &ValueData,
         lambda: &Lambda,
-        tokens: &[Value],
-    ) -> Result<Vec<Value>> {
+        tokens: Shared<Value>,
+    ) -> Result<()> {
         if log::log_enabled!(Level::Trace) {
-            let tokens = tokens
-                .iter()
-                .map(|t| t.lexeme.clone().unwrap_or_else(|| "<lambda>".to_string()))
-                .collect::<Vec<_>>();
-            log::trace!("VM::execute_macro input [ {} ]", tokens.join(" "));
+            log::trace!("VM::execute_macro input {}", tokens.borrow());
         }
         // Convert the tokens seen already to a form we can work on.
-        let shared_tokens = tokens.into_iter().cloned().map(shared).collect::<Vec<_>>();
-        let value = ValueData::List(shared_tokens);
-        self.stack.push(shared(value.into()));
+        self.stack.push(tokens.clone());
 
-        lambda.call(self, compiler, scanner)?;
-        if lambda.is_compiled() {
-            self.run(env.clone(), compiler, scanner)?;
+        // TODO: is there something here with pushing the return IP but not popping it or popping too much?
+        match lambda.call(self, compiler, scanner) {
+            Ok(()) => {}
+            Err(Error::VMError(VMError::Exit)) => {}
+            Err(err) => return Err(err),
         }
-
-        // // Set the IP to the macro, run it, and reset the IP to where it was.
-        // match lambda.callable {
-        //     Callable::BuiltIn { function } => {
-        //         log::trace!("VM::execute_macro running {:?}", lambda.name);
-        //         function(self, compiler, scanner)?;
-        //     }
-        //     Callable::Compiled { ip, .. } => {
-        //         log::trace!("VM::execute_macro running {:?}: ip = {}", lambda.name, ip);
-        //         let return_ip = ValueData::Address(self.ip);
-        //         self.push_return(shared(return_ip.into()))?;
-        //         if log::log_enabled!(Level::Trace) {
-        //             log::trace!("VM::execute_macro compiled:\n{:?}", env.borrow());
-        //             self.debug_op();
-        //             self.debug_stacks();
-        //         }
-        //         // let ip = self.ip;
-        //         self.ip = ip;
-        //         self.run(env.clone(), compiler, scanner)?;
-        //         // log::trace!("VM::execute_macro restoring ip to {}", ip);
-        //         // self.ip = ip;
-        //     }
-        // }
+        // It's not currently in an execution loop. Builtins are run
+        // immediately, but compiled lambdas have to run in an execution loop to
+        // move the IP.
+        if lambda.is_compiled() {
+            // TODO: DRY these up some
+            match self.run(env.clone(), compiler, scanner) {
+                Ok(()) => {}
+                Err(Error::VMError(VMError::Exit)) => {}
+                Err(err) => return Err(err),
+            }
+        }
 
         // Get the token list off the stack and return it to the compiler form.
         // TODO: I don't think I need to pop both of these here. Just the accumulator is probably enough.
@@ -646,27 +635,18 @@ impl Execute for VM {
             log::trace!("VM::execute_macro cleaning up");
             self.debug_stacks();
         }
-        if let Some(value) = self.stack.pop() {
-            value
-                .borrow_mut()
-                .get_list_mut()
-                .map(|list| {
-                    let list = list
-                        .into_iter()
-                        .map(|item| item.borrow().clone())
-                        .collect::<Vec<_>>();
-                    log::trace!("VM::execute_macro <<< {:#?}", list);
-                    list
-                })
-                .ok_or_else(|| {
-                    log::warn!(
-                        "VM::execute_macro: VMError::TypeMismatch: pop accumulator not a list"
-                    );
-                    Error::VMError(VMError::TypeMismatch(format!(
-                        "Expected accumulator list from macro output: {:?}",
-                        value.borrow()
-                    )))
-                })
+        if let Some(top) = self.stack.pop() {
+            if top.borrow().is_list() {
+                // Hmm. Since tokens _is_ top and a shared structure, `tokens` should
+                // just be undated. :skeptical:
+                Ok(())
+            } else {
+                log::warn!("VM::execute_macro: VMError::TypeMismatch: pop accumulator not a list");
+                Err(Error::VMError(VMError::TypeMismatch(format!(
+                    "Expected accumulator list from macro output: {:?}",
+                    top.borrow()
+                ))))
+            }
         } else {
             log::warn!("VM::execute_macro: VMError::StackUnderflow: pop value to accumulate");
             Err(VMError::StackUnderflow.into())

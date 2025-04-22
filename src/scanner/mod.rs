@@ -373,7 +373,9 @@ impl Scan for Scanner {
     }
 
     fn scan_value(&mut self) -> Option<Result<Value>> {
-        self.next()
+        let next = self.next();
+        log::trace!("scanned {:?}", next);
+        next
     }
 
     fn scan_values_until(&mut self, value_data: ValueData) -> Result<Vec<Result<Value>>> {

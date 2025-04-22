@@ -1,13 +1,14 @@
+use std::convert::TryInto;
 use std::fmt::Debug;
 
 use log::Level;
 
 use crate::core::{Compile, Execute, Scan};
 use crate::env::Environment;
-use crate::error::{CompilerError, Error, Result, ScannerError};
-use crate::shared::{shared, Shared};
+use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
+use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Callable, Lambda};
-use crate::value::{SharedValue, Value, ValueData};
+use crate::value::{SharedValue, Value, ValueData, ValueVec};
 use crate::vm::OpCode;
 use crate::Scanner;
 
@@ -54,7 +55,7 @@ impl Compiler {
     ) -> Result<Vec<Value>> {
         if log::log_enabled!(log::Level::Trace) {
             if input.len() > 24 {
-                log::trace!("Compiler::pass1 {:?}...", &input[..24]);
+                log::trace!("Compiler::pass1 {:?}...", &input[..20]);
             } else {
                 log::trace!("Compiler::pass1 {:?}", input);
             }
@@ -65,20 +66,26 @@ impl Compiler {
         // TODO: this needs to convert to the `TokenType::Dup` style codes
         while let Some(result) = scanner.scan_value() {
             let value = result?;
-            log::trace!("Compiler::pass1 {:?}", value);
+            log::trace!("Compiler::pass1 read   {}", value);
+            log::trace!("Compiler::pass1 buffer {}", ValueVec(&buffer));
             if value.data == ValueData::Macro {
                 let lambda = self.compile_macro(executor, env.clone(), scanner)?;
                 env.borrow_mut().add_macro(lambda)?;
-            } else if let Some(callable) = get_macro(env.clone(), &value.data) {
-                log::trace!("Compiler::pass1 executing macro {:?}", callable);
-                buffer = executor.execute_macro(
+            } else if let Some(lambda) = get_macro(env.clone(), &value.data) {
+                log::trace!("Compiler::pass1 executing macro {:?}", lambda.name);
+                // TODO: once we get more code to test on, benchmark whether it's better to
+                // create `buffer` as a `Value<ValueData::List>` convert it back and forth.
+                // It'll depend on how much macros get used.
+                let accumulator = shared(buffer.into());
+                executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
                     &value.data,
-                    &callable,
-                    &mut buffer,
+                    &lambda,
+                    accumulator.clone(),
                 )?;
+                buffer = unshare_clone(accumulator).try_into()?;
             } else {
                 buffer.push(value);
             }
@@ -89,15 +96,17 @@ impl Compiler {
 
     fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
         if log::log_enabled!(log::Level::Trace) {
-            // TODO: clean up these and other places that log lists of values or values to only output the lexemes
-            if values.len() > 3 {
-                log::trace!("Compiler::pass2 {:?}...", &values[..3]);
-            } else {
-                log::trace!("Compiler::pass2 {:?}", values);
-            }
+            log::trace!(
+                "Compiler::pass2 {:?}",
+                values
+                    .iter()
+                    .map(|item| item.to_string())
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            );
         }
         for value in values {
-            log::trace!("Compile::pass2 {:?}", value);
+            log::trace!("Compile::pass2 {}", value);
             self.compile_value(value)?;
         }
         Ok(())
@@ -106,7 +115,7 @@ impl Compiler {
     // TODO: I Suspect that this isn't handling the `}` correctly before
     // `scan-value-list`. (hint: it needs to be a literal.)
     fn compile_value(&mut self, value: Value) -> Result<()> {
-        log::trace!("Compiler::compile_value {:?}", value);
+        log::trace!("Compiler::compile_value {:?}", value.lexeme);
         // If we're collecting words for a function/lambda, add to the current word list
         if let Some(closure) = self.closure_stack.last_mut() {
             if let Some(ref lexeme) = value.lexeme {
@@ -131,12 +140,16 @@ impl Compiler {
             }
             ValueData::Word(_) => self.compile_word(value),
             ValueData::Macro => unreachable!("This is handled by the Scanner."),
-            ValueData::EndOfInput => self.compile_op(OpCode::Return),
+            ValueData::EndOfInput => {
+                log::trace!("Compiler::compile_value EndOfInput -- emitting Return");
+                self.compile_op(OpCode::Return)?;
+                Ok(())
+            }
         }
     }
 
     fn compile_word(&mut self, value: Value) -> Result<()> {
-        log::trace!("Compiler::compile_word {:?}", value);
+        log::trace!("Compiler::compile_word {:?}", value.lexeme);
         let word = if let ValueData::Word(w) = value.data {
             Ok(w)
         } else {
@@ -201,6 +214,7 @@ impl Compiler {
             "scan-value-list" => self.compile_op(OpCode::ScanValueList),
             "scan-object-list" => self.compile_op(OpCode::ScanObjectList),
             "compile" => self.compile_op(OpCode::Compile),
+            "exit" => self.compile_op(OpCode::Exit),
             _ => self.compile_word_call(&word),
         }
     }
@@ -213,25 +227,30 @@ impl Compiler {
         scanner: &mut Scanner,
         words: &[Value],
     ) -> Result<Lambda> {
+        // TODO: can I reuse this function for anything else?
         self.start_function();
         let mut buffer = Vec::new();
 
         for word in words {
             if let Some(lambda) = get_macro(env.clone(), &word.data) {
-                buffer = executor.execute_macro(
+                // TODO: see todo in `pass1`
+                let accumulator = shared(buffer.into());
+                executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
                     &word.data,
                     &lambda,
-                    &mut buffer,
+                    accumulator.clone(),
                 )?;
+                buffer = unshare_clone(accumulator).try_into()?;
             } else {
                 buffer.push(word.clone());
             }
         }
 
         self.pass2(buffer)?;
+        log::trace!("Compiler::compile_list -- emitting Return");
         self.compile_op(OpCode::Return)?;
         self.end_function()
     }
@@ -254,10 +273,15 @@ impl Compiler {
     }
 
     pub fn compile_instruction(&mut self, arg: usize) {
-        log::trace!("Compiler::compile_instruction {}", arg);
         if let Some(closure) = self.closure_stack.last_mut() {
+            log::trace!(
+                "Compiler::compile_instruction {} @ {} of closure",
+                arg,
+                closure.instructions.len()
+            );
             closure.instructions.push(arg);
         } else if let Some(e) = self.environment.as_ref() {
+            log::trace!("Compiler::compile_instruction {}", arg);
             e.borrow_mut().add_instruction(arg)
         }
     }
@@ -285,7 +309,6 @@ impl Compiler {
     /// Ends a function definition by popping the top Vec<usize> from function_stack,
     /// appending it to the main instructions, and returning the start index
     pub fn end_function(&mut self) -> Result<Lambda> {
-        log::trace!("Compiler::end_function");
         if let Some(mut closure) = self.closure_stack.pop() {
             if log::log_enabled!(Level::Trace) {
                 log::trace!(
@@ -340,10 +363,12 @@ impl Compiler {
             // TODO: to handle recursive calls, if the function doesn't
             // have a valid address (say zero), then put the function's
             // index on the stack and use CallStack.
+            // TODO: is there a way to do this without the `Call`?
+            // Can I just offset the IP by the number of build-ins
+            // and find the function's index that way?
             self.compile_op_arg(OpCode::Call, op_table_index)?;
             Ok(())
         } else {
-            // TODO: get the actual token down here
             self.compile_constant(Value::with_lexeme(ValueData::Word(word.to_string()), word))?;
             Ok(())
         }
@@ -359,7 +384,7 @@ impl Compiler {
 
     /// Compiles a lambda expression
     pub fn compile_lambda(&mut self) -> Result<()> {
-        log::trace!("Compiler::compile_lambda");
+        log::trace!("Compiler::compile_lambda -- emitting Return");
         self.compile_op(OpCode::Return)?;
 
         let lambda = self.end_function()?;
@@ -397,15 +422,21 @@ impl Compiler {
             .scan_value()
             .ok_or(ScannerError::UnexpectedEndOfInput)?;
         let trigger = trigger?;
-        log::trace!("macro trigger {:?}", trigger);
+        log::trace!("Compiler::compile_macro trigger {}", trigger);
 
-        let body =
-            self.scan_value_list(executor, env, ValueData::Word(";".to_string()), scanner)?;
-        // TODO: body.map(to_string)
-        log::trace!("Compiler::compile_macro {:?} => {:?}", trigger.lexeme, body);
+        let body = shared(Value::new(ValueData::List(vec![])));
+        self.scan_object_list(
+            executor,
+            env,
+            ValueData::Word(";".to_string()),
+            scanner,
+            body.clone(),
+        )?;
+        log::trace!("Compiler::compile_macro {} => {}", trigger, body.borrow());
         self.start_function();
+        let body = unshare_clone(body).try_into()?;
         self.pass2(body)?;
-        self.compile_op(OpCode::Return)?;
+        self.compile_op(OpCode::Exit)?;
         let mut lambda = self.end_function()?;
         lambda.name = trigger.lexeme.clone();
         lambda.immediate = true;
@@ -415,45 +446,55 @@ impl Compiler {
 
     // TODO: when this is done, can I reimplement `scan` to be
     // `scan_value_list(ValueData::EndOfInput)`?
-    pub fn scan_value_list<E: Execute>(
+    pub fn scan_object_list<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
         delimiter: ValueData,
         scanner: &mut Scanner,
-    ) -> Result<Vec<Value>> {
-        log::trace!("Compiler::scan_value_list {:?}", delimiter);
-        let mut buffer = Vec::new();
+        accumulator: Shared<Value>,
+    ) -> Result<()> {
+        log::trace!("Compiler::scan_object_list {}", delimiter);
+        if !accumulator.borrow().is_list() {
+            return Err(Error::VMError(VMError::TypeMismatch(format!(
+                "Expected a list, but got {}",
+                accumulator.borrow()
+            ))));
+        }
 
         while let Some(value) = scanner.scan_value() {
             let value = value?;
-            log::trace!("Compiler::scan_value_list {:?}", value);
+            log::trace!("Compiler::scan_object_list ({}) read {}", delimiter, value);
             if value.data == delimiter {
                 if log::log_enabled!(Level::Trace) {
-                    let words = buffer
-                        .iter()
-                        .map(|v: &Value| v.to_string())
-                        .collect::<Vec<_>>();
                     log::trace!(
-                        "Compiler::scan_value_list returning [ {} ]",
-                        words.join(" ")
+                        "Compiler::scan_object_list ({}) returning {}",
+                        delimiter,
+                        accumulator.borrow()
                     );
                 }
-                return Ok(buffer);
-            }
-            if let Some(lambda) = get_macro(env.clone(), &value.data) {
-                log::trace!("Compiler::scan_value_list executing macro {:?}", lambda);
-                buffer = executor.execute_macro(
+                return Ok(());
+            } else if let Some(lambda) = get_macro(env.clone(), &value.data) {
+                log::trace!(
+                    "Compiler::scan_object_list ({}) executing macro {}",
+                    delimiter,
+                    lambda
+                );
+                executor.execute_macro(
                     env.clone(),
                     self,
                     scanner,
                     &value.data,
                     &lambda,
-                    &buffer,
+                    accumulator.clone(),
                 )?;
-                continue;
+            } else {
+                accumulator
+                    .borrow_mut()
+                    .get_list_mut()
+                    .unwrap()
+                    .push(shared(value));
             }
-            buffer.push(value);
         }
 
         Err(ScannerError::UnexpectedEndOfInput.into())

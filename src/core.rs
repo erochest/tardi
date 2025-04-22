@@ -52,8 +52,8 @@ pub trait Execute {
         scanner: &mut Scanner,
         trigger: &ValueData,
         lambda: &Lambda,
-        tokens: &[Value],
-    ) -> Result<Vec<Value>>;
+        token_buffer: Shared<Value>,
+    ) -> Result<()>;
 }
 
 // TODO: make the VM the orchestrator and get rid of this?
@@ -176,6 +176,7 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "call", call);
     push_op(&mut op_table, "call-stack", call_stack);
     push_op(&mut op_table, "return", return_op);
+    push_op(&mut op_table, "exit", exit);
     push_op(&mut op_table, "jump", jump);
     push_op(&mut op_table, "jump-stack", jump_stack);
     push_op(&mut op_table, "<function>", function);
@@ -332,6 +333,10 @@ pub fn return_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) 
     vm.return_op()
 }
 
+pub fn exit(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+    vm.exit()
+}
+
 pub fn jump(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.jump()
 }
@@ -375,12 +380,10 @@ pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scan
 
     // call Compiler::scan_value_list
     let env = vm.environment.clone().unwrap();
-    let values = compiler.scan_value_list(vm, env, delimiter, scanner)?;
-    let list = values.into_iter().map(shared).collect();
-    let value_data = ValueData::List(list);
-    let value = Value::new(value_data);
+    let value = shared(Value::new(ValueData::List(vec![])));
+    compiler.scan_object_list(vm, env, delimiter, scanner, value.clone())?;
 
-    vm.push(shared(value))?;
+    vm.push(value)?;
 
     Ok(())
 }

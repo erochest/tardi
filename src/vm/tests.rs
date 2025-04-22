@@ -2,7 +2,7 @@ use super::*;
 use crate::core::create_op_table;
 use crate::env::Environment;
 use crate::error::{Error, VMError};
-use crate::value::Value;
+use crate::value::{Value, ValueVec};
 use crate::Tardi;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -146,29 +146,12 @@ fn test_invalid_opcode() {
 
 #[test]
 fn test_function_and_lambda_operations() {
+    // env_logger::init();
     let mut tardi = Tardi::default();
     let env = tardi.environment.clone();
 
-    env.borrow_mut().constants = vec![
-        Value::new(ValueData::Function(Lambda::new_lambda(vec![], 5))),
-        ValueData::Integer(2).into(),
-        ValueData::Integer(3).into(),
-    ];
-    env.borrow_mut().instructions = vec![
-        0,
-        0,                          // lit (push lambda)
-        OpCode::CallStack as usize, // call the lambda
-        OpCode::Jump as usize,
-        11,
-        0,
-        1,
-        0,
-        2,
-        OpCode::Multiply as usize,
-        OpCode::Return as usize,
-    ];
-
-    tardi.execute_ip(0).unwrap();
+    let result = tardi.execute_str("{ 2 3 * } call");
+    assert!(result.is_ok());
 
     // Verify the result of lambda execution (2 * 3 = 6)
     assert!(matches!(
@@ -179,41 +162,37 @@ fn test_function_and_lambda_operations() {
         },
     ));
 
-    // Test function definition and execution
-    env.borrow_mut().constants = vec![
-        ValueData::String("triple".to_string()).into(),
-        ValueData::Function(Lambda::new_lambda(vec![], 7)).into(),
-        ValueData::Integer(3).into(),
-        ValueData::Integer(4).into(),
-    ];
-    env.borrow_mut().instructions = vec![
-        0,
-        0,
-        0,
-        1,
-        OpCode::Function as usize, // define the function
-        OpCode::Jump as usize,
-        11,
-        0,
-        2,
-        OpCode::Multiply as usize,
-        OpCode::Return as usize,
-        0,
-        3,
-        OpCode::Call as usize,
-        7,
-    ];
+    // TODO: functions need to be defined soon enough that they can be
+    // called within the same input string.
+    let result = tardi.execute_str("triple { 3 * } <function>");
+    assert!(result.is_ok());
 
-    tardi.execute_ip(0).unwrap();
+    let result = tardi.execute_str(
+        r#"
+        // triple { 3 * } <function>
+        4 triple
+        "#,
+    );
+    assert!(result.is_ok());
 
     // Verify the result of function execution (4 * 3 = 12)
-    assert!(matches!(
-        *tardi.executor.stack.pop().unwrap().borrow(),
-        Value {
-            data: ValueData::Integer(12),
-            ..
-        },
-    ));
+    assert!(
+        matches!(
+            *tardi.executor.stack.pop().unwrap().borrow(),
+            Value {
+                data: ValueData::Integer(12),
+                ..
+            }
+        ),
+        "stack = {}",
+        tardi
+            .executor
+            .stack
+            .iter()
+            .map(|v| format!("{}", v.borrow()))
+            .collect::<Vec<String>>()
+            .join(" "),
+    );
 }
 
 #[test]
