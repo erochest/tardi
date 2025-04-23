@@ -1,10 +1,7 @@
 use super::*;
-use crate::core::create_op_table;
-use crate::env::Environment;
 use crate::error::{Error, VMError};
-use crate::value::{Value, ValueVec};
+use crate::value::Value;
 use crate::Tardi;
-use std::collections::HashMap;
 use std::fmt::Debug;
 
 fn eval(input: &str) -> Result<Vec<Value>> {
@@ -96,7 +93,7 @@ fn test_stack_operations() {
     ));
 
     // Test drop_op
-    let mut stack = eval("42 drop").unwrap();
+    let stack = eval("42 drop").unwrap();
     assert_eq!(stack.len(), 0);
 
     let mut stack = eval("10 11 12 13 stack-size").unwrap();

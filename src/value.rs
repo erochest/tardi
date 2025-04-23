@@ -2,14 +2,12 @@ use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
-use std::ptr;
 use std::rc::Rc;
 
 use lambda::Lambda;
 
 use crate::error::{Error, Result, VMError};
 use crate::shared::{shared, unshare_clone};
-use crate::{Compiler, Scanner};
 
 pub mod lambda;
 

@@ -1,14 +1,11 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::ops::Deref;
-use std::rc::Rc;
 
 use crate::compiler::Compiler;
 use crate::env::Environment;
-use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
+use crate::error::{Result, ScannerError};
 use crate::scanner::Scanner;
 use crate::shared::{shared, unshare_clone, Shared};
-use crate::value::lambda::{Callable, Lambda, OpFn};
+use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
 use crate::vm::{OpCode, VM};
 
@@ -190,9 +187,8 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
 }
 
 pub fn create_macro_table() -> HashMap<String, Lambda> {
-    let mut map = HashMap::new();
     // insert_macro(&mut map, "scan-value-list", scan_token_list);
-    map
+    HashMap::new()
 }
 
 fn push_op(op_table: &mut Vec<Shared<Lambda>>, name: &str, op: OpFn) {

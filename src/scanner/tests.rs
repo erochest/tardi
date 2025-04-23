@@ -20,8 +20,7 @@ fn scan(input: &str) -> Vec<Value> {
 }
 
 fn top<T>(vector: &mut Vec<T>) -> T {
-    let item = vector.remove(0);
-    item
+    vector.remove(0)
 }
 
 fn assert_top(

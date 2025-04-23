@@ -286,7 +286,7 @@ fn test_compile_macro_scan_value_list() {
     assert_eq!(3, list.len());
     assert_eq!(
         ValueData::Integer(40),
-        unshare_clone(list.get(0).cloned().unwrap()).data,
+        unshare_clone(list.first().cloned().unwrap()).data,
     );
     assert_eq!(
         ValueData::Integer(41),
@@ -329,7 +329,7 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
     assert_eq!(3, list.len());
     assert_eq!(
         ValueData::Integer(40),
-        unshare_clone(list.get(0).cloned().unwrap()).data
+        unshare_clone(list.first().cloned().unwrap()).data
     );
     assert_eq!(
         ValueData::Integer(41),
@@ -367,7 +367,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     assert_eq!(4, list.len());
     assert_eq!(
         ValueData::Integer(40),
-        unshare_clone(list.get(0).cloned().unwrap()).data
+        unshare_clone(list.first().cloned().unwrap()).data
     );
     assert_eq!(
         ValueData::Integer(41),
@@ -385,7 +385,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     assert_eq!(3, sublist.len());
     assert_eq!(
         ValueData::Integer(43),
-        unshare_clone(sublist.get(0).cloned().unwrap()).data,
+        unshare_clone(sublist.first().cloned().unwrap()).data,
     );
     assert_eq!(
         ValueData::Integer(44),
@@ -488,7 +488,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     assert_eq!(2, list.len());
     assert_eq!(
         ValueData::String("name".to_string()),
-        unshare_clone(list.get(0).cloned().unwrap()).data,
+        unshare_clone(list.first().cloned().unwrap()).data,
     );
     assert_eq!(
         ValueData::String("Zaphod".to_string()),

@@ -14,8 +14,7 @@ use std::path::PathBuf;
 
 // Re-exports
 // TODO: clean these up
-use crate::core::{Compile, Execute, Scan, Tardi};
-use crate::shared::{shared, Shared};
+use crate::core::{Execute, Scan, Tardi};
 pub use compiler::Compiler;
 pub use env::Environment;
 pub use error::Result;

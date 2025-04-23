@@ -2,7 +2,6 @@ use super::Scan;
 
 use crate::error::{Error, Result, ScannerError};
 use crate::value::{Value, ValueData};
-use std::convert::TryInto;
 use std::{char, result};
 
 /// Scanner that converts source text into a stream of tokens

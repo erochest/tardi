@@ -1,5 +1,5 @@
 use crate::shared::{shared, unshare_clone, Shared};
-use crate::value::lambda::{Callable, Lambda};
+use crate::value::lambda::Lambda;
 use crate::{Compiler, Scanner};
 use log::{log_enabled, Level};
 use std::fmt::Debug;
@@ -342,7 +342,7 @@ impl VM {
             let mut bytes = Vec::new();
             for item in items {
                 if let Some(n) = item.borrow().get_integer() {
-                    if n >= 0 && n <= 255 {
+                    if (0..=255).contains(&n) {
                         bytes.push(n as u8);
                         continue;
                     }
@@ -432,9 +432,9 @@ impl VM {
             .borrow_mut()
             .get_function_mut()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("lambda".to_string())))
-            .and_then(|c| {
+            .map(|c| {
                 c.name = Some(name_str);
-                Ok(c.clone())
+                c.clone()
             })?;
         log::trace!("function: {}", callable);
 
@@ -496,10 +496,7 @@ impl VM {
         let value = self.pop()?;
         let value = unshare_clone(value);
         if let ValueData::List(words) = value.data {
-            let words = words
-                .into_iter()
-                .map(|word| unshare_clone(word))
-                .collect::<Vec<_>>();
+            let words = words.into_iter().map(unshare_clone).collect::<Vec<_>>();
             let lambda =
                 compiler.compile_list(self, self.environment.clone().unwrap(), scanner, &words)?;
             let value = Value::new(ValueData::Function(lambda));

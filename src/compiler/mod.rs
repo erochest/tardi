@@ -8,7 +8,7 @@ use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Callable, Lambda};
-use crate::value::{SharedValue, Value, ValueData, ValueVec};
+use crate::value::{Value, ValueData, ValueVec};
 use crate::vm::OpCode;
 use crate::Scanner;
 

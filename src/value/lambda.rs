@@ -3,8 +3,6 @@ use std::{fmt, ptr};
 use crate::error::Result;
 use crate::{Compiler, Scanner, VM};
 
-use super::ValueData;
-
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM, &mut Compiler, &mut Scanner) -> Result<()>;
 
