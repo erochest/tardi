@@ -189,7 +189,7 @@ impl Compiler {
             "append" => self.compile_op(OpCode::Append),
             "prepend" => self.compile_op(OpCode::Prepend),
             "concat" => self.compile_op(OpCode::Concat),
-            "split-head" => self.compile_op(OpCode::SplitHead),
+            "split-head!" => self.compile_op(OpCode::SplitHead),
             "<string>" => self.compile_op(OpCode::CreateString),
             ">string" => self.compile_op(OpCode::ToString),
             "utf8>string" => self.compile_op(OpCode::Utf8ToString),

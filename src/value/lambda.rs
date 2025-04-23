@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ptr};
 
 use crate::error::Result;
 use crate::{Compiler, Scanner, VM};
@@ -85,7 +85,6 @@ impl Lambda {
     }
 }
 
-// TODO: impl Display for Callable
 /// Enum representing different types of callable objects
 #[derive(Debug, Clone)]
 pub enum Callable {
@@ -118,15 +117,18 @@ impl Callable {
 
 impl PartialEq for Callable {
     fn eq(&self, other: &Self) -> bool {
-        todo!("Callable::eq")
-        // // Functions are equal if they point to the same memory location
-        // ptr::eq(a, b)
+        // Could also compare the words. Would this be better?
+        match (self, other) {
+            (Callable::BuiltIn { function: a }, Callable::BuiltIn { function: b }) => ptr::eq(a, b),
+            (Callable::Compiled { ip: a, .. }, Callable::Compiled { ip: b, .. }) => a == b,
+            _ => false,
+        }
     }
 }
 
 impl PartialOrd for Callable {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        todo!("Callable::partial_cmp")
+    fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
+        None
     }
 }
 

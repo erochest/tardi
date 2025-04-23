@@ -16,7 +16,7 @@ pub mod lambda;
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
 
-#[derive(Debug, Clone, PartialOrd)]
+#[derive(Debug, Clone)]
 pub struct Value {
     pub data: ValueData,
 
@@ -25,6 +25,12 @@ pub struct Value {
     pub lexeme: Option<String>,
 
     pub pos: Option<Pos>,
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.data.partial_cmp(&other.data)
+    }
 }
 
 impl PartialEq for Value {

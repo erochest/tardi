@@ -54,8 +54,7 @@ impl VM {
 
     /// Pushes a shared value onto the return stack
     pub fn push_return(&mut self, value: SharedValue) -> Result<()> {
-        // TODO: change back to 1024
-        if self.return_stack.len() >= 12 {
+        if self.return_stack.len() >= 1024 {
             return Err(VMError::ReturnStackOverflow.into());
         }
         self.return_stack.push(value);
@@ -611,7 +610,6 @@ impl Execute for VM {
         // Convert the tokens seen already to a form we can work on.
         self.stack.push(tokens.clone());
 
-        // TODO: is there something here with pushing the return IP but not popping it or popping too much?
         match lambda.call(self, compiler, scanner) {
             Ok(()) => {}
             Err(Error::VMError(VMError::Exit)) => {}
