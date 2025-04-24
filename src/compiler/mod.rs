@@ -63,7 +63,6 @@ impl Compiler {
         scanner.set_source(input);
         let mut buffer = Vec::new();
 
-        // TODO: this needs to convert to the `TokenType::Dup` style codes
         while let Some(result) = scanner.scan_value() {
             let value = result?;
             log::trace!("Compiler::pass1 read   {}", value);
@@ -112,8 +111,6 @@ impl Compiler {
         Ok(())
     }
 
-    // TODO: I Suspect that this isn't handling the `}` correctly before
-    // `scan-value-list`. (hint: it needs to be a literal.)
     fn compile_value(&mut self, value: Value) -> Result<()> {
         log::trace!("Compiler::compile_value {:?}", value.lexeme);
         // If we're collecting words for a function/lambda, add to the current word list
@@ -233,7 +230,8 @@ impl Compiler {
 
         for word in words {
             if let Some(lambda) = get_macro(env.clone(), &word.data) {
-                // TODO: see todo in `pass1`
+                // TODO: see todo in `pass1` about going back and forth
+                // between Shared<Value> and Vec<Value>.
                 let accumulator = shared(buffer.into());
                 executor.execute_macro(
                     env.clone(),
@@ -337,7 +335,7 @@ impl Compiler {
                 closure.words.pop();
             }
             log::trace!("Compiler::end_function: {} ({:?})", ip, closure.words);
-            // TODO: get the pos for this value
+            // TODO: get the pos for this value from the outer punctuation.
             Ok(Lambda {
                 name: None,
                 immediate: false,
@@ -360,12 +358,10 @@ impl Compiler {
             .and_then(|e| e.borrow().get_op_map().get(word).copied())
         {
             // Right now this only handles non-recursive calls.
-            // TODO: to handle recursive calls, if the function doesn't
-            // have a valid address (say zero), then put the function's
-            // index on the stack and use CallStack.
             // TODO: is there a way to do this without the `Call`?
             // Can I just offset the IP by the number of build-ins
             // and find the function's index that way?
+            // TODO: or stub in a function and add the ip later
             self.compile_op_arg(OpCode::Call, op_table_index)?;
             Ok(())
         } else {
@@ -529,7 +525,7 @@ impl Compile for Compiler {
     ) -> Result<()> {
         let index = self.start_function();
         self.compile(executor, env, scanner, input)?;
-        // TODO: probably need to clean up the function we in-process.
+        // TODO: probably need to clean up the function in-process.
         // I'm not fixing it now because I need to do that everywhere.
         let function = self.end_function()?;
         Ok(())

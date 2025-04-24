@@ -18,7 +18,6 @@ pub type SharedValue = Rc<RefCell<Value>>;
 pub struct Value {
     pub data: ValueData,
 
-    // TODO: make this optional
     /// The actual text of the token from source
     pub lexeme: Option<String>,
 

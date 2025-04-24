@@ -320,11 +320,6 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
     assert_eq!(stack.len(), 1);
     assert!(matches!(stack[0].data, ValueData::List(_)));
 
-    // TODO: these are getting wrapped in Token's. i'm probably
-    // not thinking clearly about code-as-data and when it should
-    // be code and when it should be data. Maybe I need to
-    // revisit the differences between `Taken`, `TokenType`,
-    // and `Value`.
     let list = stack[0].get_list().unwrap();
     assert_eq!(3, list.len());
     assert_eq!(

@@ -452,9 +452,6 @@ impl Iterator for Scanner {
             '0'..='9' => self.scan_number(c),
             // TODO: could move `scan_boolean` to Compiler
             '#' => self.scan_boolean(),
-            // TODO: process these in Compiler
-            // '{' => Ok(TokenType::LeftCurly),
-            // '}' => Ok(TokenType::RightCurly),
             '\'' => {
                 let char_result = self.scan_char();
                 if let Ok(ValueData::Char(_)) = char_result {

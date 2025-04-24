@@ -625,7 +625,6 @@ impl Execute for VM {
         }
 
         // Get the token list off the stack and return it to the compiler form.
-        // TODO: I don't think I need to pop both of these here. Just the accumulator is probably enough.
         if log::log_enabled!(Level::Trace) {
             log::trace!("VM::execute_macro cleaning up");
             self.debug_stacks();

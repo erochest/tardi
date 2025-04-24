@@ -33,10 +33,9 @@ pub enum OpCode {
     // Function-related operations
     Call,      // Call a function by its index in the op_table
     CallStack, // Call a function from the stack
-    // TODO: change to `Exit` to be more forthy?
-    Return, // Return from a function
-    Exit,   // Shortcut execution at the end of macros
-    Jump,   // Jump to a specific instruction
+    Return,    // Return from a function
+    Exit,      // Shortcut execution at the end of macros
+    Jump,      // Jump to a specific instruction
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
