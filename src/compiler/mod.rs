@@ -230,7 +230,7 @@ impl Compiler {
 
         for word in words {
             if let Some(lambda) = get_macro(env.clone(), &word.data) {
-                // TODO: see todo in `pass1` about going back and forth
+                // TODO: see todo in `pass1` about benchmarking going back and forth
                 // between Shared<Value> and Vec<Value>.
                 let accumulator = shared(buffer.into());
                 executor.execute_macro(

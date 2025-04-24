@@ -460,26 +460,28 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     let result = tardi.execute_str(
         r#"
         : double 2 * ;
-        : >name [ "name" ] swap over append ;
-        "#,
-    );
-    assert!(result.is_ok(), "ERROR FUNCTION definition: {:?}", result);
-
-    let result = tardi.execute_str(
-        r#"
         4 double
-        "Zaphod" >name
         "#,
     );
-    assert!(result.is_ok(), "ERROR FUNCTION execution: {:?}", result);
+    assert!(result.is_ok(), "ERROR double: {:?}", result);
     let stack = tardi.stack();
-
-    assert_eq!(stack.len(), 2, "stack = {}", ValueVec(&stack));
+    assert_eq!(stack.len(), 1, "stack = {}", ValueVec(&stack));
 
     let doubled = stack[0].get_integer();
     assert_eq!(Some(8), doubled);
 
-    let list = stack[1].get_list().unwrap();
+    let result = tardi.execute_str(
+        r#"
+        drop
+        : >name [ "name" ] swap over append ;
+        "Zaphod" >name
+        "#,
+    );
+    assert!(result.is_ok(), "ERROR >name: {:?}", result);
+    let stack = tardi.stack();
+    assert_eq!(stack.len(), 1, "stack = {}", ValueVec(&stack));
+
+    let list = stack[0].get_list().unwrap();
     assert_eq!(2, list.len());
     assert_eq!(
         ValueData::String("name".to_string()),

@@ -159,14 +159,13 @@ fn test_function_and_lambda_operations() {
         },
     ));
 
-    // TODO: functions need to be defined soon enough that they can be
-    // called within the same input string.
+    // Function defined with `<function>` have to be defined in a previous input string.
+    // Macro-defined functions can be used in the same input string.
     let result = tardi.execute_str("triple { 3 * } <function>");
     assert!(result.is_ok());
 
     let result = tardi.execute_str(
         r#"
-        // triple { 3 * } <function>
         4 triple
         "#,
     );
