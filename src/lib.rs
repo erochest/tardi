@@ -36,6 +36,8 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
     // - it allows the function to modify the environment and the token vector on the stack
 
     let mut tardi = Tardi::default();
+    // TODO: add an option for the bootstrap dir
+    tardi.bootstrap(None)?;
     tardi.execute_str(&source)?;
     let tardi = tardi;
 
@@ -53,6 +55,8 @@ pub fn repl() -> Result<()> {
     let mut tardi = Tardi::default();
     let mut stdout = io::stdout();
     let stdin = io::stdin();
+
+    tardi.bootstrap(None)?;
 
     loop {
         let mut input = String::new();

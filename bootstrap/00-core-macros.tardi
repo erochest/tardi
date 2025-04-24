@@ -1,0 +1,10 @@
+
+MACRO: \ dup scan-value swap append ;
+MACRO: [
+        dup
+        ] scan-object-list
+        swap append ;
+MACRO: :
+        scan-value
+        \ ; scan-object-list compile
+        <function> ;

@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 
 use crate::compiler::Compiler;
 use crate::env::Environment;
@@ -78,6 +80,29 @@ impl Tardi {
         }
     }
 
+    pub fn bootstrap(&mut self, bootstrap_dir: Option<PathBuf>) -> Result<()> {
+        let bootstrap_dir = bootstrap_dir.unwrap_or_else(|| PathBuf::from("bootstrap"));
+        if !bootstrap_dir.exists() {
+            return Ok(());
+        }
+
+        let mut files = bootstrap_dir
+            .read_dir()
+            .unwrap()
+            .filter_map(|dir_entry| dir_entry.ok())
+            .map(|dir_entry| dir_entry.path())
+            .filter(|path| path.extension().is_some_and(|ext| ext == "tardi"))
+            .collect::<Vec<_>>();
+        files.sort();
+        for file in files {
+            log::debug!("bootstrapping from {:?}", file);
+            let input = fs::read_to_string(file)?;
+            self.execute_str(&input)?;
+        }
+
+        Ok(())
+    }
+
     pub fn reset(&mut self) {
         self.input = None;
     }
@@ -128,6 +153,9 @@ impl Tardi {
     }
 }
 
+// TODO: add bootstrapping from the default directory to here?
+// seems like too much. all of this will be obvious defaults,
+// but the bootstrap dir will be more often configured
 impl Default for Tardi {
     fn default() -> Tardi {
         let environment = Environment::with_builtins();
