@@ -80,6 +80,12 @@ impl Tardi {
         }
     }
 
+    pub fn with_bootstrap(bootstrap_dir: Option<PathBuf>) -> Result<Self> {
+        let mut tardi = Tardi::default();
+        tardi.bootstrap(bootstrap_dir)?;
+        Ok(tardi)
+    }
+
     pub fn bootstrap(&mut self, bootstrap_dir: Option<PathBuf>) -> Result<()> {
         let bootstrap_dir = bootstrap_dir.unwrap_or_else(|| PathBuf::from("bootstrap"));
         if !bootstrap_dir.exists() {
@@ -423,3 +429,6 @@ pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) 
 pub fn compile(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
     vm.compile(compiler, scanner)
 }
+
+#[cfg(test)]
+mod tests;

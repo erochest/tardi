@@ -1,13 +1,24 @@
 
+/// Escape the next token
+/// \ nuke
 MACRO: \ dup scan-value swap append ;
-MACRO: {
-        dup
-        } scan-object-list compile
-        swap append ;
+
+/// lambdas
+/// { swap drop }
 MACRO: [
         dup
-        ] scan-object-list
+        ] scan-object-list compile
         swap append ;
+
+/// vectors
+/// { 1 2 3 }
+MACRO: {
+        dup
+        } scan-object-list
+        swap append ;
+
+/// functions (named lambdas)
+/// : nip   swap drop ;
 MACRO: :
         scan-value
         \ ; scan-object-list compile

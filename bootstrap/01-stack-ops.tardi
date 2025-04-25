@@ -1,1 +1,103 @@
-: over   >r dup r> swap ;
+// TODO: bring in tuck and others
+
+// Stack combinators
+
+/// ...s x l -- ...s' x
+: dip   swap >r apply r> ;
+
+// TODO: Preserving combinators
+// 2dip ...s x y l -- ...s' x y
+// 3dip ...s x y z l -- ...s' x y z
+// 4dip ...s w x y z l -- ...s' w x y z
+// keep ...a x l(...a x -- ...b) --- ...b x
+// 2keep ...a x y l(...a x y -- ...b) --- ...b x y
+// 3keep ...a x y z l(...a x y z -- ...b) --- ...b x y z
+
+// Dropping stack elements
+
+/// x y --
+: 2drop   drop drop ;
+
+/// x y z --
+: 3drop   drop drop drop ;
+
+/// w x y z --
+: 4drop   drop drop drop drop ;
+
+/// v w x y z --
+: 5drop   drop drop drop drop drop ;
+
+/// x y -- y
+: nip     [ drop ] dip ;
+
+/// x y z -- z
+: 2nip    [ 2drop ] dip ;
+
+/// w x y z -- z
+: 3nip    [ 3drop ] dip ;
+
+/// v w x y z -- z
+: 4nip    [ 4drop ] dip ;
+
+/// u v w x y z -- z
+: 5nip    [ 5drop ] dip ;
+
+// Duplicating stack elements deep in the stack
+
+/// x y -- x x y
+: dupd     [ dup ] dip ;
+
+// Permuting stack elements deep in the stack
+
+/// x y z -- y x z
+: swapd    [ swap ] dip ;
+
+/// x y -- x y x
+: over    dupd swap ;
+
+/// x y z -- x y x z
+: overd    [ over ] dip ;
+
+/// x y z -- y z x
+// : rot   swapd swap ;
+
+/// x y z -- z x y
+: -rot     swap swapd ;
+
+/// x y z -- z y x
+: spin     swap rot ;
+
+/// w x y z -- z y x w
+: 4spin    swap [ spin ] dip -rot ;
+
+/// w x y z -- x y w z
+: rotd     [ rot ] dip ;
+
+/// w x y z -- y w x z
+: -rotd    [ -rot ] dip ;
+
+/// x y z -- y z
+: nipd     [ nip ] dip  ;
+
+/// w x y z -- y z
+: 2nipd    [ 2nip ] dip ;
+
+/// v w x y z -- y z
+: 3nipd    [ 3nip ] dip ;
+
+// Deplicating stack elements
+
+/// x y -- x y x y
+: 2dup    dupd swap dupd swap ;
+
+/// x y z -- x y x y z
+: 2dupd   [ 2dup ] dip ;
+
+/// x y z -- x y z x y z
+: 3dup    2dupd swap [ swap dupd swap ] dip swap ;
+
+/// x y z -- x y z x y
+: 2over    2dupd -rot ;
+
+/// x y z -- x y z x
+: pick     overd swap ;

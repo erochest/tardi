@@ -7,6 +7,7 @@ pub enum OpCode {
     Lit,
     Dup,
     Swap,
+    // TODO: move `rot` to bootstrapping
     Rot,
     Drop,
     StackSize,

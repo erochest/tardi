@@ -360,7 +360,6 @@ fn test_read_string_until() {
 fn test_words_starting_with_numbers() {
     let mut scanner = Scanner::new();
     scanner.set_source("123abc");
-
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("123abc".to_string()))));
 }

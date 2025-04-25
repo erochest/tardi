@@ -174,6 +174,37 @@ impl Value {
 }
 
 // From implementations for each of the contained values
+impl From<i64> for ValueData {
+    fn from(value: i64) -> Self {
+        ValueData::Integer(value)
+    }
+}
+
+impl From<f64> for ValueData {
+    fn from(value: f64) -> Self {
+        ValueData::Float(value)
+    }
+}
+
+impl From<bool> for ValueData {
+    fn from(value: bool) -> Self {
+        ValueData::Boolean(value)
+    }
+}
+
+impl From<char> for ValueData {
+    fn from(value: char) -> Self {
+        ValueData::Char(value)
+    }
+}
+
+impl From<String> for ValueData {
+    fn from(value: String) -> Self {
+        ValueData::String(value)
+    }
+}
+
+// From implementations for each of the contained values
 impl From<i64> for Value {
     fn from(value: i64) -> Self {
         Value::with_lexeme(ValueData::Integer(value), &value.to_string())
