@@ -193,19 +193,6 @@ impl Compiler {
             "string-concat" => self.compile_op(OpCode::StringConcat),
             "<function>" => self.compile_op(OpCode::Function),
             "call" => self.compile_op(OpCode::CallStack),
-            "{" => {
-                // Start a new function compilation
-                self.start_function();
-                Ok(())
-            }
-            "}" => {
-                // End the current function/lambda
-                if !self.closure_stack.is_empty() {
-                    self.compile_lambda()
-                } else {
-                    Err(Error::CompilerError(CompilerError::UnmatchedBrace))
-                }
-            }
             "lit" => self.compile_op(OpCode::LitStack),
             "scan-value" => self.compile_op(OpCode::ScanValue),
             "scan-value-list" => self.compile_op(OpCode::ScanValueList),

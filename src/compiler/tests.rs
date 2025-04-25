@@ -400,6 +400,10 @@ fn test_compile_define_use_function() {
     tardi
         .execute_str(
             r#"
+        MACRO: {
+                dup
+                } scan-object-list compile
+                swap append ;
         over { >r dup r> swap } <function>
         "#,
         )
@@ -425,6 +429,16 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     let mut tardi = Tardi::default();
 
     // TODO: can I embed a list in a `{ ... }` lambda?
+    tardi
+        .execute_str(
+            r#"
+        MACRO: {
+                dup
+                } scan-object-list compile
+                swap append ;
+        "#,
+        )
+        .unwrap();
     tardi
         .execute_str(
             r#"

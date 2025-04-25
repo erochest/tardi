@@ -1,5 +1,9 @@
 
 MACRO: \ dup scan-value swap append ;
+MACRO: {
+        dup
+        } scan-object-list compile
+        swap append ;
 MACRO: [
         dup
         ] scan-object-list

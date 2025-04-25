@@ -147,6 +147,16 @@ fn test_function_and_lambda_operations() {
     let mut tardi = Tardi::default();
     let env = tardi.environment.clone();
 
+    tardi
+        .execute_str(
+            r#"
+        MACRO: {
+                dup
+                } scan-object-list compile
+                swap append ;
+        "#,
+        )
+        .unwrap();
     let result = tardi.execute_str("{ 2 3 * } call");
     assert!(result.is_ok());
 
