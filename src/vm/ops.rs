@@ -31,11 +31,11 @@ pub enum OpCode {
     Utf8ToString,
     StringConcat,
     // Function-related operations
-    Call,      // Call a function by its index in the op_table
-    CallStack, // Call a function from the stack
-    Return,    // Return from a function
-    Exit,      // Shortcut execution at the end of macros
-    Jump,      // Jump to a specific instruction
+    Call,   // Call a function by its index in the op_table
+    Apply,  // Call a function object on the stack
+    Return, // Return from a function
+    Exit,   // Shortcut execution at the end of macros
+    Jump,   // Jump to a specific instruction
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
@@ -84,7 +84,7 @@ impl TryFrom<usize> for OpCode {
             24 => Ok(OpCode::Utf8ToString),
             25 => Ok(OpCode::StringConcat),
             26 => Ok(OpCode::Call),
-            27 => Ok(OpCode::CallStack),
+            27 => Ok(OpCode::Apply),
             28 => Ok(OpCode::Return),
             29 => Ok(OpCode::Exit),
             30 => Ok(OpCode::Jump),

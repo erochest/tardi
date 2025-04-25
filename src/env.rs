@@ -217,7 +217,7 @@ impl Environment {
             | OpCode::ToString
             | OpCode::Utf8ToString
             | OpCode::StringConcat
-            | OpCode::CallStack
+            | OpCode::Apply
             | OpCode::Return
             | OpCode::Exit
             | OpCode::JumpStack

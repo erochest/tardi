@@ -157,7 +157,7 @@ fn test_function_and_lambda_operations() {
         "#,
         )
         .unwrap();
-    let result = tardi.execute_str("{ 2 3 * } call");
+    let result = tardi.execute_str("{ 2 3 * } apply");
     assert!(result.is_ok());
 
     // Verify the result of lambda execution (2 * 3 = 6)
@@ -595,7 +595,7 @@ fn test_comparison_operations() {
 #[test]
 fn test_function_and_lambda_errors() {
     // Test calling a non-function value
-    let result = eval("42 call");
+    let result = eval("42 apply");
     assert!(matches!(
         result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
@@ -616,7 +616,7 @@ fn test_function_and_lambda_errors() {
     ));
 
     // Test return operation with invalid return address
-    let result = eval("{ 42 >r } call");
+    let result = eval("{ 42 >r } apply");
     assert!(matches!(
         result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
