@@ -26,14 +26,7 @@ pub struct EnvLoc {
 
 impl fmt::Debug for EnvLoc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let op = self
-            .env
-            .borrow()
-            .get_instruction(self.ip)
-            .map(OpCode::try_from)
-            .unwrap()
-            .unwrap();
-        self.env.borrow().debug_op(&op, f, self.ip)?;
+        self.env.borrow().debug_instruction(f, self.ip)?;
         Ok(())
     }
 }
@@ -183,6 +176,21 @@ impl Environment {
         format!("{:?}", self)
     }
 
+    fn debug_instruction(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        ip: usize,
+    ) -> result::Result<usize, fmt::Error> {
+        let mut ip = ip;
+        let instruction = self.instructions[ip];
+        ip = match OpCode::try_from(instruction) {
+            Ok(op) => self.debug_op(&op, f, ip)?,
+            Err(_) => self.debug_call(instruction, f, ip)?,
+        };
+        writeln!(f)?;
+        Ok(ip + 1)
+    }
+
     fn debug_op(
         &self,
         op: &OpCode,
@@ -191,7 +199,6 @@ impl Environment {
     ) -> result::Result<usize, fmt::Error> {
         let next_ip = match op {
             OpCode::Lit => self.debug_const(op, f, ip),
-            OpCode::Call => self.debug_call(op, f, ip),
             OpCode::Dup
             | OpCode::Swap
             | OpCode::Rot
@@ -231,7 +238,6 @@ impl Environment {
         }?;
 
         self.write_function_names(f, ip)?;
-        writeln!(f)?;
 
         Ok(next_ip)
     }
@@ -286,24 +292,22 @@ impl Environment {
 
     fn debug_call(
         &self,
-        op: &OpCode,
+        index: usize,
         f: &mut fmt::Formatter<'_>,
         ip: usize,
     ) -> result::Result<usize, fmt::Error> {
-        let mut ip = ip;
-
-        self.write_ip_number(f, ip)?;
-        self.write_op_code(f, op)?;
-
-        ip += 1;
-        let index = self.instructions[ip];
         let op = self.op_table[index].clone();
         let name = op
             .borrow()
             .name
             .clone()
             .unwrap_or_else(|| "<lambda>".to_string());
-        write!(f, " {:0>4}. {: <16}", index, name)?;
+
+        self.write_ip_number(f, ip)?;
+        self.write_call(f, index, &name)?;
+
+        // should be safe to unwrap because these should only be compiled
+        write!(f, " {:0>4}", op.borrow().get_ip().unwrap())?;
 
         Ok(ip)
     }
@@ -315,6 +319,10 @@ impl Environment {
     fn write_op_code(&self, f: &mut fmt::Formatter<'_>, op_code: &OpCode) -> fmt::Result {
         let debugged = format!("{:?}", op_code);
         write!(f, "{: <16} | ", debugged)
+    }
+
+    fn write_call(&self, f: &mut fmt::Formatter<'_>, index: usize, name: &str) -> fmt::Result {
+        write!(f, "{:0>4}. {: <10} | ", index, name)
     }
 
     fn write_function_names(&self, f: &mut fmt::Formatter<'_>, ip: usize) -> fmt::Result {
@@ -353,8 +361,7 @@ impl fmt::Debug for Environment {
         let mut ip = 0;
 
         while ip < self.instructions.len() {
-            let op = OpCode::try_from(self.instructions[ip]).unwrap();
-            ip = self.debug_op(&op, f, ip)? + 1;
+            ip = self.debug_instruction(f, ip)?;
         }
 
         Ok(())

@@ -31,7 +31,6 @@ pub enum OpCode {
     Utf8ToString,
     StringConcat,
     // Function-related operations
-    Call,   // Call a function by its index in the op_table
     Apply,  // Call a function object on the stack
     Return, // Return from a function
     Exit,   // Shortcut execution at the end of macros
@@ -83,18 +82,17 @@ impl TryFrom<usize> for OpCode {
             23 => Ok(OpCode::ToString),
             24 => Ok(OpCode::Utf8ToString),
             25 => Ok(OpCode::StringConcat),
-            26 => Ok(OpCode::Call),
-            27 => Ok(OpCode::Apply),
-            28 => Ok(OpCode::Return),
-            29 => Ok(OpCode::Exit),
-            30 => Ok(OpCode::Jump),
-            31 => Ok(OpCode::JumpStack),
-            32 => Ok(OpCode::Function),
-            33 => Ok(OpCode::ScanValue),
+            26 => Ok(OpCode::Apply),
+            27 => Ok(OpCode::Return),
+            28 => Ok(OpCode::Exit),
+            29 => Ok(OpCode::Jump),
+            30 => Ok(OpCode::JumpStack),
+            31 => Ok(OpCode::Function),
+            32 => Ok(OpCode::ScanValue),
+            33 => Ok(OpCode::ScanValueList),
             34 => Ok(OpCode::ScanObjectList),
-            35 => Ok(OpCode::ScanObjectList),
-            36 => Ok(OpCode::LitStack),
-            37 => Ok(OpCode::Compile),
+            35 => Ok(OpCode::LitStack),
+            36 => Ok(OpCode::Compile),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

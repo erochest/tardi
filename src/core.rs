@@ -198,8 +198,7 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, ">string", to_string);
     push_op(&mut op_table, "utf8>string", utf8_to_string);
     push_op(&mut op_table, "string-concat", string_concat);
-    push_op(&mut op_table, "call", call);
-    push_op(&mut op_table, "call-stack", call_stack);
+    push_op(&mut op_table, "apply", apply);
     push_op(&mut op_table, "return", return_op);
     push_op(&mut op_table, "exit", exit);
     push_op(&mut op_table, "jump", jump);
@@ -349,8 +348,8 @@ pub fn call(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Resu
     vm.call(compiler, scanner)
 }
 
-pub fn call_stack(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-    vm.call_stack(compiler, scanner)
+pub fn apply(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    vm.apply(compiler, scanner)
 }
 
 pub fn return_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {

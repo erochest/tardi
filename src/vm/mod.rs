@@ -10,7 +10,7 @@ use crate::error::{Error, Result, VMError};
 pub mod ops;
 pub use self::ops::OpCode;
 
-use crate::value::{SharedValue, Value, ValueData};
+use crate::value::{SharedValue, Value, ValueData, ValueVec};
 
 use crate::core::Execute;
 
@@ -404,7 +404,7 @@ impl VM {
     }
 
     /// Calls a function from the stack
-    pub fn call_stack(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    pub fn apply(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
         let func = self.pop()?;
         let vm = self;
 
@@ -493,6 +493,7 @@ impl VM {
 
     /// Takes a list off the stack and compiles it into an anonymous lambda
     pub fn compile(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+        log::trace!("VM::compile");
         let value = self.pop()?;
         let value = unshare_clone(value);
         if let ValueData::List(words) = value.data {
@@ -597,12 +598,16 @@ impl Execute for VM {
         env: Shared<Environment>,
         compiler: &mut Compiler,
         scanner: &mut Scanner,
-        _trigger: &ValueData,
+        trigger: &ValueData,
         lambda: &Lambda,
         tokens: Shared<Value>,
     ) -> Result<()> {
         if log::log_enabled!(Level::Trace) {
-            log::trace!("VM::execute_macro input {}", tokens.borrow());
+            log::trace!(
+                "VM::execute_macro {} -- current input {}",
+                trigger,
+                tokens.borrow()
+            );
         }
         // Convert the tokens seen already to a form we can work on.
         self.stack.push(tokens.clone());

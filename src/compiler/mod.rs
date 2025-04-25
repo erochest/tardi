@@ -94,20 +94,12 @@ impl Compiler {
     }
 
     fn pass2(&mut self, values: Vec<Value>) -> Result<()> {
-        if log::log_enabled!(log::Level::Trace) {
-            log::trace!(
-                "Compiler::pass2 {:?}",
-                values
-                    .iter()
-                    .map(|item| item.to_string())
-                    .collect::<Vec<String>>()
-                    .join(" ")
-            );
-        }
+        log::trace!("Compiler::pass2 {}", ValueVec(&values),);
+
         for value in values {
-            log::trace!("Compile::pass2 {}", value);
             self.compile_value(value)?;
         }
+
         Ok(())
     }
 
@@ -212,6 +204,11 @@ impl Compiler {
         words: &[Value],
     ) -> Result<Lambda> {
         // TODO: can I reuse this function for anything else?
+        if log::log_enabled!(Level::Trace) {
+            let words = Vec::from(words);
+            log::trace!("Compiler::compile_list {}", ValueVec(&words));
+        }
+
         self.start_function();
         let mut buffer = Vec::new();
 
@@ -230,12 +227,12 @@ impl Compiler {
                 )?;
                 buffer = unshare_clone(accumulator).try_into()?;
             } else {
+                log::trace!("Compiler::compile_list -- pushing {}", word);
                 buffer.push(word.clone());
             }
         }
 
         self.pass2(buffer)?;
-        log::trace!("Compiler::compile_list -- emitting Return");
         self.compile_op(OpCode::Return)?;
         self.end_function()
     }
@@ -349,7 +346,7 @@ impl Compiler {
             // Can I just offset the IP by the number of build-ins
             // and find the function's index that way?
             // TODO: or stub in a function and add the ip later
-            self.compile_op_arg(OpCode::Call, op_table_index)?;
+            self.compile_instruction(op_table_index);
             Ok(())
         } else {
             self.compile_constant(Value::with_lexeme(ValueData::Word(word.to_string()), word))?;
