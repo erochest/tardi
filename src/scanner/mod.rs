@@ -235,6 +235,20 @@ impl Scanner {
         }
     }
 
+    fn parse_word(&self, lexeme: &str) -> ValueData {
+        if lexeme == "#t" {
+            ValueData::Boolean(true)
+        } else if lexeme == "#f" {
+            ValueData::Boolean(false)
+        } else if let Ok(number) = lexeme.parse::<i64>() {
+            ValueData::Integer(number)
+        } else if let Ok(number) = lexeme.parse::<f64>() {
+            ValueData::Float(number)
+        } else {
+            ValueData::Word(lexeme.to_string())
+        }
+    }
+
     /// Scans a number (integer or float)
     fn scan_number(&mut self, first_digit: char) -> Result<ValueData> {
         let mut number = String::from(first_digit);
@@ -448,40 +462,36 @@ impl Iterator for Scanner {
 
         // Create token based on character
         let c = c.unwrap();
-        let result = match c {
-            '0'..='9' => self.scan_number(c),
-            // TODO: could move `scan_boolean` to Compiler
-            '#' => self.scan_boolean(),
-            '\'' => {
-                let char_result = self.scan_char();
-                if let Ok(ValueData::Char(_)) = char_result {
-                    // Consume the closing single quote
-                    if self.next_char() != Some('\'') {
-                        return Some(Err(Error::ScannerError(ScannerError::UnterminatedChar)));
-                    }
-                }
-                char_result
-            }
-            '"' => {
-                // Check for triple quotes by peeking at the next two characters
-                let is_triple = self.chars.get(self.index) == Some(&'"')
-                    && self.chars.get(self.index + 1) == Some(&'"');
+        let result = if c == '"' {
+            // Check for triple quotes by peeking at the next two characters
+            let is_triple = self.chars.get(self.index) == Some(&'"')
+                && self.chars.get(self.index + 1) == Some(&'"');
 
-                if is_triple {
-                    self.scan_long_string()
-                } else {
-                    self.scan_string()
+            if is_triple {
+                self.scan_long_string()
+            } else {
+                self.scan_string()
+            }
+        } else if c == '\'' {
+            let char_result = self.scan_char();
+            if let Ok(ValueData::Char(_)) = char_result {
+                // Consume the closing single quote
+                if self.next_char() != Some('\'') {
+                    return Some(Err(Error::ScannerError(ScannerError::UnterminatedChar)));
                 }
             }
-            c => match self.scan_word(c) {
-                Ok(Some(w)) => Ok(w),
+            char_result
+        } else {
+            match self.scan_word(c) {
+                Ok(Some(ValueData::Word(w))) => Ok(self.parse_word(&w)),
+                Ok(Some(vd)) => Ok(vd),
                 Ok(None) => {
                     return self.next();
                 }
                 Err(err) => {
                     return Some(Err(err));
                 }
-            },
+            }
         };
 
         // Calculate token length
