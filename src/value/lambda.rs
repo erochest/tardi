@@ -13,6 +13,7 @@ pub struct Lambda {
     pub name: Option<String>,
 
     pub immediate: bool,
+    pub defined: bool,
 
     pub callable: Callable,
 }
@@ -23,6 +24,7 @@ impl Lambda {
         Lambda {
             name: None,
             immediate: false,
+            defined: true,
             callable,
         }
     }
@@ -33,6 +35,7 @@ impl Lambda {
         Lambda {
             name,
             immediate: false,
+            defined: true,
             callable,
         }
     }
@@ -51,6 +54,21 @@ impl Lambda {
         Lambda {
             name,
             immediate: true,
+            defined: true,
+            callable,
+        }
+    }
+
+    pub fn new_undefined(name: &str) -> Self {
+        let name = Some(name.to_string());
+        let callable = Callable::Compiled {
+            words: vec![],
+            ip: 0,
+        };
+        Lambda {
+            name,
+            immediate: true,
+            defined: false,
             callable,
         }
     }

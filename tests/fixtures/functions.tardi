@@ -9,3 +9,9 @@
 dup triple
 
 // TODO: add recursion once we have conditionals
+: even?   dup 0 == [ drop #t ] [ 1 - even? ! ] if ;
+
+0 even? "is even" "is not even" ?
+1 even? "is even" "is not even" ?
+7 even? "is even" "is not even" ?
+8 even? "is even" "is not even" ?

@@ -479,6 +479,26 @@ impl VM {
         Ok(())
     }
 
+    pub fn predefine_function(&mut self) -> Result<()> {
+        let name = self.pop()?;
+
+        let name_str = match name.borrow().data {
+            ValueData::String(ref s) => s.to_string(),
+            ValueData::Word(ref w) => w.to_string(),
+            _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
+        };
+        log::trace!("VM::predefine_function {}", name_str);
+
+        let lambda = Lambda::new_undefined(&name_str);
+        // Add the function to the op_table
+        if let Some(env) = self.environment.as_ref() {
+            let env = env.clone();
+            (*env).borrow_mut().add_to_op_table(shared(lambda));
+        }
+
+        Ok(())
+    }
+
     /// Returns from a function
     pub fn return_op(&mut self) -> Result<()> {
         if self.return_stack.is_empty() {

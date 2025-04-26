@@ -2,6 +2,7 @@ use std::convert::TryFrom;
 
 use crate::error::Error;
 
+// TODO: divmod
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
     Lit,
@@ -41,6 +42,7 @@ pub enum OpCode {
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
+    PredefineFunction,
     ScanValue,
     ScanValueList,
     ScanObjectList,
@@ -93,11 +95,12 @@ impl TryFrom<usize> for OpCode {
             31 => Ok(OpCode::Jump),
             32 => Ok(OpCode::JumpStack),
             33 => Ok(OpCode::Function),
-            34 => Ok(OpCode::ScanValue),
-            35 => Ok(OpCode::ScanValueList),
-            36 => Ok(OpCode::ScanObjectList),
-            37 => Ok(OpCode::LitStack),
-            38 => Ok(OpCode::Compile),
+            34 => Ok(OpCode::PredefineFunction),
+            35 => Ok(OpCode::ScanValue),
+            36 => Ok(OpCode::ScanValueList),
+            37 => Ok(OpCode::ScanObjectList),
+            38 => Ok(OpCode::LitStack),
+            39 => Ok(OpCode::Compile),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

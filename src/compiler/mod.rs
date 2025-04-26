@@ -186,6 +186,7 @@ impl Compiler {
             "utf8>string" => self.compile_op(OpCode::Utf8ToString),
             "string-concat" => self.compile_op(OpCode::StringConcat),
             "<function>" => self.compile_op(OpCode::Function),
+            "<predefine-function>" => self.compile_op(OpCode::PredefineFunction),
             "apply" => self.compile_op(OpCode::Apply),
             "lit" => self.compile_op(OpCode::LitStack),
             "scan-value" => self.compile_op(OpCode::ScanValue),
@@ -325,6 +326,7 @@ impl Compiler {
             Ok(Lambda {
                 name: None,
                 immediate: false,
+                defined: true,
                 callable: Callable::Compiled {
                     words: closure.words,
                     ip,

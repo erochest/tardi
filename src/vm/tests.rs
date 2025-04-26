@@ -717,11 +717,12 @@ fn test_jump_operations() {
 
 #[test]
 fn test_clear() {
+    let input = "1 2 3 4 5 clear";
     let mut tardi = Tardi::with_bootstrap(None).unwrap();
 
-    let result = tardi.execute_str("1 2 3 4 5 clear");
+    let result = tardi.execute_str(input);
 
-    assert!(result.is_ok(), "Expected Ok, got {:?}", result);
+    assert_is_ok(input, &result);
     let stack = tardi.executor.stack;
     assert!(
         stack.is_empty(),
@@ -729,3 +730,40 @@ fn test_clear() {
         stack
     );
 }
+
+#[test]
+fn test_predefine_function_adds_function_to_op_table() {
+    let word = "even?".to_string();
+    let input = r#"
+        even?
+        // dup
+        <predefine-function>
+        // [ dup 0 == [ drop #t ] [ 1 - even? ! ] if ]
+        // <function>
+        "#;
+    let mut tardi = Tardi::with_bootstrap(None).unwrap();
+    let next_index = tardi.environment.borrow().op_table.len();
+    // let next_ip = tardi.environment.borrow().instructions.len();
+
+    let result = tardi.execute_str(input);
+
+    assert_is_ok(input, &result);
+    let env = tardi.environment.clone();
+    assert!(
+        env.borrow()
+            .op_map
+            .get(&word)
+            .is_some_and(|index| index == &next_index),
+        "env.op_map[{}] = {:?}",
+        word,
+        env.borrow().op_map.get(&word)
+    );
+    let lambda = env.borrow().op_table[next_index].clone();
+    assert_eq!(lambda.borrow().name, Some(word.clone()));
+    assert_eq!(lambda.borrow().defined, false);
+    assert_eq!(lambda.borrow().get_ip(), Some(0));
+    // assert_eq!(lambda.borrow().get_ip(), Some(next_ip + 5));
+}
+
+// TODO: test_function_defines_undefined_function
+// TODO: test_call_wont_execute_undefined_function
