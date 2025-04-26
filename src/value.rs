@@ -280,7 +280,7 @@ impl fmt::Display for ValueVec<'_> {
         let ValueVec(values) = self;
         write!(
             f,
-            "[ {} ]",
+            "{{ {} }}",
             values
                 .iter()
                 .map(|v| format!("{}", v))

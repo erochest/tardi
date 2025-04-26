@@ -1,6 +1,6 @@
 
 // lambda
-2 { 2 * } apply
+2 [ 2 * ] apply
 
 // function
 : triple 3 * ;

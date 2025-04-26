@@ -255,11 +255,11 @@ impl VM {
         let list = self.pop()?;
         let value = self.pop()?;
 
-        if let Some(list) = (*list).borrow_mut().get_list_mut() {
-            list.push(value);
-        } else {
-            return Err(VMError::TypeMismatch(format!("[ {:?} ] {:?} append", list, value)).into());
-        }
+        (*list)
+            .borrow_mut()
+            .get_list_mut()
+            .map(|l| l.push(value))
+            .ok_or_else(|| VMError::TypeMismatch("append to list".to_string()))?;
 
         Ok(())
     }
