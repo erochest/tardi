@@ -319,11 +319,11 @@ impl fmt::Display for ValueData {
                 c => write!(f, "'{}'", c),
             },
             ValueData::List(list) => {
-                write!(f, "[")?;
+                write!(f, "{{")?;
                 for item in list.iter() {
                     write!(f, " {}", item.borrow())?;
                 }
-                write!(f, " ]")
+                write!(f, " }}")
             }
             ValueData::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
             ValueData::Function(lambda) => write!(f, "{}", lambda),
