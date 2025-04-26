@@ -167,6 +167,12 @@ impl VM {
         self.pop().map(|_| ())
     }
 
+    /// Clears the stack
+    pub fn clear(&mut self) -> Result<()> {
+        self.stack.clear();
+        Ok(())
+    }
+
     /// Returns the current size of the data stack
     pub fn stack_size_op(&mut self) -> Result<()> {
         self.stack

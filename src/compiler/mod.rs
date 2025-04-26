@@ -150,6 +150,7 @@ impl Compiler {
             "swap" => self.compile_op(OpCode::Swap),
             "rot" => self.compile_op(OpCode::Rot),
             "drop" => self.compile_op(OpCode::Drop),
+            "clear" => self.compile_op(OpCode::Clear),
             "stack-size" => self.compile_op(OpCode::StackSize),
             ">r" => self.compile_op(OpCode::ToR),
             "r>" => self.compile_op(OpCode::RFrom),

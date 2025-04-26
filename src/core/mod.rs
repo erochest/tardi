@@ -183,6 +183,7 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "swap", swap);
     push_op(&mut op_table, "rot", rot);
     push_op(&mut op_table, "drop", drop_op);
+    push_op(&mut op_table, "clear", clear);
     push_op(&mut op_table, "stack-size", stack_size);
     push_op(&mut op_table, "+", add);
     push_op(&mut op_table, "-", subtract);
@@ -261,6 +262,10 @@ pub fn rot(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Res
 
 pub fn drop_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.drop_op()
+}
+
+pub fn clear(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+    vm.clear()
 }
 
 pub fn stack_size(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {

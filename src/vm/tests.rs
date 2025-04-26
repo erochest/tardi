@@ -714,3 +714,18 @@ fn test_jump_operations() {
     //     Err(Error::VMError(VMError::TypeMismatch(_)))
     // ));
 }
+
+#[test]
+fn test_clear() {
+    let mut tardi = Tardi::with_bootstrap(None).unwrap();
+
+    let result = tardi.execute_str("1 2 3 4 5 clear");
+
+    assert!(result.is_ok(), "Expected Ok, got {:?}", result);
+    let stack = tardi.executor.stack;
+    assert!(
+        stack.is_empty(),
+        "Expected stack to be empty, got {:?}",
+        stack
+    );
+}

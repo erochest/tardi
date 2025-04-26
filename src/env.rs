@@ -203,6 +203,7 @@ impl Environment {
             | OpCode::Swap
             | OpCode::Rot
             | OpCode::Drop
+            | OpCode::Clear
             | OpCode::StackSize
             | OpCode::Add
             | OpCode::Subtract
