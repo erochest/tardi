@@ -175,6 +175,7 @@ impl Compiler {
                 self.compile_op(OpCode::Not)
             }
             "!" => self.compile_op(OpCode::Not),
+            "?" => self.compile_op(OpCode::Question),
             "<list>" => self.compile_op(OpCode::CreateList),
             "append" => self.compile_op(OpCode::Append),
             "prepend" => self.compile_op(OpCode::Prepend),

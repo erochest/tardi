@@ -1,0 +1,9 @@
+#t 1 2 ?
+#f 1 2 ?
+
+/// Appends a number to a list only if it's zero.
+/// list number --
+: append-zero   dup 0 == [ swap append ] [ 2drop ] if ;
+
+<list> dup 4 append-zero
+<list> dup 0 append-zero

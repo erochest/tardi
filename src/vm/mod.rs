@@ -251,6 +251,32 @@ impl VM {
         }
     }
 
+    /// Evaluates a value and leaves one of two others on the stack.
+    ///     condition if-true if-false ?
+    /// So
+    ///     `#t 1 2 ?` evaluates to `1`
+    ///     `#f 1 2 ?` evaluates to `2`
+    pub fn question(&mut self) -> Result<()> {
+        let if_false = self.pop()?;
+        let if_true = self.pop()?;
+        let condition = self.pop()?;
+
+        log::trace!("VM::question condition {}", condition.borrow());
+        if let Some(b) = condition.borrow().get_boolean() {
+            if b {
+                self.push(if_true.clone())?;
+            } else {
+                self.push(if_false.clone())?;
+            }
+        } else {
+            return Err(
+                VMError::TypeMismatch("? conditional must be a boolean".to_string()).into(),
+            );
+        }
+
+        Ok(())
+    }
+
     /// Creates a new empty list and pushes it onto the stack
     pub fn create_list(&mut self) -> Result<()> {
         self.push(shared(ValueData::List(Vec::new()).into()))

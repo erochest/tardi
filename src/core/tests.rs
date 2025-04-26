@@ -12,7 +12,7 @@ fn test_word<VD: Copy + Into<ValueData>>(script: &str, expected_stack: &[VD]) {
         .map(|vd| (*vd).into())
         .collect::<Vec<_>>();
 
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "Expected Ok, got {:?}", result);
 
     let stack = tardi
         .stack()
@@ -160,4 +160,10 @@ fn test_2over() {
 #[test]
 fn test_pick() {
     test_word("1 2 3 pick", &[1i64, 2, 3, 1]);
+}
+
+#[test]
+fn test_if() {
+    test_word("#t [ 13 ] [ 42 ] if", &[13i64]);
+    test_word("#f [ 13 ] [ 42 ] if", &[42i64]);
 }

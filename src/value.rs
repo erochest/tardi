@@ -112,6 +112,14 @@ impl Value {
         Value::with_pos(data, lexeme, pos)
     }
 
+    pub fn get_boolean(&self) -> Option<bool> {
+        if let ValueData::Boolean(b) = self.data {
+            Some(b)
+        } else {
+            None
+        }
+    }
+
     pub fn get_integer(&self) -> Option<i64> {
         if let ValueData::Integer(i) = self.data {
             Some(i)

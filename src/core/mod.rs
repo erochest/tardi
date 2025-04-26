@@ -193,6 +193,7 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "<", less);
     push_op(&mut op_table, ">", greater);
     push_op(&mut op_table, "!", not);
+    push_op(&mut op_table, "?", question);
     push_op(&mut op_table, ">r", to_r);
     push_op(&mut op_table, "r>", r_from);
     push_op(&mut op_table, "r@", r_fetch);
@@ -302,6 +303,10 @@ pub fn r_fetch(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) ->
 
 pub fn not(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
     vm.not()
+}
+
+pub fn question(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+    vm.question()
 }
 
 pub fn equal(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {

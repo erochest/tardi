@@ -213,6 +213,7 @@ impl Environment {
             | OpCode::Less
             | OpCode::Greater
             | OpCode::Not
+            | OpCode::Question
             | OpCode::ToR
             | OpCode::RFrom
             | OpCode::RFetch
