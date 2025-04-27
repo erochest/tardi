@@ -42,7 +42,7 @@ pub enum OpCode {
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
-    PredefineFunction,
+    PredeclareFunction,
     ScanValue,
     ScanValueList,
     ScanObjectList,
@@ -95,7 +95,7 @@ impl TryFrom<usize> for OpCode {
             31 => Ok(OpCode::Jump),
             32 => Ok(OpCode::JumpStack),
             33 => Ok(OpCode::Function),
-            34 => Ok(OpCode::PredefineFunction),
+            34 => Ok(OpCode::PredeclareFunction),
             35 => Ok(OpCode::ScanValue),
             36 => Ok(OpCode::ScanValueList),
             37 => Ok(OpCode::ScanObjectList),

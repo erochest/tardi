@@ -28,6 +28,7 @@ pub enum VMError {
     DivisionByZero,
     EmptyList,
     InvalidAddress(usize),
+    InvalidWordCall(String),
     Exit,
 }
 
@@ -59,6 +60,7 @@ impl fmt::Display for VMError {
             VMError::ReturnStackOverflow => write!(f, "Return stack overflow"),
             VMError::EmptyList => write!(f, "Cannot split head of empty list"),
             VMError::InvalidAddress(addr) => write!(f, "Invalid address: {}", addr),
+            VMError::InvalidWordCall(word) => write!(f, "Invalid word call: {}", word),
             VMError::Exit => todo!(),
         }
     }

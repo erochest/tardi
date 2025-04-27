@@ -231,7 +231,7 @@ impl Environment {
             | OpCode::Exit
             | OpCode::JumpStack
             | OpCode::Function
-            | OpCode::PredefineFunction
+            | OpCode::PredeclareFunction
             | OpCode::ScanValue
             | OpCode::ScanValueList
             | OpCode::ScanObjectList

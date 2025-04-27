@@ -1,6 +1,6 @@
 use std::{fmt, ptr};
 
-use crate::error::Result;
+use crate::error::{Result, VMError};
 use crate::{Compiler, Scanner, VM};
 
 /// Function pointer type for VM operations
@@ -75,6 +75,13 @@ impl Lambda {
 
     pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
         log::trace!("calling {}", self.name.as_deref().unwrap_or("<lambda>"));
+
+        if !self.defined {
+            let name = self.name.clone().unwrap_or("<lambda>".to_string());
+            log::error!("calling predeclared and undefined word {}", name);
+            return Err(VMError::InvalidWordCall(name).into());
+        }
+
         self.callable.call(vm, compiler, scanner)
     }
 
@@ -99,6 +106,21 @@ impl Lambda {
             _ => None,
         }
     }
+
+    pub fn define_function(&mut self, ip: usize) -> Result<()> {
+        log::trace!("Lambda::define_function {:?} => {}", self.name, ip);
+        if let Callable::Compiled { ref words, .. } = self.callable {
+            self.defined = true;
+            // TODO: yuck. is there some better way to set this field?
+            self.callable = Callable::Compiled {
+                ip,
+                words: words.clone(),
+            };
+            Ok(())
+        } else {
+            Err(VMError::TypeMismatch("setting ip of a builtin".to_string()).into())
+        }
+    }
 }
 
 /// Enum representing different types of callable objects
@@ -111,7 +133,7 @@ pub enum Callable {
 }
 
 impl Callable {
-    pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
         match self {
             Callable::BuiltIn { function, .. } => {
                 log::trace!("calling built-in function");

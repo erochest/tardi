@@ -4,7 +4,7 @@
 MACRO: \ dup scan-value swap append ;
 
 /// lambdas
-/// { swap drop }
+/// [ swap drop ]
 MACRO: [
         dup
         ] scan-object-list compile
@@ -21,5 +21,6 @@ MACRO: {
 /// : nip   swap drop ;
 MACRO: :
         scan-value
+        dup <predeclare-function>
         \ ; scan-object-list compile
         <function> ;

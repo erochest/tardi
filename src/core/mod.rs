@@ -212,7 +212,7 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "jump", jump);
     push_op(&mut op_table, "jump-stack", jump_stack);
     push_op(&mut op_table, "<function>", function);
-    push_op(&mut op_table, "<predefine-function>", predefine_function);
+    push_op(&mut op_table, "<predefine-function>", predeclare_function);
     push_op(&mut op_table, "scan-value", scan_value);
     push_op(&mut op_table, "scan-value-list", scan_value_list);
     push_op(&mut op_table, "scan-object-list", scan_object_list);
@@ -389,12 +389,12 @@ pub fn function(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -
     vm.function()
 }
 
-pub fn predefine_function(
+pub fn predeclare_function(
     vm: &mut VM,
     _compiler: &mut Compiler,
     _scanner: &mut Scanner,
 ) -> Result<()> {
-    vm.predefine_function()
+    vm.predeclare_function()
 }
 
 pub fn scan_value(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {

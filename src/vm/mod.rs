@@ -444,7 +444,7 @@ impl VM {
             .borrow()
             .get_function()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("function call".to_string())))
-            .and_then(|c| c.callable.call(vm, compiler, scanner))?;
+            .and_then(|c| c.call(vm, compiler, scanner))?;
 
         Ok(())
     }
@@ -460,6 +460,23 @@ impl VM {
             _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
         };
 
+        let env = self.environment.clone().unwrap();
+
+        // Define a predeclared word
+        let index = env.borrow().op_map.get(&name_str).copied();
+        if let Some(index) = index {
+            let predeclared = &env.borrow_mut().op_table[index];
+            log::trace!("VM::function defining predeclared function {}", name_str);
+            let ip = (*lambda)
+                .borrow()
+                .get_function()
+                .and_then(|f| f.get_ip())
+                .unwrap(); // TODO: be more defensive here
+            (*predeclared).borrow_mut().define_function(ip)?;
+            return Ok(());
+        }
+
+        // Define a word
         let callable = (*lambda)
             .borrow_mut()
             .get_function_mut()
@@ -479,7 +496,7 @@ impl VM {
         Ok(())
     }
 
-    pub fn predefine_function(&mut self) -> Result<()> {
+    pub fn predeclare_function(&mut self) -> Result<()> {
         let name = self.pop()?;
 
         let name_str = match name.borrow().data {
@@ -630,7 +647,7 @@ impl Execute for VM {
 
             // Execute the operation
             let operation = operation.borrow();
-            let result = operation.callable.call(self, compiler, scanner);
+            let result = operation.call(self, compiler, scanner);
             match result {
                 Ok(()) => {}
                 Err(Error::VMError(VMError::Exit)) => return Ok(()),

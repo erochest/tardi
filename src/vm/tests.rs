@@ -4,6 +4,12 @@ use crate::value::Value;
 use crate::Tardi;
 use std::fmt::Debug;
 
+use pretty_assertions::{assert_eq, assert_ne};
+
+fn init_logging() {
+    let _ = env_logger::builder().is_test(true).try_init();
+}
+
 fn eval(input: &str) -> Result<Vec<Value>> {
     let mut tardi = Tardi::default();
     let result = tardi.execute_str(input);
@@ -732,38 +738,123 @@ fn test_clear() {
 }
 
 #[test]
-fn test_predefine_function_adds_function_to_op_table() {
+fn test_predeclare_function_adds_undefined_function_to_op_table() {
     let word = "even?".to_string();
-    let input = r#"
-        even?
-        // dup
-        <predefine-function>
-        // [ dup 0 == [ drop #t ] [ 1 - even? ! ] if ]
-        // <function>
-        "#;
+    let input = r#" even? <predeclare-function> "#;
     let mut tardi = Tardi::with_bootstrap(None).unwrap();
-    let next_index = tardi.environment.borrow().op_table.len();
-    // let next_ip = tardi.environment.borrow().instructions.len();
+    let env = tardi.environment.clone();
+    let next_index = (*env).borrow().op_table.len();
 
     let result = tardi.execute_str(input);
 
     assert_is_ok(input, &result);
     let env = tardi.environment.clone();
     assert!(
-        env.borrow()
-            .op_map
-            .get(&word)
-            .is_some_and(|index| index == &next_index),
+        (*env).borrow().op_map.get(&word).is_some(),
         "env.op_map[{}] = {:?}",
         word,
-        env.borrow().op_map.get(&word)
+        (*env).borrow().op_map.get(&word)
     );
-    let lambda = env.borrow().op_table[next_index].clone();
-    assert_eq!(lambda.borrow().name, Some(word.clone()));
-    assert_eq!(lambda.borrow().defined, false);
-    assert_eq!(lambda.borrow().get_ip(), Some(0));
-    // assert_eq!(lambda.borrow().get_ip(), Some(next_ip + 5));
+    assert_eq!((*env).borrow().op_map.get(&word), Some(&next_index));
+    let lambda = (*env).borrow().op_table[next_index].clone();
+    assert_eq!((*lambda).borrow().name, Some(word.clone()));
+    assert_eq!((*lambda).borrow().defined, false);
+    assert_eq!((*lambda).borrow().get_ip(), Some(0));
 }
 
-// TODO: test_function_defines_undefined_function
-// TODO: test_call_wont_execute_undefined_function
+#[test]
+fn test_function_defines_predeclared_function() {
+    init_logging();
+    // TODO: does predeclaring _have_ to happen in pass1?
+    let setup = r#"
+        MACRO: \ dup scan-value swap append ;
+        MACRO: :
+                scan-value
+                dup <predeclare-function>
+                \ ; scan-object-list compile
+                <function> ;
+        MACRO: [
+                dup
+                ] scan-object-list compile
+                swap append ;
+        "#;
+    let word = "even?".to_string();
+    let input = r#"
+        : even?   dup 0 == [ drop #t ] [ 1 - even? ! ] ? apply ;
+        "#;
+    // let mut tardi = Tardi::with_bootstrap(None).unwrap();
+    let mut tardi = Tardi::default();
+    let next_index = (*tardi.environment).borrow().op_table.len();
+    let next_ip = (*tardi.environment).borrow().instructions.len();
+
+    let result = tardi.execute_str(setup);
+    assert_is_ok(setup, &result);
+    let result = tardi.execute_str(input);
+
+    assert_is_ok(input, &result);
+    let env = tardi.environment.clone();
+    assert!(
+        (*env).borrow().op_map.get(&word).is_some(),
+        "env.op_map[{}] = {:?}",
+        word,
+        (*env).borrow().op_map.get(&word)
+    );
+    assert_eq!((*env).borrow().op_map.get(&word), Some(&next_index));
+    let lambda = (*env).borrow().op_table[next_index].clone();
+    assert_eq!((*lambda).borrow().name, Some(word.clone()));
+    assert_eq!((*lambda).borrow().defined, true);
+    assert_ne!((*lambda).borrow().get_ip(), Some(0));
+}
+
+#[test]
+fn test_call_wont_execute_predeclared_function() {
+    init_logging();
+
+    let setup = r#" even? <predeclare-function> "#;
+    let input = r#" 7 even? "#;
+    let mut tardi = Tardi::with_bootstrap(None).unwrap();
+
+    let result = tardi.execute_str(setup);
+    assert_is_ok(setup, &result);
+    let result = tardi.execute_str(input);
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_call_will_execute_defined_predeclared_function() {
+    init_logging();
+    // TODO: does predeclaring _have_ to happen in pass1?
+    let setup = r#"
+        MACRO: \ dup scan-value swap append ;
+        MACRO: :
+                scan-value
+                dup <predeclare-function>
+                \ ; scan-object-list compile
+                <function> ;
+        MACRO: [
+                dup
+                ] scan-object-list compile
+                swap append ;
+        "#;
+    let word = "even?".to_string();
+    let input = r#"
+        : even?   dup 0 == [ drop #t ] [ 1 - even? ! ] ? apply ;
+        1 even?
+        2 even?
+        "#;
+    // let mut tardi = Tardi::with_bootstrap(None).unwrap();
+    let mut tardi = Tardi::default();
+
+    let result = tardi.execute_str(setup);
+    assert_is_ok(setup, &result);
+    let result = tardi.execute_str(input);
+
+    assert_is_ok(input, &result);
+    let stack = tardi
+        .stack()
+        .into_iter()
+        .map(|v| v.get_boolean())
+        .collect::<Vec<_>>();
+    assert_eq!(stack, vec![Some(false), Some(true)]);
+}
