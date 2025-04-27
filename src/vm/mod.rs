@@ -10,7 +10,7 @@ use crate::error::{Error, Result, VMError};
 pub mod ops;
 pub use self::ops::OpCode;
 
-use crate::value::{SharedValue, Value, ValueData, ValueVec};
+use crate::value::{SharedValue, Value, ValueData};
 
 use crate::core::Execute;
 

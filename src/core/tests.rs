@@ -8,7 +8,7 @@ fn test_word<VD: Copy + Into<ValueData>>(script: &str, expected_stack: &[VD]) {
     let mut tardi = Tardi::with_bootstrap(None).unwrap();
     let result = tardi.execute_str(script);
     let expected_stack = expected_stack
-        .into_iter()
+        .iter()
         .map(|vd| (*vd).into())
         .collect::<Vec<_>>();
 
