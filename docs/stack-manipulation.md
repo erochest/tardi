@@ -46,6 +46,38 @@ Example:
 1 2 drop  // Stack: 1
 ```
 
+### clear ( ... -- )
+Removes all items from the stack.
+
+Example:
+```
+1 2 3 clear  // Stack: empty
+```
+
+### stack-size ( -- n )
+Pushes the current size of the stack onto the stack.
+
+Example:
+```
+1 2 3 stack-size  // Stack: 1 2 3 3
+```
+
+## Value Types
+
+The stack can hold various types of values:
+- Integer(i64)
+- Float(f64)
+- Boolean(bool)
+- Character(char)
+- String(String)
+- List(Vec<SharedValue>)
+- Function(Lambda)
+
+All values on the stack are managed using a shared value system (Rc<RefCell<Value>>) which enables:
+- Efficient memory management
+- Safe sharing of complex values
+- Mutable access when needed
+
 ## Error Handling
 
 All stack operations include proper error handling:
@@ -59,18 +91,58 @@ Stack operations are implemented across all layers of the system:
 - Scanner recognizes operation words as tokens
 - Compiler translates tokens into VM instructions
 - VM executes the operations using the data stack
+- Environment maintains the global state
 
-The VM maintains the data stack as a Vec<Value> where Value can be:
-- Integer(i64)
-- Float(f64)
-- Boolean(bool)
+The VM maintains the data stack as a Vec<SharedValue> where SharedValue is Rc<RefCell<Value>>.
 
-## Future Enhancements
+## Examples with Different Types
 
-Planned additions to stack manipulation capabilities:
-- over ( a b -- a b a )
-- 2dup ( a b -- a b a b )
-- 2swap ( a b c d -- c d a b )
-- nip ( a b -- b )
-- tuck ( a b -- b a b )
-- pick ( a_n ... a_1 a_0 n -- a_n ... a_1 a_0 a_n )
+```
+// Numbers
+42 dup         // Stack: 42 42
+3.14 2 swap    // Stack: 3.14 2
+
+// Booleans
+#t #f swap     // Stack: #f #t
+
+// Strings
+"hello" dup    // Stack: "hello" "hello"
+
+// Lists
+{ 1 2 } dup    // Stack: [1 2] [1 2]
+
+// Mixed types
+42 "hello" #t rot  // Stack: "hello" #t 42
+```
+
+## Function Composition
+
+Stack manipulation operations are essential for function composition and data flow control:
+
+```
+// Example function using stack manipulation
+: example ( a b c -- b c a )
+    rot    // Rotate third item to top
+;
+
+// Using stack operations in functions
+: duplicate-top ( a -- a a )
+    dup
+;
+
+// Complex stack manipulation
+: swap-top-two ( a b c -- a c b )
+    >r     // Save c to return stack
+    swap   // Swap a and b
+    r>     // Restore c
+;
+```
+
+## Best Practices
+
+1. Use stack manipulation operations judiciously to maintain code clarity
+2. Consider using the return stack for temporary storage in complex operations
+3. Document stack effects clearly for all function definitions
+4. Use clear names that indicate the stack effect when defining new words
+5. Keep stack manipulations simple and composable
+6. Consider factoring complex stack manipulations into named operations

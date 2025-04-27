@@ -1,6 +1,6 @@
 # Types and Literals in Tardi
 
-Tardi supports several basic types and their corresponding literal representations. This document outlines the available types and how to use them in your Tardi programs.
+Tardi supports several types and their corresponding literal representations. This document outlines the available types and how to use them in your Tardi programs.
 
 ## Supported Types
 
@@ -8,6 +8,9 @@ Tardi supports several basic types and their corresponding literal representatio
 2. Float
 3. Boolean
 4. Character
+5. String
+6. List
+7. Function
 
 ## Literal Representations
 
@@ -85,6 +88,56 @@ Unicode characters can be represented in two ways:
    '\u{1F4A9}'  // '💩'
    ```
 
+### String Literals
+
+Strings are enclosed in double quotes. For multi-line strings, use triple double quotes.
+
+Examples:
+```
+"Hello, world!"
+"Line 1\nLine 2"
+"""
+This is a
+multi-line string
+"""
+```
+
+Strings support the same escape sequences and Unicode representations as characters.
+
+### List Literals
+
+Lists are represented using curly braces `{}`.
+
+Examples:
+```
+{ 1 2 3 }
+{ "a" "b" "c" }
+{ 1 "mixed" #t 3.14 }
+```
+
+### Function Literals
+
+Function literals are defined using the `:` syntax:
+
+```
+: square ( n -- n^2 )
+    dup *
+;
+```
+
+Lambda expressions use curly braces:
+
+```
+{ dup * }  // Anonymous function that squares a number
+```
+
+## Shared Value System
+
+All values in Tardi are managed through a shared value system using `Rc<RefCell<Value>>`. This enables:
+- Efficient sharing of values between different parts of the program
+- Mutable access when needed
+- Proper memory management through reference counting
+
 ## Type Inference
 
 Tardi uses type inference to determine the type of a literal. You don't need to explicitly declare types; the language will infer them based on the literal representation.
@@ -94,15 +147,39 @@ Tardi uses type inference to determine the type of a literal. You don't need to 
 When you use a literal in your Tardi program, it is pushed onto the stack. For example:
 
 ```
-42 3.14 #t 'a'
+42 3.14 #t 'a' "hello" { 1 2 3 } { dup * }
 ```
 
 This sequence will result in the following stack (from top to bottom):
 ```
-'a'   (Character)
-#t    (Boolean)
-3.14  (Float)
-42    (Integer)
+{ dup * }     (Function)
+{ 1 2 3 }     (List)
+"hello"       (String)
+'a'           (Character)
+#t            (Boolean)
+3.14          (Float)
+42            (Integer)
 ```
 
 You can then use these values in subsequent operations or manipulate them using Tardi's built-in functions and operators.
+
+## Examples
+
+```
+// Using different types of literals
+42 "The answer is: " string-concat >string string-concat  // "The answer is: 42"
+
+// List manipulation
+{ 1 2 3 } 4 append  // { 1 2 3 4 }
+
+// Function definition and application
+: increment ( n -- n+1 )
+    1 +
+;
+5 increment  // 6
+
+// Lambda expression
+{ 2 * } 3 swap call  // 6
+```
+
+Remember that all these literals and values are managed through the shared value system, allowing for efficient and safe manipulation of data in your Tardi programs.
