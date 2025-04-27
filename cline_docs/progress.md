@@ -1,138 +1,153 @@
 # Progress
 
 ## What Works
-- Project initialization and basic structure
-- VM OpCode system:
-  - Enum-based operation codes with From/TryFrom implementations
-  - Type-safe operation handling in compiler and VM
-  - Future-proof design for function support
-- Function and Lambda support:
-  - Function declarations and calls
-  - Lambda expressions
-  - Jump operations for control flow
+- Core Language Features:
+  - Stack-based execution model with data and return stacks
+  - Macro system for compile-time metaprogramming
+  - Conditional execution with if-else constructs
+  - Recursive function support
+  - Lambda expressions with closure support
+  - Bootstrapped core language features
+
+- Tardi Orchestrator:
+  - Central execution environment management
+  - Component coordination (scanner, compiler, VM, environment)
+  - Bootstrap process handling
+  - REPL and file execution support
+
+- Virtual Machine:
+  - Indirect Threaded Code (ITC) implementation
+  - Function pointer table for operation dispatch
+  - Stack-based execution with dual stack system
+  - Lambda function support
+  - Macro execution capabilities
+  - Comprehensive operation set:
+    - Stack manipulation (dup, swap, rot, drop, clear)
+    - Arithmetic (+, -, *, /)
+    - Comparison (==, <, >, !)
+    - List operations (create-list, append, prepend, concat, split-head)
+    - String operations (create-string, to-string, utf8-to-string, string-concat)
+    - Function operations (call, apply, return, exit, jump)
+    - Return stack operations (>r, r>, r@)
+
+- Scanner/Compiler:
+  - Token generation and management
+  - Macro expansion support
+  - Bytecode generation
+  - Function compilation
+  - Support for:
+    - Numbers (integers, floats)
+    - Strings and characters
+    - Lists and arrays
+    - Functions and lambdas
+    - Macros and immediate words
+    - Comments
+
+- Environment:
+  - Global state management
+  - Function definitions
+  - Macro storage and handling
+  - Bootstrap file management
+
+- Bootstrap System:
+  - Core language features defined in Tardi
+  - Sorted loading of bootstrap files:
+    - Core macro definitions
+    - Stack operation definitions
+    - Core operation definitions
+
 - Documentation:
-  - Project brief, memory bank, types and literals, language syntax decisions
-  - Stack manipulation operations (docs/stack-manipulation.md)
-  - Arithmetic operations (docs/arithmetic-operations.md)
-  - Comparison operators (docs/comparison-operators.md)
-  - List operations (docs/list-operations.md)
-- VM architecture with Indirect Threading (ITC)
-- Library structure (src/lib.rs, error handling, src/main.rs updates)
-- Basic VM structure:
-  - Function pointer table for ITC implementation
-  - Basic interpreter loop
-  - Stack operations (push/pop, iteration, display)
-  - Error handling system with custom VMError types
-- Scanner implementation:
-  - Token and TokenType structures
-  - Iterator interface
-  - Position tracking
-  - Basic literal value scanning (integers, floats, scheme-style booleans)
-  - Error handling for invalid number formats and unexpected characters
-  - Support for basic stack operation words (dup, swap, rot, drop)
-  - Support for comparison operators (==, !=, <, >, <=, >=, !)
-- Compiler implementation:
-  - Basic structure for compiling integers, floats, and booleans
-  - Uses Program structure to generate bytecode
-  - Support for compiling basic stack operations
-  - Support for compiling comparison operators
-- Program structure:
-  - Manages constants, instructions, and op_table
-  - Implements VMProgram trait
-- VM enhancements:
-  - Implementation of basic stack manipulation primitives (dup, swap, rot, drop)
-  - Implementation of arithmetic operations (+, -, *, /) with type coercion
-  - Implementation of comparison operations (==, !=, <, >, <=, >=, !)
-  - Error handling for arithmetic and comparison operations (type mismatches, division by zero)
-  - Shared value system using Rc<RefCell<Value>> for efficient memory management
-  - Implementation of return stack operations (>r, r>, r@)
-  - Error handling for return stack operations (overflow, underflow)
-  - Implementation of list operations (<list>, append, prepend, concat, split-head!)
-  - Error handling for list operations (type mismatches, empty lists)
-- Test infrastructure:
-  - Initial test suite using cargo-nextest
-  - Integration tests for major features
-  - System-specific tests (Scanner, Compiler, VM)
-  - Line ending normalization
-  - Comprehensive tests for basic stack operations
-  - Integration tests for arithmetic operations
-  - Integration tests for comparison operations
-  - Tests for shared value behavior
-- TDD-focused workflow with emphasis on error case testing
+  - Updated project brief
+  - System patterns documentation
+  - Technical context
+  - Active development context
+  - Feature-specific documentation:
+    - Stack manipulation
+    - Arithmetic operations
+    - Comparison operators
+    - List operations
+    - String operations
+    - Return stack operations
+    - Types and literals
+
+- Testing Infrastructure:
+  - Comprehensive test suite
+  - Integration tests for all major features
+  - Test fixtures for various scenarios
+  - TDD workflow support
 
 ## What's Left to Build
-6. Add Comment Support
-7. Create Initialization Script
-8. Implement Compiler Words
-9. Add Scanner/Parser Words
-10. Implement Metaprogramming
-11. Add Lambda and Function Literals
-12. Enhance Scanner:
-    - Extended number formats (binary, octal, hex, rationals, exponential notation)
-    - Error recovery for better reporting
-13. Improve Program structure:
-    - Methods for easier instruction and constant addition
-    - Serialization/deserialization for programs
-14. Implement module system
-15. Develop basic standard library
-16. File and console IO operations
-17. Advanced data structures (vectors, hashtables)
-18. FFI operations
-19. Concurrency (Green- and OS-threading operations)
+
+### Near-term Goals
+1. File and Console I/O Operations:
+   - Basic file reading/writing
+   - Console input/output
+
+2. Hashtable Implementation:
+   - Core data structure
+   - Basic operations
+
+3. FFI (Foreign Function Interface):
+   - External function calling
+   - Type conversion
+
+4. Threading Support:
+   - Green threads
+   - OS-level threading
+
+5. Enhanced Error Handling:
+   - Stack traces
+   - Better error messages
+   - Error recovery
+
+6. Package and Module System:
+   - Module organization
+   - Package management
+
+### Long-term Features
+- Enums and structs
+- Traits/protocols
+- Advanced type system
+- Sets and persistent data types
+- Safe concurrency framework
+- LLVM compiler frontend
+- Regular expression support
+
+### Quality-of-Life Improvements
+- Comprehensive documentation and tutorials
+- Project website
+- Language server implementation
+- Tree-sitter parser
+- Development tools and IDE integration
 
 ## Current Status
-- Basic scanner, compiler, and VM functionality implemented
-- OpCode enum system implemented for type-safe operation handling
-- Program structure in place for managing bytecode
-- Basic stack operations (dup, swap, rot, drop) implemented across all components
-- Return stack operations (>r, r>, r@) implemented across all components
-- Arithmetic operations (+, -, *, /) implemented with type coercion and error handling
-- Comparison operations (==, !=, <, >, <=, >=, !) implemented across all components
-- Shared value system implemented using Rc<RefCell<Value>>
-- Character values and literals implemented, including Unicode support
-- List operations (<list>, append, prepend, concat, split-head!) implemented across all components
-- String operations (<string>, >string, utf8>string, string-concat) implemented across all components
-- String literals (regular and triple-quoted) with escape sequence support
-- Comment support implemented with // line comments
-- Function and Lambda support implemented:
-  - Function declarations and calls
-  - Lambda expressions
-  - Jump operations for control flow
-- Continuing work on expanding language capabilities
-- Enhancing error handling and reporting across all components
-- Improving test coverage and maintaining TDD-focused workflow
-- Improved type conversion patterns:
-  - From trait implementations for all Value variants
-  - Generic compile_constant<T: Into<Value>> method in compiler
-  - Reduced code duplication and improved maintainability
+- Core language features implemented and working
+- Bootstrap system operational
+- Macro system functional
+- Function and lambda support complete
+- Conditional execution working
+- Basic data types and operations implemented
+- Test suite comprehensive and passing
 
 ## Known Issues
-- Potential performance overhead from shared values (to be benchmarked)
-- No significant functional issues at this stage
-
-## Upcoming Milestones
-1. Implement Compiler Words and Metaprogramming
-2. Working REPL for interactive testing
-3. File execution capability with initialization script
-4. Basic module system
-5. Initial standard library implementation
-
-## Long-term Goals
-- Comprehensive error handling and informative error messages
-- Full support for all planned language features (enums, structs, traits/protocols)
-- Advanced type system (possibly Hindley-Milner)
-- Performance optimization (possibly revisiting Direct Threading)
-- LLVM compiler frontend
-
-## Quality-of-Life Improvements (Planned)
-- Comprehensive documentation with tutorials
-- Project website
-- Language server
-- Tree-sitter parser
+- Performance impact of shared values needs assessment
+- Bootstrap process could be optimized
+- Error messages could be more informative
+- Documentation needs expansion for new features
 
 ## Next Steps
-1. Implement Compiler Words
-2. Create Initialization Script
-3. Add Scanner/Parser Words
-4. Implement Metaprogramming
-5. Continue improving test coverage and documentation
+1. Implement file and console I/O operations
+2. Develop hashtable implementation
+3. Design and implement FFI system
+4. Add threading support
+5. Enhance error handling system
+6. Develop package and module system
+7. Continue expanding documentation
+8. Profile and optimize performance
+
+## Long-term Vision
+- Create a robust, self-hosted programming language
+- Build a strong standard library
+- Develop comprehensive tooling
+- Foster a supportive community
+- Maintain excellent documentation

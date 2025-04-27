@@ -2,16 +2,28 @@
 
 ## System Architecture
 The Tardi language system consists of the following main components:
-1. Virtual Machine (VM)
+1. Tardi Orchestrator
+   - Central point for managing execution environment
+   - Coordinates scanner, compiler, VM, and environment
+   - Handles bootstrapping process
+2. Virtual Machine (VM)
    - Indirect Threaded Code (ITC) implementation
    - Function pointer table for operation dispatch
-   - Stack-based execution model
-2. Scanner (Tokenizer)
-3. Compiler
-4. Program Structure
-5. REPL (Read-Eval-Print Loop) (planned)
-6. File Executor (planned)
-7. Module System (planned)
+   - Stack-based execution model with data and return stacks
+3. Scanner (Tokenizer)
+   - Supports macros and immediate words
+   - Handles token buffering for macro expansion
+4. Compiler
+   - Bytecode generation
+   - Macro expansion support
+   - Function compilation
+5. Environment
+   - Manages global state
+   - Stores function definitions
+   - Handles macro definitions
+6. Bootstrap System
+   - Loads core macros and operations
+   - Initializes language features in Tardi code
 
 ## Key Technical Decisions
 1. Language Implementation: Rust
@@ -24,102 +36,107 @@ The Tardi language system consists of the following main components:
    - Avoids unsafe code while maintaining reasonable performance
    - Uses function pointer table for operation dispatch
    - May be optimized to Direct Threading in future if needed
+7. Bootstrapping Approach
+   - Core language features implemented in Tardi
+   - Loaded from bootstrap directory in sorted order
+   - Enables self-hosting capabilities
 
 ## Design Patterns
 1. Stack-based architecture for the VM
+   - Data stack for operation arguments and results
+   - Return stack for control flow and function calls
 2. Concatenative programming paradigm
 3. Test-Driven Development (TDD) approach
 4. SOLID principles in code organization
-5. Indirect Threaded Code pattern for VM implementation
-   - Operation indices stored in instruction stream
-   - Function pointer table for operation lookup
-   - Simple interpreter loop for execution
+5. Trait-based component interfaces
+   - Scan trait for tokenization
+   - Compile trait for bytecode generation
+   - Execute trait for VM operations
+6. Shared state management using Rc/RefCell
+7. Macro system for compile-time metaprogramming
 
 ## Component Relationships
 ```mermaid
 graph TD
     A[Source Code] --> B[Scanner]
-    B --> |Iterator<Token>| C[Compiler]
-    C --> D[Program]
-    D --> |Constants Table| E[Virtual Machine]
-    D --> |Instructions| E
-    D --> |Op Table| E
-    E --> F[Data Stack]
-    E --> G[Return Stack]
-    H[REPL] --> A
-    I[File Executor] --> A
-    J[Module System] --> A
-    J --> C
+    B --> |Tokens| C[Compiler]
+    C --> |Bytecode| D[VM]
+    
+    E[Environment] --> |Functions| D
+    E --> |Macros| C
+    
+    F[Bootstrap Files] --> |Core Definitions| G[Tardi]
+    G --> |Orchestrates| B
+    G --> |Orchestrates| C
+    G --> |Orchestrates| D
+    G --> |Manages| E
+    
+    D --> H[Data Stack]
+    D --> I[Return Stack]
+    
+    J[Lambda Functions] --> |Stored In| E
+    K[Macros] --> |Stored In| E
 ```
 
 ## Project Structure
 - `/src`: All source code
   - `main.rs`: Primary entrypoint for the executable
-  - `lib.rs`: Primary entrypoint for the library, re-exports modules
-  - `error.rs`: Defines different errors and bundles them into one enum
+  - `lib.rs`: Primary entrypoint for the library
+  - `core/`: Core language functionality and traits
+  - `env.rs`: Environment implementation
+  - `error.rs`: Error types and handling
+  - `value.rs`: Value types and operations
+  - `shared.rs`: Shared state utilities
   - `vm/`: Virtual machine implementation
-    - `mod.rs`: VM module definition and core functionality
-  - `compiler/`
-    - `mod.rs`: Compiler implementation
-    - `program.rs`: Program structure
-  - `scanner/`
-    - `mod.rs`: Scanner implementation
-    - `token.rs`: Token and TokenType definitions
+    - `mod.rs`: VM module definition
+    - `ops.rs`: Operation implementations
+  - `compiler/`: Compiler implementation
+  - `scanner/`: Scanner implementation
+- `/bootstrap`: Core language definitions
+  - `00-core-macros.tardi`: Core macro definitions
+  - `01-stack-ops.tardi`: Stack operation definitions
+  - `02-core-ops.tardi`: Core operation definitions
 - `/tests`: Integration tests
-  - `/fixtures`: Test fixtures (*.tardi, *.stderr, *.stdout files)
-- `/docs`: Documentation
-
-## Library and Binary Structure
-- The project is now structured as a library with a binary target
-- `lib.rs` exposes the public interface of the library
-- `main.rs` uses the library as a dependency
-- Error handling is part of the library and used by the binary
+  - `/fixtures`: Test fixtures
+- `/docs`: Feature documentation
 
 ## VM Architecture
-- Indirect Threaded Code (ITC) implementation with OpCode enum
-  - OpCode enum defines all available VM operations
-  - Function pointer table stores operation implementations
-  - Instruction stream contains OpCode values (converted to indices)
-  - Basic interpreter loop:
-    1. Fetch next operation index
-    2. Look up function pointer in table using OpCode mapping
-    3. Execute operation
-    4. Repeat
-  - Type-safe operation handling through OpCode enum
-  - Future extensibility for user-defined functions via op_map
+- Indirect Threaded Code (ITC) implementation
+  - Function pointer table for operation dispatch
+  - Lambda functions for user-defined words
+  - Support for immediate (macro) words
 - Stack Management
-  - Data stack for operation arguments and results
-  - Return stack (planned) for control flow
-- Error Handling
-  - Custom error types for VM operations
-  - Stack underflow/overflow protection
-  - Type checking for operations
+  - Data stack for operation arguments
+  - Return stack for control flow
+  - Stack safety checks
 - Operations
-  - Basic stack operations (push, pop)
-  - 'lit' operation for loading constants
-  - Arithmetic operations (planned)
-  - Comparison operations (planned)
-  - Stack manipulation primitives (planned)
+  - Stack manipulation (dup, swap, rot, etc.)
+  - Arithmetic (+, -, *, /)
+  - Comparison (==, <, >, !)
+  - List operations (create-list, append, etc.)
+  - String operations
+  - Function operations (call, apply, return)
+  - Macro support operations
 
 ## Error Handling
-- Custom error types defined in `error.rs`
-- Result type alias for error handling
-- VM-specific error types for operation failures
+- Custom error types for each component
+- Result type alias for consistent error handling
+- Stack safety checks
+- Macro expansion error handling
+- Function call error handling
 
 ## Testing Strategy
-- Integration tests using custom test harness. Create an integration test before each major functionality is implemented.
-- Unit tests written before implementation (TDD approach)
-- Test fixtures for various scenarios
-- VM operation tests:
-  - Stack manipulation correctness
-  - Error handling
-  - Edge cases
+- Integration tests with custom harness
+- Fixture-based testing
+  - .tardi files for input
+  - .stderr/.stdout files for expected output
+- Unit tests for components
+- TDD approach for new features
+- Bootstrap file testing
 
 ## Code Organization
 - SOLID principles
-- Constants defined at the top of each file
-- Minimal code duplication (refactor after three repetitions)
-- Clear separation of VM components:
-  - Core VM logic
-  - Operation implementations
-  - Stack management
+- Clear component boundaries
+- Trait-based interfaces
+- Minimal code duplication
+- Bootstrap-first approach for core features

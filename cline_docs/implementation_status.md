@@ -1,87 +1,133 @@
 # Implementation Status
 
-## Recently Completed: Function and Lambda Objects
+## Recently Completed Features
 
-We have successfully implemented:
+1. Major System Refactoring:
+   - Implemented Tardi orchestrator for central execution management
+   - Enhanced component coordination (scanner, compiler, VM, environment)
+   - Implemented bootstrapping process for core language features
 
-1. Function and Lambda Objects:
-   - Added Function struct and Value::Function variant with Callable enum
-   - Implemented function declarations and calls
-   - Added lambda expression support
-   - Added comprehensive tests for function and lambda operations
-   - Added error handling for function-related operations
+2. Macro System:
+   - Implemented compile-time macro expansion
+   - Added support for immediate words in scanner
+   - Created macro storage and handling in Environment
+   - Added MACRO definitions with compile-time execution
 
-2. Control Flow Operations:
-   - Implemented jump operations (Jump, JumpStack)
-   - Added function call operations (Call, CallStack)
-   - Added return operation with return stack integration
-   - Added instruction pointer manipulation (Ip)
-   - Added comprehensive tests for all control flow operations
+3. Conditional Execution:
+   - Implemented if-else constructs
+   - Added comparison operations for conditional branching
+   - Created comprehensive tests for conditional execution
 
-## Current Focus: Compiler Words
+4. Enhanced Function and Lambda Support:
+   - Improved function declaration and calling mechanism
+   - Added support for recursive functions
+   - Implemented lambda expressions with closure support
+   - Enhanced error handling for function-related operations
 
-Our next step is implementing compiler words, focusing on:
+5. Bootstrap System:
+   - Created bootstrap directory with core Tardi scripts
+   - Implemented sorted loading of bootstrap files:
+     - Core macro definitions
+     - Stack operation definitions
+     - Core operation definitions
 
-1. The `compile` word:
-   - Takes a lambda/function object from the stack
-   - Compiles its instructions into the current program
-   - Handles nested lambdas and functions
-   - Updates program's op_table and op_map as needed
+6. Scanner and Compiler Enhancements:
+   - Enhanced token buffering for macro expansion
+   - Improved bytecode generation
+   - Added support for new language constructs
+   - Implemented compiler words (compile, etc.)
+   - Added scanner/parser words (scan-word, scan-string, scan-tokens, scan-values)
 
-2. Implementation Strategy:
-   - Compile code directly into main instruction list
-   - Lambda/function objects contain index/pointer to location
-   - Support for runtime compilation
-   - Error handling for compilation failures
+## Current Focus: Core Infrastructure Enhancement
 
-3. Testing Plan:
-   - Unit tests for compile word
-   - Tests for nested functions
-   - Error case testing
-   - Integration tests for runtime compilation
+1. Performance Optimization:
+   - Profiling VM performance
+   - Identifying bottlenecks
+   - Optimizing critical paths
+   - Assessing shared value system impact
+
+2. Documentation Updates:
+   - Updating documentation for new features
+   - Creating tutorials for language usage
+   - Improving inline code documentation
+
+3. Testing Infrastructure:
+   - Expanding test coverage for new features
+   - Enhancing test harness capabilities
+   - Adding more comprehensive integration tests
 
 ## Next Steps
 
-1. Create Initialization Script:
-   - Implement script loading and execution
-   - Create initial src/init.tardi
-   - Add support for alternative script via --init-script
+1. File and Console I/O Operations:
+   - Design and implement basic file operations
+   - Add console input/output capabilities
+   - Create comprehensive tests for I/O operations
 
-2. Add Scanner/Parser Words:
-   - scan-word
-   - scan-string
-   - scan-tokens
-   - scan-values
+2. Hashtable Implementation:
+   - Design hashtable data structure
+   - Implement basic hashtable operations
+   - Add comprehensive tests for hashtable functionality
 
-3. Implement Metaprogramming:
-   - MACRO definitions
-   - Macro expansion during compilation
-   - List and lambda literal support
+3. FFI (Foreign Function Interface):
+   - Design FFI system architecture
+   - Implement basic FFI operations
+   - Create safety mechanisms for external calls
+
+4. Threading Support:
+   - Design green threading system
+   - Implement OS-level threading support
+   - Create thread safety mechanisms
 
 ## Questions to Resolve
 
-1. Compiler Word Implementation:
-   - How should the compile word handle different types of functions?
-   - What error conditions need to be checked?
-   - How to handle nested compilation?
+1. Performance Optimization:
+   - How to optimize bootstrap file loading?
+   - What are the performance impacts of shared values?
+   - Where are the current performance bottlenecks?
 
-2. Initialization Script:
-   - What core functionality should be included?
-   - How to handle script loading errors?
-   - How to manage script dependencies?
+2. Error Handling Enhancement:
+   - How to implement stack traces effectively?
+   - What additional context should error messages include?
+   - How to handle errors in bootstrapped code?
+
+3. Module System Design:
+   - How should modules be organized?
+   - What's the best approach for package management?
+   - How to handle module dependencies?
 
 ## Testing Coverage
 
 Current test coverage includes:
-- Basic function operations
-- Lambda creation and execution
-- Function definition and calls
-- Error handling for invalid operations
-- Return stack operations
-- Jump operations
+- Core language features
+- Macro system functionality
+- Function and lambda operations
+- Conditional execution
+- Bootstrap system
+- Scanner and compiler operations
+- Error handling scenarios
 
-Next test additions:
-- Compiler word operations
-- Runtime compilation scenarios
-- Nested function compilation
-- Error handling for compilation
+Planned test additions:
+- I/O operation testing
+- Hashtable implementation tests
+- FFI operation testing
+- Threading safety tests
+- Performance benchmarks
+- Module system tests
+
+## Documentation Status
+
+Current documentation:
+- Updated project brief
+- System patterns documentation
+- Technical context
+- Active development context
+- Feature-specific documentation
+- Bootstrap system documentation
+
+Planned documentation:
+- I/O operations guide
+- Hashtable usage guide
+- FFI documentation
+- Threading guide
+- Performance optimization guide
+- Module system documentation
