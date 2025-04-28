@@ -107,6 +107,13 @@ impl Lambda {
         }
     }
 
+    pub fn get_builtin_fn(&self) -> Option<OpFn> {
+        match self.callable {
+            Callable::BuiltIn { function } => Some(function),
+            _ => None,
+        }
+    }
+
     pub fn define_function(&mut self, ip: usize) -> Result<()> {
         log::trace!("Lambda::define_function {:?} => {}", self.name, ip);
         if let Callable::Compiled { ref words, .. } = self.callable {
@@ -123,6 +130,8 @@ impl Lambda {
     }
 }
 
+// TODO: move name into this level to capture that it's
+// required for builtins?
 /// Enum representing different types of callable objects
 #[derive(Debug, Clone)]
 pub enum Callable {

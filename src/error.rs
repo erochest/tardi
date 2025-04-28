@@ -12,7 +12,24 @@ pub enum Error {
     VMError(VMError),
     ScannerError(ScannerError),
     CompilerError(CompilerError),
+    EnvironmentError(EnvironmentError),
     InvalidOpCode(usize),
+}
+
+#[derive(Debug)]
+pub enum EnvironmentError {
+    MissingBuiltinName,
+    MissingBuiltin(String),
+    BuiltinMismatch {
+        expected: Vec<String>,
+        found: Vec<String>,
+    },
+    VersionMismatch {
+        expected: String,
+        found: String,
+    },
+    SerializationError(String),
+    DeserializationError(String),
 }
 
 #[derive(Debug)]
@@ -41,7 +58,31 @@ impl fmt::Display for Error {
             VMError(ref err) => err.fmt(f),
             ScannerError(ref err) => err.fmt(f),
             CompilerError(ref err) => err.fmt(f),
+            EnvironmentError(ref err) => err.fmt(f),
             InvalidOpCode(code) => write!(f, "invalid op code: {}", code),
+        }
+    }
+}
+
+impl fmt::Display for EnvironmentError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EnvironmentError::MissingBuiltinName => write!(f, "Missing builtin name"),
+            EnvironmentError::MissingBuiltin(name) => write!(f, "Missing builtin: {}", name),
+            EnvironmentError::BuiltinMismatch { expected, found } => write!(
+                f,
+                "Builtin mismatch. Expected: {:?}, Found: {:?}",
+                expected, found
+            ),
+            EnvironmentError::VersionMismatch { expected, found } => write!(
+                f,
+                "Version mismatch. Expected: {}, Found: {}",
+                expected, found
+            ),
+            EnvironmentError::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
+            EnvironmentError::DeserializationError(msg) => {
+                write!(f, "Deserialization error: {}", msg)
+            }
         }
     }
 }
@@ -148,3 +189,11 @@ impl From<CompilerError> for Error {
         CompilerError(err)
     }
 }
+
+impl From<EnvironmentError> for Error {
+    fn from(err: EnvironmentError) -> Error {
+        EnvironmentError(err)
+    }
+}
+
+impl error::Error for EnvironmentError {}

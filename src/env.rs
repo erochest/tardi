@@ -1,7 +1,8 @@
 use crate::core::{create_macro_table, create_op_table};
-use crate::error::Result;
-use crate::shared::Shared;
-use crate::value::lambda::Lambda;
+use crate::error::{Error, Result};
+use crate::image::ImageFormat;
+use crate::shared::{shared, Shared};
+use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
 use crate::vm::OpCode;
 use std::collections::HashMap;
@@ -34,6 +35,46 @@ impl fmt::Debug for EnvLoc {
 impl EnvLoc {
     pub fn new(env: Shared<Environment>, ip: usize) -> Self {
         Self { env, ip }
+    }
+}
+
+impl TryFrom<ImageFormat> for Environment {
+    type Error = Error;
+
+    fn try_from(image: ImageFormat) -> result::Result<Self, Self::Error> {
+        let op_table = create_op_table();
+        let builtins: HashMap<String, OpFn> = op_table
+            .iter()
+            .filter_map(|lambda| {
+                let lambda = lambda.borrow();
+                match (lambda.name.as_ref(), lambda.get_builtin_fn()) {
+                    (Some(name), Some(function)) => Some((name.clone(), function.clone())),
+                    _ => None,
+                }
+            })
+            .collect();
+
+        let env = &image.env;
+        let op_table: Vec<Shared<Lambda>> = env
+            .op_table
+            .into_iter()
+            .filter_map(|sl| sl.into_lambda(&builtins).ok())
+            .map(shared)
+            .collect();
+
+        let macro_table: HashMap<String, Lambda> = env
+            .macro_table
+            .into_iter()
+            .map(|(k, sl)| Ok((k, sl.into_lambda(&builtins)?)))
+            .collect::<Result<_>>()?;
+
+        Ok(Environment::from_parameters(
+            env.constants,
+            env.instructions,
+            op_table,
+            env.op_map,
+            macro_table,
+        ))
     }
 }
 
@@ -236,7 +277,8 @@ impl Environment {
             | OpCode::ScanValueList
             | OpCode::ScanObjectList
             | OpCode::LitStack
-            | OpCode::Compile => self.debug_simple(op, f, ip),
+            | OpCode::Compile
+            | OpCode::Dump => self.debug_simple(op, f, ip),
             OpCode::Jump => self.debug_jump(op, f, ip),
         }?;
 

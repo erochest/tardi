@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::compiler::Compiler;
 use crate::env::Environment;
-use crate::error::{Result, ScannerError};
+use crate::error::{EnvironmentError, Result, ScannerError};
+use crate::image::ImageFormat;
 use crate::scanner::Scanner;
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Lambda, OpFn};
@@ -65,6 +66,35 @@ pub struct Tardi {
 }
 
 impl Tardi {
+    pub fn from_image(path: &Path) -> Result<Self> {
+        let image = ImageFormat::load_from_file(path)?;
+        
+        // Get current builtins for verification
+        let mut temp = Self::default();
+        let builtins: Vec<String> = temp.environment
+            .borrow()
+            .op_table
+            .iter()
+            // TODO: find a better way to get the max value for OpCode
+            .take(OpCode::Dump as usize)
+            // all of theses should have a name
+            .map(|v| v.borrow().name.clone().unwrap())
+            .collect::<Vec<_>>();
+        
+        // Verify builtins match
+        image.verify_builtins(&builtins)?;
+        
+        // Create new environment from image
+        let env = Environment::try_from(image)?;
+        
+        Ok(Self::new(
+            env,
+            Scanner::default(),
+            Compiler::default(),
+            VM::new(),
+        ))
+    }
+
     pub fn new(
         environment: Environment,
         scanner: Scanner,
@@ -218,6 +248,7 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "scan-object-list", scan_object_list);
     push_op(&mut op_table, "lit", lit_stack);
     push_op(&mut op_table, "compile", compile);
+    push_op(&mut op_table, "dump", dump);
 
     op_table
 }
@@ -447,6 +478,32 @@ pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) 
 
 pub fn compile(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
     vm.compile(compiler, scanner)
+}
+
+pub fn dump(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+    // Get filename from stack
+    let filename = vm.pop()?;
+    let filename = unshare_clone(filename);
+    let filename = filename.get_string().ok_or_else(|| 
+        EnvironmentError::SerializationError("Expected string filename".to_string()))?;
+    let filename = PathBuf::from_str(&filename)?;
+
+    // Get current environment
+    let env = vm.environment.clone()
+        .ok_or_else(|| EnvironmentError::SerializationError("No environment".to_string()))?;
+    let env = env.borrow().clone();
+
+    // Get current builtins
+    let builtins: Vec<String> = env.op_table.iter()
+    .take(OpCode::Dump as usize)
+        .map(|value| value.borrow().name.clone().unwrap())
+        .collect();
+
+    // Create and save image
+    let image = ImageFormat::new(env, builtins);
+    image.save_to_file(&filename)?;
+
+    Ok(())
 }
 
 #[cfg(test)]

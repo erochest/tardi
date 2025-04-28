@@ -48,6 +48,8 @@ pub enum OpCode {
     ScanObjectList,
     LitStack,
     Compile,
+    // This is also weirdly being used as a placeholder for the last op code. Don't add an OpCode after it
+    Dump,
 }
 
 impl From<OpCode> for usize {
@@ -101,6 +103,7 @@ impl TryFrom<usize> for OpCode {
             37 => Ok(OpCode::ScanObjectList),
             38 => Ok(OpCode::LitStack),
             39 => Ok(OpCode::Compile),
+            40 => Ok(OpCode::Dump),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

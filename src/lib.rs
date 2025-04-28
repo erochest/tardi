@@ -4,13 +4,14 @@ pub mod compiler;
 pub mod core;
 pub mod env;
 pub mod error;
+pub mod image;
 pub mod scanner;
 pub mod shared;
 pub mod value;
 pub mod vm;
 
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 // Re-exports
 // TODO: clean these up
@@ -21,9 +22,10 @@ pub use error::Result;
 pub use scanner::Scanner;
 pub use value::Value;
 pub use vm::VM;
+pub use image::ImageFormat;
 
 /// Run a Tardi source file
-pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
+pub fn run_file(path: &Path, print_stack: bool, load_image: Option<&Path>) -> Result<()> {
     let source = std::fs::read_to_string(path)?;
 
     // when scanner gets MACRO: what needs to happen?
@@ -35,9 +37,14 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
     // - `run_macro' places the token vector on the stack runs the macro word
     // - it allows the function to modify the environment and the token vector on the stack
 
-    let mut tardi = Tardi::default();
-    // TODO: add an option for the bootstrap dir
-    tardi.bootstrap(None)?;
+    let mut tardi = if let Some(image_path) = load_image {
+        Tardi::from_image(image_path)?
+    } else {
+        let mut tardi = Tardi::default();
+        // TODO: add an option for the bootstrap dir
+        tardi.bootstrap(None)?;
+        tardi
+    };
     tardi.execute_str(&source)?;
     let tardi = tardi;
 

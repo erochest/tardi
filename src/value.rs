@@ -1,10 +1,13 @@
 use std::cell::RefCell;
 use std::convert::TryFrom;
-use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
 use std::rc::Rc;
+use std::{fmt, result};
 
 use lambda::Lambda;
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeSeq;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result, VMError};
 use crate::shared::{shared, unshare_clone};
@@ -14,7 +17,7 @@ pub mod lambda;
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Value {
     pub data: ValueData,
 
@@ -39,7 +42,7 @@ impl PartialEq for Value {
 // -- they're more closely tied to `Environment` and they're part of what
 // bridges across layers
 /// Enum representing different types of values that can be stored on the stack
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ValueData {
     Integer(i64),
     Float(f64),
@@ -55,7 +58,7 @@ pub enum ValueData {
     EndOfInput,
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Pos {
     /// Line number in source (1-based)
     pub line: usize,
@@ -517,3 +520,63 @@ impl Div for ValueData {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct SharedVec {
+    data: Vec<SharedValue>,
+}
+
+impl SharedVec {
+    pub fn new(data: Vec<SharedValue>) -> Self {
+        SharedVec { data }
+    }
+}
+
+impl Serialize for SharedVec {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.data.len()))?;
+        for item in self.data.iter() {
+            let item = unshare_clone(item.clone());
+            seq.serialize_element(&item)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for SharedVec {
+    fn deserialize<D>(deserializer: D) -> result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(SharedVecVisitor)
+    }
+}
+
+struct SharedVecVisitor;
+
+impl<'de> Visitor<'de> for SharedVec {
+    type Value = SharedVec;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "Vec<SharedValue>")
+    }
+
+    fn visit_seq<A>(self, seq: A) -> result::Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut data = vec![];
+
+        while let Some(element) = seq.next_element()? {
+            data.push(shared(element))
+        }
+
+        Ok(SharedVec::new(data))
+    }
+}
+
+#[cfg(test)]
+mod tests;
