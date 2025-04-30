@@ -23,6 +23,11 @@ watch:
 install:
     cargo install --path .
 
+update:
+    jj git fetch
+    jj new main
+    just install
+
 lint:
     cargo clippy --fix
     cargo fmt
