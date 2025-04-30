@@ -65,6 +65,7 @@ pub struct Tardi {
 }
 
 impl Tardi {
+    // TODO: make this `assemble` or something
     pub fn new(
         environment: Environment,
         scanner: Scanner,
@@ -80,6 +81,7 @@ impl Tardi {
         }
     }
 
+    // TODO: just make this new
     pub fn with_bootstrap(bootstrap_dir: Option<PathBuf>) -> Result<Self> {
         let mut tardi = Tardi::default();
         tardi.bootstrap(bootstrap_dir)?;

@@ -1,6 +1,7 @@
 //! Tardi environmentming language implementation
 
 pub mod compiler;
+pub mod config;
 pub mod core;
 pub mod env;
 pub mod error;
@@ -14,10 +15,11 @@ use std::path::PathBuf;
 
 use rustyline::error::ReadlineError;
 use rustyline::history::MemHistory;
-use rustyline::{self, Config, DefaultEditor, EditMode, Editor};
+use rustyline::{self, DefaultEditor, EditMode, Editor};
 
 // Re-exports
 // TODO: clean these up
+use crate::config::Config;
 use crate::core::{Execute, Scan, Tardi};
 pub use compiler::Compiler;
 pub use env::Environment;
@@ -27,17 +29,8 @@ pub use value::Value;
 pub use vm::VM;
 
 /// Run a Tardi source file
-pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
+pub fn run_file(path: &PathBuf, _config: Config, print_stack: bool) -> Result<()> {
     let source = std::fs::read_to_string(path)?;
-
-    // when scanner gets MACRO: what needs to happen?
-    // - it needs to read the MACRO definition immediately
-    // - it hands those to the compiler
-    // - it adds a function to the Environment under that name, with an `immediate` flag set
-    // when it then reads the macro token
-    // - it takes the tokens so far and passes the token, them, and itself to `VM::run_macro`
-    // - `run_macro' places the token vector on the stack runs the macro word
-    // - it allows the function to modify the environment and the token vector on the stack
 
     let mut tardi = Tardi::default();
     // TODO: add an option for the bootstrap dir
@@ -55,17 +48,15 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
     Ok(())
 }
 
-// TODO: configuration
-// TODO: configure emacs or vi on configuration or command-line
 // TODO: history
 // TODO: highlighting
 // TODO: completion
 // TODO: hints
 // TODO: multilines (via rustyline::validate)
-pub fn repl() -> Result<()> {
+pub fn repl(config: Config) -> Result<()> {
     let mut tardi = Tardi::default();
 
-    let rl_config = Config::builder().edit_mode(EditMode::Emacs).build();
+    let rl_config = config.into();
     let mut readline = DefaultEditor::with_config(rl_config)?;
 
     tardi.bootstrap(None)?;

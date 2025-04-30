@@ -9,8 +9,9 @@ edition = "2018"
 [dependencies]
 clap = { version = "*", features = ["derive"] }
 clap-verbosity-flag = "*"
-confy = "*"
+directories = "6.0.0"
 env_logger = "*"
+figment = { version = "0.10.19", features = ["env", "json", "serde_json", "serde_yaml", "toml", "yaml"] }
 human-panic = "*"
 log = "*"
 rustyline = "15.0.0"

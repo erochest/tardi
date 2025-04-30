@@ -16,6 +16,8 @@ pub enum Error {
     CompilerError(CompilerError),
     InvalidOpCode(usize),
     ReplError(ReadlineError),
+    TomlError(toml::de::Error),
+    ConfigReadError(figment::Error),
 }
 
 #[derive(Debug)]
@@ -46,6 +48,8 @@ impl fmt::Display for Error {
             CompilerError(ref err) => err.fmt(f),
             InvalidOpCode(code) => write!(f, "invalid op code: {}", code),
             ReplError(ref err) => err.fmt(f),
+            TomlError(ref err) => err.fmt(f),
+            ConfigReadError(ref err) => err.fmt(f),
         }
     }
 }
@@ -88,6 +92,18 @@ impl From<VMError> for Error {
 impl From<ReadlineError> for Error {
     fn from(err: ReadlineError) -> Self {
         ReplError(err)
+    }
+}
+
+impl From<toml::de::Error> for Error {
+    fn from(err: toml::de::Error) -> Self {
+        TomlError(err)
+    }
+}
+
+impl From<figment::Error> for Error {
+    fn from(err: figment::Error) -> Self {
+        ConfigReadError(err)
     }
 }
 
