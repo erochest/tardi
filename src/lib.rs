@@ -12,6 +12,10 @@ pub mod vm;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
+use rustyline::error::ReadlineError;
+use rustyline::history::MemHistory;
+use rustyline::{self, Config, DefaultEditor, EditMode, Editor};
+
 // Re-exports
 // TODO: clean these up
 use crate::core::{Execute, Scan, Tardi};
@@ -51,31 +55,59 @@ pub fn run_file(path: &PathBuf, print_stack: bool) -> Result<()> {
     Ok(())
 }
 
+// TODO: configuration
+// TODO: configure emacs or vi on configuration or command-line
+// TODO: history
+// TODO: highlighting
+// TODO: completion
+// TODO: hints
+// TODO: multilines (via rustyline::validate)
 pub fn repl() -> Result<()> {
     let mut tardi = Tardi::default();
-    let mut stdout = io::stdout();
-    let stdin = io::stdin();
+
+    let rl_config = Config::builder().edit_mode(EditMode::Emacs).build();
+    let mut readline = DefaultEditor::with_config(rl_config)?;
 
     tardi.bootstrap(None)?;
 
     loop {
-        let mut input = String::new();
-        stdout.write_all(b"> ")?;
-        stdout.flush()?;
-        stdin.read_line(&mut input)?;
-        let command = input.trim();
-        if command == "/quit" || command == "/exit" || command == "/q" || command == "/xt" {
-            println!("ok");
-            break;
-        }
+        let input = readline.readline(">>> ");
+        match input {
+            Ok(input) => {
+                if is_quit(&input) {
+                    println!("bye");
+                    break;
+                }
 
-        tardi.execute_str(&input)?;
-        for value in tardi.stack() {
-            println!("{}", value);
+                readline.add_history_entry(&input)?;
+                // TODO: reset the stack and items on it on errors
+                // how? memory snapshots? clones? yech!
+                match tardi.execute_str(&input) {
+                    Ok(()) => println!("ok"),
+                    Err(err) => eprintln!("error: {}", err),
+                }
+
+                for value in tardi.stack() {
+                    println!("{}", value);
+                }
+            }
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
+                println!("bye");
+                break;
+            }
+            Err(err) => {
+                eprintln!("ERROR: {}", err);
+            }
         }
     }
 
     Ok(())
+}
+
+/// Returns true if the command indicates the user wants to stop.
+fn is_quit(input: &str) -> bool {
+    let input = input.trim();
+    input == "/quit" || input == "/exit" || input == "/q" || input == "/xt"
 }
 
 #[cfg(test)]

@@ -4,6 +4,8 @@ use std::fmt;
 use std::io;
 use std::result;
 
+use rustyline::error::ReadlineError;
+
 pub type Result<R> = result::Result<R, Error>;
 
 #[derive(Debug)]
@@ -13,6 +15,7 @@ pub enum Error {
     ScannerError(ScannerError),
     CompilerError(CompilerError),
     InvalidOpCode(usize),
+    ReplError(ReadlineError),
 }
 
 #[derive(Debug)]
@@ -42,6 +45,7 @@ impl fmt::Display for Error {
             ScannerError(ref err) => err.fmt(f),
             CompilerError(ref err) => err.fmt(f),
             InvalidOpCode(code) => write!(f, "invalid op code: {}", code),
+            ReplError(ref err) => err.fmt(f),
         }
     }
 }
@@ -78,6 +82,12 @@ impl From<io::Error> for Error {
 impl From<VMError> for Error {
     fn from(err: VMError) -> Error {
         VMError(err)
+    }
+}
+
+impl From<ReadlineError> for Error {
+    fn from(err: ReadlineError) -> Self {
+        ReplError(err)
     }
 }
 
