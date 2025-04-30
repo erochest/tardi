@@ -8,6 +8,18 @@ use crate::error::{EnvironmentError, Result};
 use crate::value::lambda::{Callable, Lambda, OpFn};
 use crate::value::Value;
 
+// TODO: The current status of this work:
+// - Cline proposed a solution using Serialized mirror versions of objects.
+// - I'm trying to see if I can get custom serializers to work.
+// - For that to happen, I suspect I'll need to pull in lazy_static to have
+//   a global version of the op_table and op_map hanging around (which would
+//   be cloned and return from `create_op_table`).
+// - But I'm banging my head against the lifetimes that serde uses and
+//   the way they say to use one of the parameters, it needs to be
+//   mutable, even though it clearly isn't. I likely need to dig through
+//   a working crate.
+// - But what am I getting out of this?
+
 #[derive(Serialize, Deserialize)]
 pub struct ImageFormat {
     pub version: String,
