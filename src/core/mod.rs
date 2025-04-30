@@ -87,23 +87,27 @@ impl Tardi {
     }
 
     pub fn bootstrap(&mut self, bootstrap_dir: Option<PathBuf>) -> Result<()> {
-        let bootstrap_dir = bootstrap_dir.unwrap_or_else(|| PathBuf::from("bootstrap"));
-        if !bootstrap_dir.exists() {
-            return Ok(());
-        }
-
-        let mut files = bootstrap_dir
-            .read_dir()
-            .unwrap()
-            .filter_map(|dir_entry| dir_entry.ok())
-            .map(|dir_entry| dir_entry.path())
-            .filter(|path| path.extension().is_some_and(|ext| ext == "tardi"))
-            .collect::<Vec<_>>();
-        files.sort();
-        for file in files {
-            log::debug!("bootstrapping from {:?}", file);
-            let input = fs::read_to_string(file)?;
-            self.execute_str(&input)?;
+        if let Some(bootstrap_dir) = bootstrap_dir {
+            if !bootstrap_dir.exists() {
+                return Ok(());
+            }
+            let mut files = bootstrap_dir
+                .read_dir()
+                .unwrap()
+                .filter_map(|dir_entry| dir_entry.ok())
+                .map(|dir_entry| dir_entry.path())
+                .filter(|path| path.extension().is_some_and(|ext| ext == "tardi"))
+                .collect::<Vec<_>>();
+            files.sort();
+            for file in files {
+                log::debug!("bootstrapping from {:?}", file);
+                let input = fs::read_to_string(file)?;
+                self.execute_str(&input)?;
+            }
+        } else {
+            self.execute_str(include_str!("../bootstrap/00-core-macros.tardi"))?;
+            self.execute_str(include_str!("../bootstrap/01-stack-ops.tardi"))?;
+            self.execute_str(include_str!("../bootstrap/02-core-ops.tardi"))?;
         }
 
         Ok(())

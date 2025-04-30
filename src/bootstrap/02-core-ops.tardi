@@ -1,0 +1,11 @@
+/// The standard conditional.
+///
+/// ..s ? t:( ..s -- ..s' ) f:( ..s -- ..s' ) -- ..s'
+///
+/// This expects three items on the stack:
+/// - a boolneam
+/// - a lambda to call if the boolean is `#t`
+/// - a lambda to call if the boolean is `#f`
+///
+/// == 0 [ "zero" ] [ "non-zero" ] if
+: if   ? apply ;
