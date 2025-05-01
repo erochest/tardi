@@ -14,7 +14,7 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use rustyline::error::ReadlineError;
-use rustyline::history::MemHistory;
+use rustyline::history::{FileHistory, History, MemHistory};
 use rustyline::{self, DefaultEditor, EditMode, Editor};
 
 // Re-exports
@@ -48,7 +48,6 @@ pub fn run_file(path: &PathBuf, _config: Config, print_stack: bool) -> Result<()
     Ok(())
 }
 
-// TODO: history
 // TODO: highlighting
 // TODO: completion
 // TODO: hints
@@ -56,8 +55,14 @@ pub fn run_file(path: &PathBuf, _config: Config, print_stack: bool) -> Result<()
 pub fn repl(config: Config) -> Result<()> {
     let mut tardi = Tardi::default();
 
-    let rl_config = config.into();
-    let mut readline = DefaultEditor::with_config(rl_config)?;
+    let rl_config = config.clone().into();
+    let history = FileHistory::new();
+    let mut readline = DefaultEditor::with_history(rl_config, history)?;
+    if let Some(history_file) = config.repl.history_file.as_ref() {
+        if history_file.exists() {
+            readline.history_mut().load(history_file)?;
+        }
+    }
 
     tardi.bootstrap(None)?;
 
@@ -90,6 +95,10 @@ pub fn repl(config: Config) -> Result<()> {
                 eprintln!("ERROR: {}", err);
             }
         }
+    }
+
+    if let Some(history_file) = config.repl.history_file.as_ref() {
+        readline.history_mut().save(&history_file)?;
     }
 
     Ok(())

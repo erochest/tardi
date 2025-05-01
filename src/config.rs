@@ -1,5 +1,7 @@
 use std::convert::TryFrom;
+use std::path::PathBuf;
 
+use directories::ProjectDirs;
 use figment::value::{Dict, Map};
 use figment::{Figment, Metadata, Profile, Provider};
 use rustyline::ConditionalEventHandler;
@@ -7,12 +9,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    edit_mode: EditMode,
+    pub repl: ReplConfig,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplConfig {
+    pub edit_mode: EditMode,
+    pub history_file: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EditMode {
     Emacs,
     Vi,
@@ -27,10 +35,19 @@ impl Into<rustyline::EditMode> for EditMode {
     }
 }
 
+impl Default for ReplConfig {
+    fn default() -> Self {
+        ReplConfig {
+            edit_mode: EditMode::Emacs,
+            history_file: None,
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
-            edit_mode: EditMode::Emacs,
+            repl: ReplConfig::default(),
         }
     }
 }
@@ -50,7 +67,7 @@ impl Config {
 impl Into<rustyline::Config> for Config {
     fn into(self) -> rustyline::Config {
         let mut config = rustyline::Config::builder();
-        config = config.edit_mode(self.edit_mode.into());
+        config = config.edit_mode(self.repl.edit_mode.into());
         config.build()
     }
 }
