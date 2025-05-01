@@ -724,7 +724,7 @@ fn test_jump_operations() {
 #[test]
 fn test_clear() {
     let input = "1 2 3 4 5 clear";
-    let mut tardi = Tardi::with_bootstrap(None).unwrap();
+    let mut tardi = Tardi::new(None).unwrap();
 
     let result = tardi.execute_str(input);
 
@@ -741,7 +741,7 @@ fn test_clear() {
 fn test_predeclare_function_adds_undefined_function_to_op_table() {
     let word = "even?".to_string();
     let input = r#" even? <predeclare-function> "#;
-    let mut tardi = Tardi::with_bootstrap(None).unwrap();
+    let mut tardi = Tardi::new(None).unwrap();
     let env = tardi.environment.clone();
     let next_index = (*env).borrow().op_table.len();
 
@@ -812,7 +812,7 @@ fn test_call_wont_execute_predeclared_function() {
 
     let setup = r#" even? <predeclare-function> "#;
     let input = r#" 7 even? "#;
-    let mut tardi = Tardi::with_bootstrap(None).unwrap();
+    let mut tardi = Tardi::new(None).unwrap();
 
     let result = tardi.execute_str(setup);
     assert_is_ok(setup, &result);

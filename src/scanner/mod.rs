@@ -12,7 +12,7 @@ pub struct Scanner {
     /// Vector of source characters
     chars: Vec<char>,
 
-    /// Index of current character.
+    /// Index of current character (in `chars`).
     index: usize,
 
     /// Current line number (1-based)
@@ -21,8 +21,7 @@ pub struct Scanner {
     /// Current column number (1-based)
     column: usize,
 
-    // TODO: how is this different than `index`?
-    /// Current offset from start of source (0-based)
+    /// Current offset from start of `source`
     offset: usize,
 
     /// Has the scanner reached the EndOfInput for this source?

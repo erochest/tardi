@@ -31,11 +31,7 @@ impl Default for Compiler {
 
 // TODO: move this somewhere else
 fn hoist_result<T>(input: Vec<Result<T>>) -> Result<Vec<T>> {
-    Ok(input
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?
-        .into_iter()
-        .collect())
+    input.into_iter().collect()
 }
 
 impl Compiler {
@@ -340,16 +336,11 @@ impl Compiler {
     /// Compiles a word as a function call
     fn compile_word_call(&mut self, word: &str) -> Result<()> {
         log::trace!("Compiler::compile_word_call {:?}", word);
-        if let Some(op_table_index) = self
+        let op_table_index = self
             .environment
             .as_ref()
-            .and_then(|e| e.borrow().get_op_map().get(word).copied())
-        {
-            // Right now this only handles non-recursive calls.
-            // TODO: is there a way to do this without the `Call`?
-            // Can I just offset the IP by the number of build-ins
-            // and find the function's index that way?
-            // TODO: or stub in a function and add the ip later
+            .and_then(|e| e.borrow().get_op_map().get(word).copied());
+        if let Some(op_table_index) = op_table_index {
             self.compile_instruction(op_table_index);
             Ok(())
         } else {

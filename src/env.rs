@@ -9,13 +9,24 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::result;
 
-// TODO: need documentation for what these are, how they're used, and the methods that operate on these below
+/// This holds the running environment.
 #[derive(Default)]
 pub struct Environment {
+    /// Constants that are literals that are referred to in the source code.
+    /// This includes that lammbdas that words are built from.
     pub constants: Vec<Value>,
+
+    /// The vector of instructions to execute.
     pub instructions: Vec<usize>,
+
+    /// Operations that have been loaded into the environment. This is all of
+    /// built-ins, rust-defined functions, and user-defined.
     pub op_table: Vec<Shared<Lambda>>,
+
+    /// This maps a word name to its index in `op_table`.
     pub op_map: HashMap<String, usize>,
+
+    /// This holds the macros currently in play.
     pub macro_table: HashMap<String, Lambda>,
 }
 

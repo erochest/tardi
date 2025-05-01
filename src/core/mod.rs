@@ -65,8 +65,7 @@ pub struct Tardi {
 }
 
 impl Tardi {
-    // TODO: make this `assemble` or something
-    pub fn new(
+    pub fn assemble(
         environment: Environment,
         scanner: Scanner,
         compiler: Compiler,
@@ -81,8 +80,7 @@ impl Tardi {
         }
     }
 
-    // TODO: just make this new
-    pub fn with_bootstrap(bootstrap_dir: Option<PathBuf>) -> Result<Self> {
+    pub fn new(bootstrap_dir: Option<PathBuf>) -> Result<Self> {
         let mut tardi = Tardi::default();
         tardi.bootstrap(bootstrap_dir)?;
         Ok(tardi)
@@ -174,7 +172,7 @@ impl Default for Tardi {
         let scanner = Scanner::default();
         let compiler = Compiler::default();
         let executor = VM::new();
-        Tardi::new(environment, scanner, compiler, executor)
+        Tardi::assemble(environment, scanner, compiler, executor)
     }
 }
 
