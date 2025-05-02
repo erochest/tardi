@@ -1,4 +1,5 @@
 use std::convert::From;
+use std::convert::Infallible;
 use std::error;
 use std::fmt;
 use std::io;
@@ -18,6 +19,7 @@ pub enum Error {
     ReplError(ReadlineError),
     TomlError(toml::de::Error),
     ConfigReadError(figment::Error),
+    InfallibleError,
 }
 
 #[derive(Debug)]
@@ -50,6 +52,7 @@ impl fmt::Display for Error {
             ReplError(ref err) => err.fmt(f),
             TomlError(ref err) => err.fmt(f),
             ConfigReadError(ref err) => err.fmt(f),
+            InfallibleError => unimplemented!("Error::InfallibleError"),
         }
     }
 }
@@ -107,6 +110,12 @@ impl From<figment::Error> for Error {
     }
 }
 
+impl From<Infallible> for Error {
+    fn from(_: Infallible) -> Self {
+        InfallibleError
+    }
+}
+
 // TODO: move to scanner?
 #[derive(Debug)]
 pub enum ScannerError {
@@ -151,6 +160,7 @@ pub enum CompilerError {
     InvalidFunction(String),
     MissingEnvironment,
     ValueHasNoTokenType(String),
+    ModuleNotFound(String),
 }
 
 impl fmt::Display for CompilerError {
@@ -163,6 +173,7 @@ impl fmt::Display for CompilerError {
             CompilerError::InvalidFunction(s) => write!(f, "Invalid function: {}", s),
             CompilerError::MissingEnvironment => write!(f, "Compiling with environment"),
             CompilerError::ValueHasNoTokenType(s) => write!(f, "Value has to TokenType: {}", s),
+            CompilerError::ModuleNotFound(name) => write!(f, "Missing module '{}'", name),
         }
     }
 }

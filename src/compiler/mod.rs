@@ -3,6 +3,8 @@ use std::fmt::Debug;
 
 use log::Level;
 
+pub mod module;
+
 use crate::core::{Compile, Execute, Scan};
 use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError, VMError};

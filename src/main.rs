@@ -5,8 +5,8 @@ use figment::providers::{Env, Format, Serialized, Toml};
 use figment::Figment;
 use human_panic::setup_panic;
 use std::fs::{self, read_to_string};
-use std::path::PathBuf;
-use tardi::config::Config;
+use std::path::{Path, PathBuf};
+use tardi::config::{read_config_sources, Config};
 
 use tardi::Result;
 
@@ -19,29 +19,8 @@ fn main() -> Result<()> {
         .init();
 
     // TODO: some way to dump out the default config and print the path
-    // TODO: can I use the Cli struct as a provider?
-    // TODO: different qualifier and organization
-    let project_dirs = ProjectDirs::from("", "", "Tardi");
-    // Config file is from CLI args or the standard platform configuration
-    let config_file = args.config.or_else(|| {
-        project_dirs
-            .clone()
-            .map(|pd| pd.config_dir().join("tardi.toml").to_owned())
-    });
-    let mut figment = Figment::from(Serialized::defaults(Config::default()));
-    if let Some(config_file) = config_file {
-        log::info!("config location: {}", config_file.display());
-        figment = figment.merge(Toml::file(config_file));
-    } else {
-        log::warn!("no config file specified");
-    }
-    figment = figment.merge(Env::prefixed("TARDI_"));
-    let mut config: Config = figment.extract()?;
-    config.repl.history_file = config.repl.history_file.or_else(|| {
-        project_dirs
-            .clone()
-            .map(|pd| pd.data_local_dir().join("repl-history.txt").to_path_buf())
-    });
+    // TODO: some way to edit config from the command line
+    let config = read_config_sources(&args.config.as_deref())?;
     if let Some(history_dir) = config.repl.history_file.as_ref().and_then(|p| p.parent()) {
         fs::create_dir_all(history_dir)?;
     }
