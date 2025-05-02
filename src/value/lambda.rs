@@ -1,10 +1,10 @@
 use std::{fmt, ptr};
 
 use crate::error::{Result, VMError};
-use crate::{Compiler, Scanner, VM};
+use crate::{Compiler, VM};
 
 /// Function pointer type for VM operations
-pub type OpFn = fn(&mut VM, &mut Compiler, &mut Scanner) -> Result<()>;
+pub type OpFn = fn(&mut VM, &mut Compiler) -> Result<()>;
 
 /// Function structure for user-defined functions and lambdas
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -73,7 +73,7 @@ impl Lambda {
         }
     }
 
-    pub fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    pub fn call(&self, vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
         log::trace!("calling {}", self.name.as_deref().unwrap_or("<lambda>"));
 
         if !self.defined {
@@ -82,7 +82,7 @@ impl Lambda {
             return Err(VMError::InvalidWordCall(name).into());
         }
 
-        self.callable.call(vm, compiler, scanner)
+        self.callable.call(vm, compiler)
     }
 
     pub fn is_builtin(&self) -> bool {
@@ -133,11 +133,11 @@ pub enum Callable {
 }
 
 impl Callable {
-    fn call(&self, vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    fn call(&self, vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
         match self {
             Callable::BuiltIn { function, .. } => {
                 log::trace!("calling built-in function");
-                function(vm, compiler, scanner)
+                function(vm, compiler)
             }
             Callable::Compiled {
                 ip: instructions,

@@ -2,12 +2,23 @@ use super::Scan;
 
 use crate::error::{Error, Result, ScannerError};
 use crate::value::{Value, ValueData};
+use std::path::{Path, PathBuf};
 use std::{char, result};
+
+#[derive(Debug)]
+pub enum Source {
+    InputString,
+    ScriptFile { path: PathBuf },
+    Module { name: String, path: PathBuf },
+}
 
 /// Scanner that converts source text into a stream of tokens
 pub struct Scanner {
+    /// The source that the input is from.
+    source: Source,
+
     /// Source text being scanned
-    source: String,
+    input: String,
 
     /// Vector of source characters
     chars: Vec<char>,
@@ -34,7 +45,56 @@ impl Scanner {
         let source = String::new();
         let chars = vec![];
         Scanner {
-            source,
+            source: Source::InputString,
+            input: source,
+            chars,
+            index: 0,
+            line: 1,
+            column: 1,
+            offset: 0,
+            end_of_input: false,
+        }
+    }
+
+    pub fn from_input_string(input: &str) -> Self {
+        let input = input.to_string();
+        let chars = input.chars().collect();
+        Scanner {
+            source: Source::InputString,
+            input,
+            chars,
+            index: 0,
+            line: 1,
+            column: 1,
+            offset: 0,
+            end_of_input: false,
+        }
+    }
+
+    pub fn from_script(path: &Path, input: &str) -> Self {
+        let path = path.to_path_buf();
+        let input = input.to_string();
+        let chars = input.chars().collect();
+        Scanner {
+            source: Source::ScriptFile { path },
+            input,
+            chars,
+            index: 0,
+            line: 1,
+            column: 1,
+            offset: 0,
+            end_of_input: false,
+        }
+    }
+
+    pub fn from_module(name: &str, path: &Path, input: &str) -> Self {
+        let name = name.to_string();
+        let path = path.to_path_buf();
+        let input = input.to_string();
+        let chars = input.chars().collect();
+        Scanner {
+            source: Source::Module { name, path },
+            input,
             chars,
             index: 0,
             line: 1,
@@ -375,8 +435,8 @@ impl Scan for Scanner {
     }
 
     fn set_source(&mut self, input: &str) {
-        self.source = input.to_string();
-        self.chars = self.source.chars().collect();
+        self.input = input.to_string();
+        self.chars = self.input.chars().collect();
         self.index = 0;
         self.line = 1;
         self.column = 1;
@@ -500,7 +560,7 @@ impl Iterator for Scanner {
         Some(result.map(|value_data| {
             Value::from_parts(
                 value_data,
-                &self.source[start_offset..self.offset],
+                &self.input[start_offset..self.offset],
                 start_line,
                 start_column,
                 start_offset,

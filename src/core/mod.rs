@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::compiler::Compiler;
+use crate::compiler::{self, Compiler};
+use crate::config::Config;
 use crate::env::Environment;
 use crate::error::{Result, ScannerError};
 use crate::scanner::Scanner;
@@ -24,31 +25,17 @@ pub trait Compile {
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut Scanner,
-        input: &str,
-    ) -> Result<()>;
-    fn compile_lambda<E: Execute>(
-        &mut self,
-        executor: &mut E,
-        env: Shared<Environment>,
-        scanner: &mut Scanner,
         input: &str,
     ) -> Result<()>;
 }
 
 pub trait Execute {
-    fn run(
-        &mut self,
-        env: Shared<Environment>,
-        compiler: &mut Compiler,
-        scanner: &mut Scanner,
-    ) -> Result<()>;
+    fn run(&mut self, env: Shared<Environment>, compiler: &mut Compiler) -> Result<()>;
     fn stack(&self) -> Vec<Value>;
     fn execute_macro(
         &mut self,
         env: Shared<Environment>,
         compiler: &mut Compiler,
-        scanner: &mut Scanner,
         trigger: &ValueData,
         lambda: &Lambda,
         token_buffer: Shared<Value>,
@@ -59,27 +46,21 @@ pub trait Execute {
 pub struct Tardi {
     pub input: Option<String>,
     pub environment: Shared<Environment>,
-    pub scanner: Scanner,
     pub compiler: Compiler,
     pub executor: VM,
 }
 
 impl Tardi {
-    pub fn assemble(
-        environment: Environment,
-        scanner: Scanner,
-        compiler: Compiler,
-        executor: VM,
-    ) -> Self {
+    pub fn assemble(environment: Environment, compiler: Compiler, executor: VM) -> Self {
         Tardi {
             input: None,
             environment: shared(environment),
-            scanner,
             compiler,
             executor,
         }
     }
 
+    // TODO: add bootstrapping to Config and then depreate this
     pub fn new(bootstrap_dir: Option<PathBuf>) -> Result<Self> {
         let mut tardi = Tardi::default();
         tardi.bootstrap(bootstrap_dir)?;
@@ -121,27 +102,21 @@ impl Tardi {
         log::debug!("input : {:?}", input);
         let input = input.to_string();
         self.input = Some(input);
-        Scan::scan(&mut self.scanner, self.input.as_ref().unwrap())
+        // XXX: create a new scanner context for this input
+        self.compiler.scan_str(self.input.as_ref().unwrap())
     }
 
     pub fn compile(&mut self, input: &str) -> Result<Shared<Environment>> {
         log::debug!("input : {}", input);
-        self.compiler.compile(
-            &mut self.executor,
-            self.environment.clone(),
-            &mut self.scanner,
-            input,
-        )?;
+        self.compiler
+            .compile(&mut self.executor, self.environment.clone(), input)?;
         Ok(self.environment.clone())
     }
 
     pub fn execute(&mut self) -> Result<()> {
         log::debug!("environment:\n{:?}", self.environment.borrow());
-        self.executor.run(
-            self.environment.clone(),
-            &mut self.compiler,
-            &mut self.scanner,
-        )
+        self.executor
+            .run(self.environment.clone(), &mut self.compiler)
     }
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
@@ -169,10 +144,19 @@ impl Tardi {
 impl Default for Tardi {
     fn default() -> Tardi {
         let environment = Environment::with_builtins();
-        let scanner = Scanner::default();
         let compiler = Compiler::default();
         let executor = VM::new();
-        Tardi::assemble(environment, scanner, compiler, executor)
+        Tardi::assemble(environment, compiler, executor)
+    }
+}
+
+impl From<&Config> for Tardi {
+    fn from(config: &Config) -> Self {
+        // TODO: get bootstrapping from config as well
+        let environment = Environment::with_builtins();
+        let compiler = Compiler::from(config);
+        let executor = VM::new();
+        Tardi::assemble(environment, compiler, executor)
     }
 }
 
@@ -227,8 +211,11 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
 }
 
 pub fn create_macro_table() -> HashMap<String, Lambda> {
-    // insert_macro(&mut map, "scan-value-list", scan_token_list);
-    HashMap::new()
+    let mut macro_map = HashMap::new();
+
+    insert_macro(&mut macro_map, "use:", use_module);
+
+    macro_map
 }
 
 fn push_op(op_table: &mut Vec<Shared<Lambda>>, name: &str, op: OpFn) {
@@ -250,159 +237,155 @@ fn insert_macro(table: &mut HashMap<String, Lambda>, name: &str, op: OpFn) {
 // }
 
 // Define the operations
-pub fn lit(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn lit(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.lit()
 }
 
-pub fn dup(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn dup(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.dup()
 }
 
-pub fn swap(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn swap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.swap()
 }
 
-pub fn rot(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn rot(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.rot()
 }
 
-pub fn drop_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn drop_op(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.drop_op()
 }
 
-pub fn clear(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn clear(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.clear()
 }
 
-pub fn stack_size(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn stack_size(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.stack_size_op()
 }
 
-pub fn add(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn add(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.add()
 }
 
-pub fn subtract(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn subtract(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.subtract()
 }
 
-pub fn multiply(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn multiply(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.multiply()
 }
 
-pub fn divide(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn divide(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.divide()
 }
 
-pub fn to_r(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn to_r(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.to_r()
 }
 
-pub fn r_from(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn r_from(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.r_from()
 }
 
-pub fn r_fetch(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn r_fetch(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.r_fetch()
 }
 
-pub fn not(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn not(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.not()
 }
 
-pub fn question(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn question(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.question()
 }
 
-pub fn equal(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn equal(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.equal()
 }
 
-pub fn less(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn less(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.less()
 }
 
-pub fn greater(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn greater(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.greater()
 }
 
 // List operations
-pub fn create_list(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn create_list(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.create_list()
 }
 
-pub fn append(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn append(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.append()
 }
 
-pub fn prepend(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn prepend(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.prepend()
 }
 
-pub fn concat(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.concat()
 }
 
-pub fn split_head(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.split_head()
 }
 
 // String operations
-pub fn create_string(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn create_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.create_string()
 }
 
-pub fn to_string(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.to_string()
 }
 
-pub fn utf8_to_string(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn utf8_to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.utf8_to_string()
 }
 
-pub fn string_concat(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn string_concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.string_concat()
 }
 
 // Function operations
-pub fn call(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-    vm.call(compiler, scanner)
+pub fn call(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+    vm.call(compiler)
 }
 
-pub fn apply(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-    vm.apply(compiler, scanner)
+pub fn apply(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+    vm.apply(compiler)
 }
 
-pub fn return_op(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn return_op(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.return_op()
 }
 
-pub fn exit(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn exit(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.exit()
 }
 
-pub fn jump(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn jump(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.jump()
 }
 
-pub fn jump_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn jump_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.jump_stack()
 }
 
-pub fn function(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn function(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.function()
 }
 
-pub fn predeclare_function(
-    vm: &mut VM,
-    _compiler: &mut Compiler,
-    _scanner: &mut Scanner,
-) -> Result<()> {
+pub fn predeclare_function(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.predeclare_function()
 }
 
-pub fn scan_value(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-    let value = scanner
+pub fn scan_value(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+    let value = compiler
         .scan_value()
         .ok_or(ScannerError::UnexpectedEndOfInput)??;
     let value = shared(value);
@@ -410,12 +393,12 @@ pub fn scan_value(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) 
     Ok(())
 }
 
-pub fn scan_value_list(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+pub fn scan_value_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     let delimiter = vm.pop()?;
     let delimiter: Value = unshare_clone(delimiter);
     let delimiter = &delimiter.data;
 
-    let token_list = scanner.scan_value_list(delimiter)?;
+    let token_list = compiler.scan_value_list(delimiter)?;
     let list = token_list.into_iter().map(shared).collect();
     let value_data = ValueData::List(list);
     let value = Value::new(value_data);
@@ -425,7 +408,7 @@ pub fn scan_value_list(vm: &mut VM, _compiler: &mut Compiler, scanner: &mut Scan
     Ok(())
 }
 
-pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     let delimiter = vm.pop()?;
     let delimiter: Value = unshare_clone(delimiter);
     let delimiter = delimiter.data;
@@ -433,14 +416,14 @@ pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scan
     // call Compiler::scan_value_list
     let env = vm.environment.clone().unwrap();
     let value = shared(Value::new(ValueData::List(vec![])));
-    compiler.scan_object_list(vm, env, delimiter, scanner, value.clone())?;
+    compiler.scan_object_list(vm, env, delimiter, value.clone())?;
 
     vm.push(value)?;
 
     Ok(())
 }
 
-pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) -> Result<()> {
+pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let value = vm.pop()?;
     let value: Value = unshare_clone(value);
     let literal = Value::new(ValueData::Literal(Box::new(value)));
@@ -449,8 +432,12 @@ pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler, _scanner: &mut Scanner) 
     Ok(())
 }
 
-pub fn compile(vm: &mut VM, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
-    vm.compile(compiler, scanner)
+pub fn compile(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+    vm.compile(compiler)
+}
+
+pub fn use_module(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+    compiler.use_module(vm)
 }
 
 #[cfg(test)]

@@ -1,10 +1,13 @@
 use std::convert::TryInto;
 use std::fmt::Debug;
+use std::fs;
 
 use log::Level;
+use module::Loader;
 
 pub mod module;
 
+use crate::config::Config;
 use crate::core::{Compile, Execute, Scan};
 use crate::env::Environment;
 use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
@@ -12,7 +15,7 @@ use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Callable, Lambda};
 use crate::value::{Value, ValueData, ValueVec};
 use crate::vm::OpCode;
-use crate::Scanner;
+use crate::{Scanner, VM};
 
 #[derive(Default)]
 struct CompileClosure {
@@ -20,8 +23,17 @@ struct CompileClosure {
     instructions: Vec<usize>,
 }
 
+#[derive(Default)]
+struct ModuleCompiler {
+    scanner: Scanner,
+}
+
+// XXX: add a module stack. items of it will include the scanner and anything
+// else needed to compile the module.
 pub struct Compiler {
     environment: Option<Shared<Environment>>,
+    loader: Loader,
+    module_stack: Vec<ModuleCompiler>,
     closure_stack: Vec<CompileClosure>,
 }
 
@@ -36,19 +48,44 @@ fn hoist_result<T>(input: Vec<Result<T>>) -> Result<Vec<T>> {
     input.into_iter().collect()
 }
 
+impl From<&Config> for Compiler {
+    fn from(config: &Config) -> Self {
+        let loader = Loader::from(config);
+        Compiler {
+            environment: None,
+            loader,
+            module_stack: Vec::new(),
+            closure_stack: Vec::new(),
+        }
+    }
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
             environment: None,
+            loader: Loader::default(),
+            module_stack: Vec::new(),
             closure_stack: Vec::new(),
         }
+    }
+
+    pub fn current_scanner(&self) -> Option<&Scanner> {
+        self.module_stack.last().map(|m| &m.scanner)
+    }
+
+    pub fn current_scanner_mut(&mut self) -> Option<&mut Scanner> {
+        self.module_stack.last_mut().map(|m| &mut m.scanner)
+    }
+
+    fn push_module(&mut self, scanner: Scanner) {
+        self.module_stack.push(ModuleCompiler { scanner });
     }
 
     fn pass1<E: Execute>(
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut Scanner,
         input: &str,
     ) -> Result<Vec<Value>> {
         if log::log_enabled!(log::Level::Trace) {
@@ -58,15 +95,14 @@ impl Compiler {
                 log::trace!("Compiler::pass1 {:?}", input);
             }
         }
-        scanner.set_source(input);
         let mut buffer = Vec::new();
 
-        while let Some(result) = scanner.scan_value() {
+        while let Some(result) = self.scan_value() {
             let value = result?;
             log::trace!("Compiler::pass1 read   {}", value);
             log::trace!("Compiler::pass1 buffer {}", ValueVec(&buffer));
             if value.data == ValueData::Macro {
-                let lambda = self.compile_macro(executor, env.clone(), scanner)?;
+                let lambda = self.compile_macro(executor, env.clone())?;
                 env.borrow_mut().add_macro(lambda)?;
             } else if let Some(lambda) = get_macro(env.clone(), &value.data) {
                 log::trace!("Compiler::pass1 executing macro {:?}", lambda.name);
@@ -77,7 +113,6 @@ impl Compiler {
                 executor.execute_macro(
                     env.clone(),
                     self,
-                    scanner,
                     &value.data,
                     &lambda,
                     accumulator.clone(),
@@ -201,7 +236,6 @@ impl Compiler {
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut Scanner,
         words: &[Value],
     ) -> Result<Lambda> {
         // TODO: can I reuse this function for anything else?
@@ -221,7 +255,6 @@ impl Compiler {
                 executor.execute_macro(
                     env.clone(),
                     self,
-                    scanner,
                     &word.data,
                     &lambda,
                     accumulator.clone(),
@@ -392,10 +425,9 @@ impl Compiler {
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut Scanner,
     ) -> Result<Lambda> {
         log::trace!("Compiler::compile_macro");
-        let trigger = scanner
+        let trigger = self
             .scan_value()
             .ok_or(ScannerError::UnexpectedEndOfInput)?;
         let trigger = trigger?;
@@ -406,7 +438,6 @@ impl Compiler {
             executor,
             env,
             ValueData::Word(";".to_string()),
-            scanner,
             body.clone(),
         )?;
         log::trace!("Compiler::compile_macro {} => {}", trigger, body.borrow());
@@ -421,6 +452,21 @@ impl Compiler {
         Ok(lambda)
     }
 
+    pub fn scan_str(&mut self, input: &str) -> Result<Vec<Result<Value>>> {
+        let scanner = Scanner::from_input_string(input);
+        Ok(scanner.collect())
+    }
+
+    pub fn scan_value(&mut self) -> Option<Result<Value>> {
+        self.current_scanner_mut().and_then(|s| s.scan_value())
+    }
+
+    pub fn scan_value_list(&mut self, delimiter: &ValueData) -> Result<Vec<Value>> {
+        self.current_scanner_mut()
+            .ok_or_else(|| ScannerError::NotInitialized.into())
+            .and_then(|s| s.scan_value_list(delimiter))
+    }
+
     // TODO: when this is done, can I reimplement `scan` to be
     // `scan_value_list(ValueData::EndOfInput)`?
     pub fn scan_object_list<E: Execute>(
@@ -428,7 +474,6 @@ impl Compiler {
         executor: &mut E,
         env: Shared<Environment>,
         delimiter: ValueData,
-        scanner: &mut Scanner,
         accumulator: Shared<Value>,
     ) -> Result<()> {
         log::trace!("Compiler::scan_object_list {}", delimiter);
@@ -439,7 +484,7 @@ impl Compiler {
             ))));
         }
 
-        while let Some(value) = scanner.scan_value() {
+        while let Some(value) = self.scan_value() {
             let value = value?;
             log::trace!("Compiler::scan_object_list ({}) read {}", delimiter, value);
             if value.data == delimiter {
@@ -460,7 +505,6 @@ impl Compiler {
                 executor.execute_macro(
                     env.clone(),
                     self,
-                    scanner,
                     &value.data,
                     &lambda,
                     accumulator.clone(),
@@ -476,6 +520,34 @@ impl Compiler {
 
         Err(ScannerError::UnexpectedEndOfInput.into())
     }
+
+    pub fn use_module(&mut self, vm: &mut VM) -> Result<()> {
+        if let Some(module_word) = self.scan_value() {
+            let module_word = module_word?;
+            let module_word = module_word
+                .lexeme
+                .as_ref()
+                .ok_or_else(|| CompilerError::UnsupportedToken(format!("{}", module_word)))?;
+            // XXX: get the context from the compiler's stack of modules it's compiling
+            let module_file = self
+                .loader
+                .find(&module_word, None)?
+                .ok_or_else(|| CompilerError::ModuleNotFound(module_word.clone()))?;
+            let input = fs::read_to_string(&module_file)?;
+            // XXX: do I need to share this with the env and everything else?
+            let scanner = Scanner::from_module(&module_word, &module_file, &input);
+            self.push_module(scanner);
+
+            todo!("Compiler::use_module -- values that know about file and module name");
+            todo!("Compiler::use_module -- compile with knowledge of existing namespaces");
+            todo!("Compiler::use_module -- compile to namespace");
+            todo!("Compiler::use_module -- add to env");
+
+            Ok(())
+        } else {
+            return Err(ScannerError::UnexpectedEndOfInput.into());
+        }
+    }
 }
 
 fn get_macro(env: Shared<Environment>, trigger: &ValueData) -> Option<Lambda> {
@@ -487,28 +559,12 @@ impl Compile for Compiler {
         &mut self,
         executor: &mut E,
         env: Shared<Environment>,
-        scanner: &mut Scanner,
         input: &str,
     ) -> Result<()> {
         self.environment = Some(env.clone());
-        let intermediate = self.pass1(executor, env, scanner, input)?;
+        self.push_module(Scanner::from_input_string(input));
+        let intermediate = self.pass1(executor, env, input)?;
         self.pass2(intermediate)?;
-        Ok(())
-    }
-
-    // TODO: where is this getting called? still needed?
-    fn compile_lambda<E: Execute>(
-        &mut self,
-        executor: &mut E,
-        env: Shared<Environment>,
-        scanner: &mut Scanner,
-        input: &str,
-    ) -> Result<()> {
-        let index = self.start_function();
-        self.compile(executor, env, scanner, input)?;
-        // TODO: probably need to clean up the function in-process.
-        // I'm not fixing it now because I need to do that everywhere.
-        let function = self.end_function()?;
         Ok(())
     }
 }

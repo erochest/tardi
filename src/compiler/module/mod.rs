@@ -65,7 +65,13 @@ impl Default for Loader {
 
 impl From<Config> for Loader {
     fn from(config: Config) -> Self {
-        todo!("Loader::from")
+        Loader::from(&config)
+    }
+}
+
+impl From<&Config> for Loader {
+    fn from(config: &Config) -> Self {
+        todo!("Loader::from<&Config>")
     }
 }
 

@@ -415,7 +415,7 @@ impl VM {
     }
 
     /// Calls a function by its index in the op_table
-    pub fn call(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    pub fn call(&mut self, compiler: &mut Compiler) -> Result<()> {
         let op_table_index = self
             .environment
             .as_ref()
@@ -430,13 +430,13 @@ impl VM {
             .borrow()
             .get_callable(op_table_index)
             .ok_or(VMError::InvalidAddress(op_table_index))?;
-        lambda.borrow().call(self, compiler, scanner)?;
+        lambda.borrow().call(self, compiler)?;
 
         Ok(())
     }
 
     /// Calls a function from the stack
-    pub fn apply(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    pub fn apply(&mut self, compiler: &mut Compiler) -> Result<()> {
         let func = self.pop()?;
         let vm = self;
 
@@ -444,7 +444,7 @@ impl VM {
             .borrow()
             .get_function()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("function call".to_string())))
-            .and_then(|c| c.call(vm, compiler, scanner))?;
+            .and_then(|c| c.call(vm, compiler))?;
 
         Ok(())
     }
@@ -561,14 +561,13 @@ impl VM {
     }
 
     /// Takes a list off the stack and compiles it into an anonymous lambda
-    pub fn compile(&mut self, compiler: &mut Compiler, scanner: &mut Scanner) -> Result<()> {
+    pub fn compile(&mut self, compiler: &mut Compiler) -> Result<()> {
         log::trace!("VM::compile");
         let value = self.pop()?;
         let value = unshare_clone(value);
         if let ValueData::List(words) = value.data {
             let words = words.into_iter().map(unshare_clone).collect::<Vec<_>>();
-            let lambda =
-                compiler.compile_list(self, self.environment.clone().unwrap(), scanner, &words)?;
+            let lambda = compiler.compile_list(self, self.environment.clone().unwrap(), &words)?;
             let value = Value::new(ValueData::Function(lambda));
             self.push(shared(value))?;
         }
@@ -609,12 +608,7 @@ impl Execute for VM {
     }
 
     /// Runs the VM, executing all instructions in the instruction stream
-    fn run(
-        &mut self,
-        env: Shared<Environment>,
-        compiler: &mut Compiler,
-        scanner: &mut Scanner,
-    ) -> Result<()> {
+    fn run(&mut self, env: Shared<Environment>, compiler: &mut Compiler) -> Result<()> {
         self.environment = Some(env.clone());
         let max_ip = self
             .environment
@@ -647,7 +641,7 @@ impl Execute for VM {
 
             // Execute the operation
             let operation = operation.borrow();
-            let result = operation.call(self, compiler, scanner);
+            let result = operation.call(self, compiler);
             match result {
                 Ok(()) => {}
                 Err(Error::VMError(VMError::Exit)) => return Ok(()),
@@ -666,7 +660,6 @@ impl Execute for VM {
         &mut self,
         env: Shared<Environment>,
         compiler: &mut Compiler,
-        scanner: &mut Scanner,
         trigger: &ValueData,
         lambda: &Lambda,
         tokens: Shared<Value>,
@@ -681,7 +674,7 @@ impl Execute for VM {
         // Convert the tokens seen already to a form we can work on.
         self.stack.push(tokens.clone());
 
-        match lambda.call(self, compiler, scanner) {
+        match lambda.call(self, compiler) {
             Ok(()) => {}
             Err(Error::VMError(VMError::Exit)) => {}
             Err(err) => return Err(err),
@@ -691,7 +684,7 @@ impl Execute for VM {
         // move the IP.
         if lambda.is_compiled() {
             // TODO: DRY these up some
-            match self.run(env.clone(), compiler, scanner) {
+            match self.run(env.clone(), compiler) {
                 Ok(()) => {}
                 Err(Error::VMError(VMError::Exit)) => {}
                 Err(err) => return Err(err),

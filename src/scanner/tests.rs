@@ -250,7 +250,7 @@ fn test_scan_comments() {
 fn test_set_source() {
     let mut scanner = Scanner::new();
     scanner.set_source("something something here");
-    assert_eq!(scanner.source, "something something here".to_string());
+    assert_eq!(scanner.input, "something something here".to_string());
     assert_eq!(scanner.index, 0);
     assert_eq!(scanner.line, 1);
     assert_eq!(scanner.column, 1);
