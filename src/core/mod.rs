@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::compiler::{self, Compiler};
+use crate::compiler::Compiler;
 use crate::config::Config;
-use crate::env::Environment;
+use crate::env::{Environment, Module};
 use crate::error::{Result, ScannerError};
-use crate::scanner::Scanner;
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
@@ -23,6 +22,7 @@ pub trait Scan {
 pub trait Compile {
     fn compile<E: Execute>(
         &mut self,
+        module_key: &str,
         executor: &mut E,
         env: Shared<Environment>,
         input: &str,
@@ -106,10 +106,14 @@ impl Tardi {
         self.compiler.scan_str(self.input.as_ref().unwrap())
     }
 
-    pub fn compile(&mut self, input: &str) -> Result<Shared<Environment>> {
+    pub fn compile(&mut self, module_key: &str, input: &str) -> Result<Shared<Environment>> {
         log::debug!("input : {}", input);
-        self.compiler
-            .compile(&mut self.executor, self.environment.clone(), input)?;
+        self.compiler.compile(
+            module_key,
+            &mut self.executor,
+            self.environment.clone(),
+            input,
+        )?;
         Ok(self.environment.clone())
     }
 
@@ -121,14 +125,21 @@ impl Tardi {
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
         self.reset();
-        self.compile(input)?;
+        self.compile("<input>", input)?;
         self.execute()
+    }
+
+    pub fn execute_file(&mut self, _path: &Path) -> Result<()> {
+        todo!("Tardi::execute_file")
     }
 
     pub fn stack(&self) -> Vec<Value> {
         self.executor.stack()
     }
 
+    // allowing because this is used in tests
+    // TODO: can i move this into the test module?
+    #[allow(dead_code)]
     pub(crate) fn execute_ip(&mut self, ip: usize) -> Result<()> {
         let bookmark = self.executor.ip;
         self.executor.ip = ip;
@@ -216,6 +227,22 @@ pub fn create_macro_table() -> HashMap<String, Lambda> {
     insert_macro(&mut macro_map, "use:", use_module);
 
     macro_map
+}
+
+pub fn create_kernel_module() -> Module {
+    let op_table = create_op_table();
+    let exports: HashMap<_, _> = op_table
+        .iter()
+        .enumerate()
+        .map(|(index, lambda)| (lambda.borrow().name.clone().unwrap(), index))
+        .collect();
+    let macros = create_macro_table();
+    Module {
+        exports: exports.clone(),
+        imported: HashMap::new(),
+        namespace: exports.clone(),
+        macro_table: macros,
+    }
 }
 
 fn push_op(op_table: &mut Vec<Shared<Lambda>>, name: &str, op: OpFn) {

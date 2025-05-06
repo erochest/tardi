@@ -104,6 +104,14 @@ impl Scanner {
         }
     }
 
+    pub fn get_source_key(&self) -> String {
+        match &self.source {
+            Source::InputString => "<input>".to_string(),
+            Source::ScriptFile { path } => path.to_string_lossy().to_string(),
+            Source::Module { path, .. } => path.to_string_lossy().to_string(),
+        }
+    }
+
     /// Scans hexadecimal digits up to the specified length
     fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32> {
         let mut value = 0u32;
@@ -295,6 +303,13 @@ impl Scanner {
     }
 
     fn parse_word(&self, lexeme: &str) -> ValueData {
+        // TODO: Implement more number formats in the future:
+        // - Binary (0b prefix)
+        // - Octal (0o prefix)
+        // - Hexadecimal (0x prefix)
+        // - Rational type (e.g., 3/4)
+        // - Exponential notation for floats (e.g., 1e-10)
+        // - Floats without leading digit (e.g., .5)
         if lexeme == "#t" {
             ValueData::Boolean(true)
         } else if lexeme == "#f" {
@@ -305,73 +320,6 @@ impl Scanner {
             ValueData::Float(number)
         } else {
             ValueData::Word(lexeme.to_string())
-        }
-    }
-
-    /// Scans a number (integer or float)
-    fn scan_number(&mut self, first_digit: char) -> Result<ValueData> {
-        let mut number = String::from(first_digit);
-        let mut is_float = false;
-
-        // TODO: Implement more number formats in the future:
-        // - Binary (0b prefix)
-        // - Octal (0o prefix)
-        // - Hexadecimal (0x prefix)
-        // - Rational type (e.g., 3/4)
-        // - Exponential notation for floats (e.g., 1e-10)
-        // - Floats without leading digit (e.g., .5)
-
-        // Scan integer part
-        while let Some(c) = self.peek() {
-            if !c.is_ascii_digit() {
-                if c == '.' {
-                    // Only allow one decimal point
-                    if is_float {
-                        return Err(Error::ScannerError(ScannerError::InvalidNumber(number)));
-                    }
-                    is_float = true;
-                    number.push(c);
-                    self.next_char();
-
-                    // Must have at least one digit after decimal
-                    if let Some(next) = self.peek() {
-                        if !next.is_ascii_digit() {
-                            return Err(Error::ScannerError(ScannerError::InvalidNumber(number)));
-                        }
-                    } else {
-                        return Err(Error::ScannerError(ScannerError::InvalidNumber(number)));
-                    }
-                } else {
-                    break;
-                }
-            } else {
-                number.push(c);
-                self.next_char();
-            }
-        }
-
-        // Parse the number
-        if is_float {
-            match number.parse::<f64>() {
-                Ok(n) => Ok(ValueData::Float(n)),
-                Err(_) => Err(Error::ScannerError(ScannerError::InvalidNumber(number))),
-            }
-        } else {
-            match number.parse::<i64>() {
-                Ok(n) => Ok(ValueData::Integer(n)),
-                Err(_) => Err(Error::ScannerError(ScannerError::InvalidNumber(number))),
-            }
-        }
-    }
-
-    /// Scans a potential boolean value
-    fn scan_boolean(&mut self) -> Result<ValueData> {
-        match self.next_char() {
-            Some('t') => Ok(ValueData::Boolean(true)),
-            Some('f') => Ok(ValueData::Boolean(false)),
-            _ => Err(Error::ScannerError(ScannerError::InvalidLiteral(
-                "#".to_string(),
-            ))),
         }
     }
 

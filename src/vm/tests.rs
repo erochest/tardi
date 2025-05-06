@@ -151,7 +151,6 @@ fn test_invalid_opcode() {
 fn test_function_and_lambda_operations() {
     // env_logger::init();
     let mut tardi = Tardi::default();
-    let env = tardi.environment.clone();
 
     tardi
         .execute_str(
@@ -749,13 +748,10 @@ fn test_predeclare_function_adds_undefined_function_to_op_table() {
 
     assert_is_ok(input, &result);
     let env = tardi.environment.clone();
-    assert!(
-        (*env).borrow().op_map.get(&word).is_some(),
-        "env.op_map[{}] = {:?}",
-        word,
-        (*env).borrow().op_map.get(&word)
-    );
-    assert_eq!((*env).borrow().op_map.get(&word), Some(&next_index));
+    let index = tardi.compiler.get_current_export_for(&word);
+    assert!(index.is_some(), "export {} = {:?}", word, index);
+    let index = index.unwrap();
+    assert_eq!(index, next_index);
     let lambda = (*env).borrow().op_table[next_index].clone();
     assert_eq!((*lambda).borrow().name, Some(word.clone()));
     assert_eq!((*lambda).borrow().defined, false);
@@ -785,7 +781,6 @@ fn test_function_defines_predeclared_function() {
     // let mut tardi = Tardi::with_bootstrap(None).unwrap();
     let mut tardi = Tardi::default();
     let next_index = (*tardi.environment).borrow().op_table.len();
-    let next_ip = (*tardi.environment).borrow().instructions.len();
 
     let result = tardi.execute_str(setup);
     assert_is_ok(setup, &result);
@@ -793,13 +788,10 @@ fn test_function_defines_predeclared_function() {
 
     assert_is_ok(input, &result);
     let env = tardi.environment.clone();
-    assert!(
-        (*env).borrow().op_map.get(&word).is_some(),
-        "env.op_map[{}] = {:?}",
-        word,
-        (*env).borrow().op_map.get(&word)
-    );
-    assert_eq!((*env).borrow().op_map.get(&word), Some(&next_index));
+    let index = tardi.compiler.get_current_export_for(&word);
+    assert!(index.is_some(), "export {} = {:?}", word, index);
+    let index = index.unwrap();
+    assert_eq!(index, next_index);
     let lambda = (*env).borrow().op_table[next_index].clone();
     assert_eq!((*lambda).borrow().name, Some(word.clone()));
     assert_eq!((*lambda).borrow().defined, true);
@@ -837,13 +829,11 @@ fn test_call_will_execute_defined_predeclared_function() {
                 ] scan-object-list compile
                 swap append ;
         "#;
-    let word = "even?".to_string();
     let input = r#"
         : even?   dup 0 == [ drop #t ] [ 1 - even? ! ] ? apply ;
         1 even?
         2 even?
         "#;
-    // let mut tardi = Tardi::with_bootstrap(None).unwrap();
     let mut tardi = Tardi::default();
 
     let result = tardi.execute_str(setup);

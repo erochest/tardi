@@ -207,10 +207,11 @@ fn test_compile_macro_basic() {
     let result = tardi.execute_str("MACRO: & ;");
 
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+
     assert!(tardi
-        .environment
-        .borrow()
-        .is_macro_trigger(&ValueData::Word("&".to_string())));
+        .compiler
+        .get_macro(tardi.environment.clone(), &ValueData::Word("&".to_string()))
+        .is_some());
 
     let result = tardi.execute_str("40 41 & 42");
 

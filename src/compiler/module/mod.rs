@@ -1,7 +1,6 @@
 use std::env;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use crate::error::CompilerError;
 use crate::{config::Config, error::Result};
@@ -70,7 +69,7 @@ impl From<Config> for Loader {
 }
 
 impl From<&Config> for Loader {
-    fn from(config: &Config) -> Self {
+    fn from(_config: &Config) -> Self {
         todo!("Loader::from<&Config>")
     }
 }

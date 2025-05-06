@@ -1,8 +1,8 @@
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::Lambda;
-use crate::{Compiler, Scanner};
+use crate::Compiler;
 use log::{log_enabled, Level};
-use std::fmt::Debug;
+use std::path::Path;
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
@@ -27,6 +27,11 @@ pub struct VM {
 
     /// Return stack for control flow
     pub return_stack: Vec<SharedValue>,
+
+    /// A stack of the module we're currently executing.
+    // TODO: I'm not sure that this is necessary or the best solution,
+    // but I do need a way to track the currently executing module.
+    pub module_stack: Vec<String>,
 }
 
 impl Default for VM {
@@ -43,6 +48,7 @@ impl VM {
             ip: 0,
             stack: Vec::new(),
             return_stack: Vec::new(),
+            module_stack: Vec::new(),
         }
     }
 
@@ -416,17 +422,15 @@ impl VM {
 
     /// Calls a function by its index in the op_table
     pub fn call(&mut self, compiler: &mut Compiler) -> Result<()> {
-        let op_table_index = self
-            .environment
-            .as_ref()
-            .and_then(|e| e.borrow().get_instruction(self.ip))
+        // TODO: probably need to be more defensive about this.
+        let env = self.environment.as_ref().unwrap();
+        let op_table_index = env
+            .borrow()
+            .get_instruction(self.ip)
             .ok_or(VMError::InvalidAddress(self.ip))?;
         self.ip += 1;
 
-        let lambda = self
-            .environment
-            .as_ref()
-            .unwrap()
+        let lambda = env
             .borrow()
             .get_callable(op_table_index)
             .ok_or(VMError::InvalidAddress(op_table_index))?;
@@ -463,7 +467,10 @@ impl VM {
         let env = self.environment.clone().unwrap();
 
         // Define a predeclared word
-        let index = env.borrow().op_map.get(&name_str).copied();
+        // TODO: need to be consist whether I'm using Path or str to identify modules
+        // TODO: use `module_key` for the module index to make it more abstract
+        let module = self.module_stack.last().ok_or(VMError::MissingModule)?;
+        let index = env.borrow().get_op_ip(module, &name_str);
         if let Some(index) = index {
             let predeclared = &env.borrow_mut().op_table[index];
             log::trace!("VM::function defining predeclared function {}", name_str);
@@ -489,8 +496,11 @@ impl VM {
 
         // Add the function to the op_table
         if let Some(env) = self.environment.as_ref() {
+            let module = Path::new(module);
             let env = env.clone();
-            (*env).borrow_mut().add_to_op_table(shared(callable));
+            (*env)
+                .borrow_mut()
+                .add_to_op_table(module, shared(callable))?;
         }
 
         Ok(())
@@ -507,10 +517,14 @@ impl VM {
         log::trace!("VM::predefine_function {}", name_str);
 
         let lambda = Lambda::new_undefined(&name_str);
+        let module = self.module_stack.last().ok_or(VMError::MissingModule)?;
+        let module = Path::new(module);
         // Add the function to the op_table
         if let Some(env) = self.environment.as_ref() {
             let env = env.clone();
-            (*env).borrow_mut().add_to_op_table(shared(lambda));
+            (*env)
+                .borrow_mut()
+                .add_to_op_table(module, shared(lambda))?;
         }
 
         Ok(())
@@ -713,19 +727,6 @@ impl Execute for VM {
             Err(VMError::StackUnderflow.into())
         }
     }
-}
-
-fn trace_list<T: Debug>(header: &str, items: usize, list: &[T]) {
-    let len = list.len();
-    log::trace!(
-        "{} {:?}",
-        header,
-        if len <= items {
-            list
-        } else {
-            &list[len - items..]
-        }
-    );
 }
 
 #[cfg(test)]

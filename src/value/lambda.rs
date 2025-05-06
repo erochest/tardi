@@ -40,11 +40,11 @@ impl Lambda {
         }
     }
 
-    pub fn new_compiled(name: &str, words: &[String], ip: usize) -> Self {
+    pub fn new_compiled(_name: &str, _words: &[String], _ip: usize) -> Self {
         todo!("Lambda::new_compiled")
     }
 
-    pub fn new_macro(name: &str, words: &[String], ip: usize) -> Self {
+    pub fn new_macro(_name: &str, _words: &[String], _ip: usize) -> Self {
         todo!("Lambda::new_macro")
     }
 

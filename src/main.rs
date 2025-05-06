@@ -1,12 +1,9 @@
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
-use directories::ProjectDirs;
-use figment::providers::{Env, Format, Serialized, Toml};
-use figment::Figment;
 use human_panic::setup_panic;
-use std::fs::{self, read_to_string};
-use std::path::{Path, PathBuf};
-use tardi::config::{read_config_sources, Config};
+use std::fs;
+use std::path::PathBuf;
+use tardi::config::read_config_sources;
 
 use tardi::Result;
 

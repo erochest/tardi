@@ -1,5 +1,5 @@
-use crate::core::{create_macro_table, create_op_table};
-use crate::error::Result;
+use crate::core::{create_kernel_module, create_op_table};
+use crate::error::{CompilerError, Result};
 use crate::shared::Shared;
 use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData};
@@ -7,10 +7,26 @@ use crate::vm::OpCode;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
+use std::path::Path;
 use std::result;
 
+#[derive(Default, Clone)]
+pub struct Module {
+    /// This maps a word name to its index in the environment's `op_table`.
+    pub exports: HashMap<String, usize>,
+
+    /// This maps the imported word names to their indexes in the environment's `op_table`.
+    pub imported: HashMap<String, usize>,
+
+    /// This is the total namespace for this module.
+    pub namespace: HashMap<String, usize>,
+
+    /// This holds the macros currently in play.
+    pub macro_table: HashMap<String, Lambda>,
+}
+
 /// This holds the running environment.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Environment {
     /// Constants that are literals that are referred to in the source code.
     /// This includes that lammbdas that words are built from.
@@ -23,11 +39,8 @@ pub struct Environment {
     /// built-ins, rust-defined functions, and user-defined.
     pub op_table: Vec<Shared<Lambda>>,
 
-    /// This maps a word name to its index in `op_table`.
-    pub op_map: HashMap<String, usize>,
-
-    /// This holds the macros currently in play.
-    pub macro_table: HashMap<String, Lambda>,
+    /// This holds the modules that have been loaded.
+    pub modules: HashMap<String, Module>,
 }
 
 pub struct EnvLoc {
@@ -54,8 +67,7 @@ impl Environment {
             constants: Vec::new(),
             instructions: Vec::new(),
             op_table: Vec::new(),
-            op_map: HashMap::new(),
-            macro_table: HashMap::new(),
+            modules: HashMap::new(),
         }
     }
 
@@ -63,24 +75,25 @@ impl Environment {
         constants: Vec<Value>,
         instructions: Vec<usize>,
         op_table: Vec<Shared<Lambda>>,
-        op_map: HashMap<String, usize>,
-        macro_table: HashMap<String, Lambda>,
+        modules: HashMap<String, Module>,
     ) -> Self {
         Environment {
             constants,
             instructions,
             op_table,
-            op_map,
-            macro_table,
+            modules,
         }
     }
 
     pub fn with_builtins() -> Self {
         let mut env = Self::new();
+
         let op_table = create_op_table();
         env.set_op_table(op_table);
-        let macro_table = create_macro_table();
-        env.set_macro_table(macro_table);
+
+        let kernel = create_kernel_module();
+        env.modules.insert("kernel".to_string(), kernel);
+
         env
     }
 
@@ -111,12 +124,35 @@ impl Environment {
         self.op_table = op_table;
     }
 
-    pub fn set_macro_table(&mut self, macro_table: HashMap<String, Lambda>) {
-        self.macro_table = macro_table;
+    pub fn add_to_op_table(&mut self, module_path: &Path, lambda: Shared<Lambda>) -> Result<()> {
+        // TODO: does this need to also add this to the module pointing to this?
+        let index = self.op_table.len();
+        self.op_table.push(lambda.clone());
+
+        if let Some(name) = lambda.borrow().name.as_ref() {
+            let module = self.get_module_mut(module_path).ok_or_else(|| {
+                CompilerError::ModuleNotFound(module_path.to_string_lossy().to_string())
+            })?;
+            module.exports.insert(name.clone(), index);
+            module.namespace.insert(name.clone(), index);
+        }
+
+        Ok(())
     }
 
-    pub fn set_op_map(&mut self, op_map: HashMap<String, usize>) {
-        self.op_map = op_map;
+    pub fn set_macro_table(&mut self, module_path: &str, macro_table: HashMap<String, Lambda>) {
+        if let Some(module) = self.modules.get_mut(module_path) {
+            module.macro_table = macro_table;
+        }
+    }
+
+    pub fn set_imported(&mut self, module_path: &str, imported: HashMap<String, usize>) {
+        if let Some(module) = self.modules.get_mut(module_path) {
+            module.imported = imported;
+            for (k, v) in module.imported.iter() {
+                module.namespace.insert(k.clone(), *v);
+            }
+        }
     }
 
     pub fn get_op_table_size(&self) -> usize {
@@ -127,15 +163,36 @@ impl Environment {
         &self.instructions
     }
 
-    pub fn get_op_name(&self, op_code: usize) -> Option<String> {
-        self.op_map
-            .iter()
-            .find(|(_, &index)| index == op_code)
-            .map(|(name, _)| name.clone())
+    pub fn get_op_name(&self, ip: usize) -> Option<String> {
+        // TODO: name here is actually the path, which isn't ideal
+        for (name, module) in self.modules.iter() {
+            for (word, index) in module.exports.iter() {
+                let lambda_ip = self.op_table.get(*index).and_then(|l| l.borrow().get_ip());
+                if lambda_ip == Some(ip) {
+                    return Some(format!("{}.{}", name, word));
+                }
+            }
+        }
+        None
     }
 
-    pub fn get_op_map(&self) -> &HashMap<String, usize> {
-        &self.op_map
+    pub fn get_macro_name(&self, op_code: usize) -> Option<String> {
+        // TODO: name here is actually the path, which isn't ideal
+        for (name, module) in self.modules.iter() {
+            for (word, lambda) in module.macro_table.iter() {
+                if lambda.get_ip() == Some(op_code) {
+                    return Some(format!("{}.{}", name, word));
+                }
+            }
+        }
+        None
+    }
+
+    pub fn get_op_ip(&self, module: &str, word: &str) -> Option<usize> {
+        self.modules
+            .get(module)
+            .and_then(|m| m.namespace.get(word))
+            .copied()
     }
 
     pub fn get_instruction(&self, ip: usize) -> Option<usize> {
@@ -150,37 +207,43 @@ impl Environment {
         self.instructions.len()
     }
 
-    /// Add a new function to the op_table. If the function has a name, add it to the op_map.
-    /// The value in `op_map` is the index of the function in `op_table`.
-    /// The value in `op_table` is the function itself.
-    pub fn add_to_op_table(&mut self, lambda: Shared<Lambda>) -> usize {
-        let index = self.op_table.len();
-
-        if let Some(ref n) = lambda.borrow().name {
-            self.op_map.insert(n.to_string(), index);
-        }
-        self.op_table.push(lambda);
-
-        index
+    // TODO: change these to accept &str
+    pub fn get_module(&self, path: &Path) -> Option<&Module> {
+        let path = path.to_string_lossy().to_string();
+        self.modules.get(&path)
     }
 
-    pub fn get_callable(&self, index: usize) -> Option<Shared<Lambda>> {
-        self.op_table.get(index).cloned()
+    pub fn get_module_mut(&mut self, path: &Path) -> Option<&mut Module> {
+        let path = path.to_string_lossy().to_string();
+        self.modules.get_mut(&path)
     }
 
-    pub fn add_macro(&mut self, lambda: Lambda) -> Result<()> {
-        let key = lambda.name.clone().unwrap_or_default();
-        log::trace!("Environment::add_macro {:?}", key);
-        self.macro_table.insert(key.to_string(), lambda);
+    pub fn add_module(&mut self, path: &Path, module: Module) {
+        let path = path.to_string_lossy().to_string();
+        self.modules.insert(path, module);
+    }
+
+    pub fn get_macro(&self, module_key: &str, trigger: &ValueData) -> Option<&Lambda> {
+        self.modules
+            .get(module_key)
+            .and_then(|m| m.macro_table.get(&trigger.to_string()))
+    }
+
+    pub fn get_callable(&self, op_table_index: usize) -> Option<Shared<Lambda>> {
+        self.op_table.get(op_table_index).cloned()
+    }
+
+    pub fn add_macro(&mut self, module_key: &str, macro_lambda: Lambda) -> Result<()> {
+        let trigger = macro_lambda
+            .name
+            .clone()
+            .ok_or_else(|| CompilerError::InvalidState("macro without trigger/name".to_string()))?;
+        let module = self
+            .modules
+            .get_mut(module_key)
+            .ok_or_else(|| CompilerError::ModuleNotFound(module_key.to_string()))?;
+        module.macro_table.insert(trigger, macro_lambda);
         Ok(())
-    }
-
-    pub fn is_macro_trigger(&self, trigger: &ValueData) -> bool {
-        self.macro_table.contains_key(&trigger.to_string())
-    }
-
-    pub fn get_macro(&self, trigger: &ValueData) -> Option<&Lambda> {
-        self.macro_table.get(&trigger.to_string())
     }
 
     pub fn debug(&self) -> String {
@@ -340,30 +403,11 @@ impl Environment {
     }
 
     fn write_function_names(&self, f: &mut fmt::Formatter<'_>, ip: usize) -> fmt::Result {
-        let mut names = self
-            .op_map
-            .iter()
-            .filter(|(_n, index)| {
-                self.op_table.get(**index).is_some_and(|lambda| {
-                    lambda
-                        .borrow()
-                        .get_ip()
-                        .is_some_and(|lambda_ip| lambda_ip == ip)
-                })
-            })
-            .map(|(name, _)| name.clone())
-            .collect::<Vec<_>>();
-        names.extend(
-            self.macro_table
-                .iter()
-                .filter(|(_n, lambda)| lambda.get_ip().is_some_and(|lambda_ip| lambda_ip == ip))
-                .map(|(name, _)| name.clone()),
-        );
-        let names = names.join(" ");
+        let name = self.get_op_name(ip).or_else(|| self.get_macro_name(ip));
 
         // TODO: sometimes the column before this is omitted. Make them line up.
-        if !names.is_empty() {
-            write!(f, " {: <16} | ", names)?;
+        if let Some(name) = name {
+            write!(f, " {: <16} | ", name)?;
         }
 
         Ok(())
@@ -384,14 +428,13 @@ impl fmt::Debug for Environment {
 
 // We can't derive Clone for env because OpFn (function pointers) don't implement Clone
 // Instead, we implement Clone manually, copying the function pointers directly
-impl Clone for Environment {
-    fn clone(&self) -> Self {
-        Environment {
-            constants: self.constants.clone(),
-            instructions: self.instructions.clone(),
-            op_table: self.op_table.clone(),
-            op_map: self.op_map.clone(),
-            macro_table: self.macro_table.clone(),
-        }
-    }
-}
+// impl Clone for Environment {
+//     fn clone(&self) -> Self {
+//         Environment {
+//             constants: self.constants.clone(),
+//             instructions: self.instructions.clone(),
+//             op_table: self.op_table.clone(),
+//             modules: self.modules.clone(),
+//         }
+//     }
+// }

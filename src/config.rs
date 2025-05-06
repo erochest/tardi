@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -6,7 +5,6 @@ use directories::ProjectDirs;
 use figment::providers::{Env, Format, Serialized, Toml};
 use figment::value::{Dict, Map};
 use figment::{Figment, Metadata, Profile, Provider};
-use rustyline::ConditionalEventHandler;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
@@ -29,9 +27,9 @@ pub enum EditMode {
     Vi,
 }
 
-impl Into<rustyline::EditMode> for EditMode {
-    fn into(self) -> rustyline::EditMode {
-        match self {
+impl From<EditMode> for rustyline::EditMode {
+    fn from(val: EditMode) -> Self {
+        match val {
             EditMode::Emacs => rustyline::EditMode::Emacs,
             EditMode::Vi => rustyline::EditMode::Vi,
         }
@@ -70,10 +68,10 @@ impl Config {
     }
 }
 
-impl Into<rustyline::Config> for Config {
-    fn into(self) -> rustyline::Config {
+impl From<Config> for rustyline::Config {
+    fn from(val: Config) -> Self {
         let mut config = rustyline::Config::builder();
-        config = config.edit_mode(self.repl.edit_mode.into());
+        config = config.edit_mode(val.repl.edit_mode.into());
         config.build()
     }
 }

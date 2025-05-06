@@ -36,6 +36,7 @@ pub enum VMError {
     EmptyList,
     InvalidAddress(usize),
     InvalidWordCall(String),
+    MissingModule,
     Exit,
 }
 
@@ -72,6 +73,7 @@ impl fmt::Display for VMError {
             VMError::EmptyList => write!(f, "Cannot split head of empty list"),
             VMError::InvalidAddress(addr) => write!(f, "Invalid address: {}", addr),
             VMError::InvalidWordCall(word) => write!(f, "Invalid word call: {}", word),
+            VMError::MissingModule => write!(f, "No module"),
             VMError::Exit => todo!(),
         }
     }
@@ -163,6 +165,7 @@ pub enum CompilerError {
     MissingEnvironment,
     ValueHasNoTokenType(String),
     ModuleNotFound(String),
+    InvalidState(String),
 }
 
 impl fmt::Display for CompilerError {
@@ -176,6 +179,7 @@ impl fmt::Display for CompilerError {
             CompilerError::MissingEnvironment => write!(f, "Compiling with environment"),
             CompilerError::ValueHasNoTokenType(s) => write!(f, "Value has to TokenType: {}", s),
             CompilerError::ModuleNotFound(name) => write!(f, "Missing module '{}'", name),
+            CompilerError::InvalidState(s) => write!(f, "Invalid compiler state: {}", s),
         }
     }
 }

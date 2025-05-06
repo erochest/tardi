@@ -172,6 +172,7 @@ fn test_scan_character_literals() {
     assert_eq!(token.lexeme, Some("'\\u{1F600}'".to_string()));
 }
 
+#[allow(clippy::approx_constant)]
 #[test]
 fn test_scan_floats() {
     let mut tokens = scan("3.14 2.0 0.123");

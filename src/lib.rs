@@ -10,17 +10,16 @@ pub mod shared;
 pub mod value;
 pub mod vm;
 
-use std::io::{self, Write};
 use std::path::PathBuf;
 
 use rustyline::error::ReadlineError;
-use rustyline::history::{FileHistory, History, MemHistory};
-use rustyline::{self, DefaultEditor, EditMode, Editor};
+use rustyline::history::{FileHistory, History};
+use rustyline::{self, DefaultEditor};
 
 // Re-exports
 // TODO: clean these up
 use crate::config::Config;
-use crate::core::{Execute, Scan, Tardi};
+use crate::core::{Scan, Tardi};
 pub use compiler::Compiler;
 pub use env::Environment;
 pub use error::Result;
@@ -35,6 +34,7 @@ pub fn run_file(path: &PathBuf, _config: Config, print_stack: bool) -> Result<()
     let mut tardi = Tardi::default();
     // TODO: add an option for the bootstrap dir
     tardi.bootstrap(None)?;
+    // XXX: trace out how this works with modules
     tardi.execute_str(&source)?;
     let tardi = tardi;
 
@@ -78,6 +78,7 @@ pub fn repl(config: Config) -> Result<()> {
                 readline.add_history_entry(&input)?;
                 // TODO: reset the stack and items on it on errors
                 // how? memory snapshots? clones? yech!
+                // XXX: trace out how this works with modules
                 match tardi.execute_str(&input) {
                     Ok(()) => println!("ok"),
                     Err(err) => eprintln!("error: {}", err),
@@ -98,7 +99,7 @@ pub fn repl(config: Config) -> Result<()> {
     }
 
     if let Some(history_file) = config.repl.history_file.as_ref() {
-        readline.history_mut().save(&history_file)?;
+        readline.history_mut().save(history_file)?;
     }
 
     Ok(())

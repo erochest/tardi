@@ -1,7 +1,5 @@
 use std::{env, str::FromStr};
 
-use pretty_assertions::*;
-
 use super::*;
 
 #[test]

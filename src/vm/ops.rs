@@ -39,7 +39,8 @@ pub enum OpCode {
     Apply,  // Call a function object on the stack
     Return, // Return from a function
     Exit,   // Shortcut execution at the end of macros
-    Jump,   // Jump to a specific instruction
+    // TODO: do i need versions of this able to index larger numbers in the op table?
+    Jump, // Jump to a specific instruction
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
     Function,
