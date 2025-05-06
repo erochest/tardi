@@ -303,61 +303,46 @@ impl Scanner {
         char
     }
 
+    /// Scans any type of string literal (regular or triple-quoted)
     fn scan_any_string(&mut self) -> Result<ValueData> {
-        // Check for triple quotes by peeking at the next two characters
-        let is_triple = self.chars.get(self.index) == Some(&'"')
-            && self.chars.get(self.index + 1) == Some(&'"');
-
-        if is_triple {
-            self.scan_long_string()
-        } else {
-            self.scan_string()
-        }
-    }
-
-    /// Scans a string literal
-    fn scan_string(&mut self) -> Result<ValueData> {
         let mut string = String::new();
+        let mut is_triple = false;
+        let mut quote_count = 0;
 
-        while let Some(c) = self.next_char() {
-            match c {
-                '"' => return Ok(ValueData::String(string)),
-                '\\' => {
-                    let escaped_char = self.process_escape_sequence()?;
-                    string.push(escaped_char);
-                }
-                _ => string.push(c),
+        // Check for triple quotes
+        if self.chars.get(self.index) == Some(&'"') && self.chars.get(self.index + 1) == Some(&'"') {
+            is_triple = true;
+            // Consume the remaining two quotes
+            if self.next_char() != Some('"') || self.next_char() != Some('"') {
+                return Err(Error::ScannerError(ScannerError::InvalidLiteral(
+                    "Expected triple quote".to_string(),
+                )));
             }
         }
-
-        Err(Error::ScannerError(ScannerError::UnterminatedString))
-    }
-
-    /// Scans a triple-quoted string literal
-    fn scan_long_string(&mut self) -> Result<ValueData> {
-        // Consume the remaining two quotes
-        if self.next_char() != Some('"') || self.next_char() != Some('"') {
-            return Err(Error::ScannerError(ScannerError::InvalidLiteral(
-                "Expected triple quote".to_string(),
-            )));
-        }
-
-        let mut string = String::new();
-        let mut quote_count = 0;
 
         while let Some(c) = self.next_char() {
             match c {
                 '"' => {
-                    quote_count += 1;
-                    if quote_count == 3 {
+                    if is_triple {
+                        quote_count += 1;
+                        if quote_count == 3 {
+                            return Ok(ValueData::String(string));
+                        }
+                    } else {
                         return Ok(ValueData::String(string));
                     }
                 }
+                '\\' if !is_triple => {
+                    let escaped_char = self.process_escape_sequence()?;
+                    string.push(escaped_char);
+                }
                 _ => {
-                    // Add any accumulated quotes if this isn't part of the closing sequence
-                    while quote_count > 0 {
-                        string.push('"');
-                        quote_count -= 1;
+                    if is_triple && quote_count > 0 {
+                        // Add any accumulated quotes if this isn't part of the closing sequence
+                        while quote_count > 0 {
+                            string.push('"');
+                            quote_count -= 1;
+                        }
                     }
                     string.push(c);
                 }
