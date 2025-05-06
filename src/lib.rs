@@ -19,7 +19,7 @@ use rustyline::{self, DefaultEditor};
 // Re-exports
 // TODO: clean these up
 use crate::config::Config;
-use crate::core::{Scan, Tardi};
+use crate::core::Tardi;
 pub use compiler::Compiler;
 pub use env::Environment;
 pub use error::Result;

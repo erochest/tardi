@@ -1,21 +1,36 @@
-use super::Scan;
-
 use crate::error::{Error, Result, ScannerError};
 use crate::value::{Value, ValueData};
+use std::char;
+use std::iter::from_fn;
 use std::path::{Path, PathBuf};
-use std::{char, result};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Source {
+    #[default]
     InputString,
-    ScriptFile { path: PathBuf },
-    Module { name: String, path: PathBuf },
+    ScriptFile {
+        path: PathBuf,
+    },
+    Module {
+        name: String,
+        path: PathBuf,
+    },
+}
+
+impl Source {
+    pub fn get_key(&self) -> String {
+        match &self {
+            Source::InputString => "<input>".to_string(),
+            Source::ScriptFile { path } => path.to_string_lossy().to_string(),
+            Source::Module { path, .. } => path.to_string_lossy().to_string(),
+        }
+    }
 }
 
 /// Scanner that converts source text into a stream of tokens
 pub struct Scanner {
     /// The source that the input is from.
-    source: Source,
+    pub source: Source,
 
     /// Source text being scanned
     input: String,
@@ -34,14 +49,10 @@ pub struct Scanner {
 
     /// Current offset from start of `source`
     offset: usize,
-
-    /// Has the scanner reached the EndOfInput for this source?
-    end_of_input: bool,
 }
 
-impl Scanner {
-    /// Creates a new Scanner for the given source text
-    pub fn new() -> Self {
+impl Default for Scanner {
+    fn default() -> Self {
         let source = String::new();
         let chars = vec![];
         Scanner {
@@ -52,10 +63,11 @@ impl Scanner {
             line: 1,
             column: 1,
             offset: 0,
-            end_of_input: false,
         }
     }
+}
 
+impl Scanner {
     pub fn from_input_string(input: &str) -> Self {
         let input = input.to_string();
         let chars = input.chars().collect();
@@ -67,7 +79,6 @@ impl Scanner {
             line: 1,
             column: 1,
             offset: 0,
-            end_of_input: false,
         }
     }
 
@@ -83,7 +94,6 @@ impl Scanner {
             line: 1,
             column: 1,
             offset: 0,
-            end_of_input: false,
         }
     }
 
@@ -100,16 +110,102 @@ impl Scanner {
             line: 1,
             column: 1,
             offset: 0,
-            end_of_input: false,
         }
     }
 
-    pub fn get_source_key(&self) -> String {
-        match &self.source {
-            Source::InputString => "<input>".to_string(),
-            Source::ScriptFile { path } => path.to_string_lossy().to_string(),
-            Source::Module { path, .. } => path.to_string_lossy().to_string(),
+    pub fn scan_value(&mut self) -> Option<Result<Value>> {
+        // Skip any whitespace before the next token
+        self.skip_whitespace();
+
+        // Check if we've reached the end of input
+        if self.index >= self.chars.len() {
+            return None;
         }
+
+        // Record start position of token
+        let start_line = self.line;
+        let start_column = self.column;
+        let start_offset = self.offset;
+
+        let result = match self.next_char() {
+            Some('"') => self.scan_any_string(),
+            Some('\'') => self.scan_char(),
+            Some(c) => match self.scan_word(c) {
+                Ok(Some(ValueData::Word(w))) => Ok(self.parse_word(&w)),
+                Ok(Some(vd)) => Ok(vd),
+                Ok(None) => {
+                    return self.scan_value();
+                }
+                Err(err) => Err(err),
+            },
+            None => {
+                // This case should not occur due to the check at the beginning of the function
+                unreachable!("Unexpected end of input")
+            }
+        };
+
+        // Wrap successful tokens with position information
+        Some(result.map(|value_data| {
+            self.create_value(value_data, start_offset, start_line, start_column)
+        }))
+    }
+
+    pub fn scan_to_end(&mut self) -> Vec<Result<Value>> {
+        from_fn(|| self.scan_value()).collect()
+    }
+
+    pub fn scan_value_list(&mut self, value_data: ValueData) -> Result<Vec<Result<Value>>> {
+        let mut buffer = Vec::new();
+
+        while let Some(value) = self.scan_value() {
+            match value {
+                Ok(value) if value.data == value_data => break,
+                _ => buffer.push(value),
+            }
+        }
+
+        // If we reached the end without finding the delimiter, return an error
+        if buffer.last().is_none() {
+            return Err(ScannerError::UnexpectedEndOfInput.into());
+        }
+
+        Ok(buffer)
+    }
+
+    pub fn read_string_until(&mut self, delimiter: &str) -> Result<String> {
+        let delimiter: Vec<char> = delimiter.chars().collect();
+        let mut buffer = Vec::new();
+
+        while self.index < self.chars.len() {
+            let c = self.next_char().unwrap(); // Safe because we checked index < len
+            buffer.push(c);
+            if self.chars[self.index..].starts_with(&delimiter) {
+                for _ in delimiter {
+                    let _ = self.next_char();
+                }
+                return Ok(buffer.iter().collect());
+            }
+        }
+
+        Err(ScannerError::UnexpectedEndOfInput.into())
+    }
+
+    fn create_value(
+        &self,
+        value_data: ValueData,
+        start_offset: usize,
+        start_line: usize,
+        start_column: usize,
+    ) -> Value {
+        let length = self.offset - start_offset;
+        Value::from_parts(
+            value_data,
+            &self.input[start_offset..self.offset],
+            start_line,
+            start_column,
+            start_offset,
+            length,
+        )
     }
 
     /// Scans hexadecimal digits up to the specified length
@@ -191,18 +287,31 @@ impl Scanner {
 
     /// Scans a character literal
     fn scan_char(&mut self) -> Result<ValueData> {
-        match self.next_char() {
+        let char = match self.next_char() {
             Some('\\') => self.process_escape_sequence().map(ValueData::Char),
-            Some(c) => {
-                if c == '\'' {
-                    Err(Error::ScannerError(ScannerError::InvalidLiteral(
-                        "Empty character literal".to_string(),
-                    )))
-                } else {
-                    Ok(ValueData::Char(c))
-                }
+            Some('\'') => {
+                Err(ScannerError::InvalidLiteral("Empty character literal".to_string()).into())
             }
+            Some(c) => Ok(ValueData::Char(c)),
             None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
+        };
+
+        if self.next_char() != Some('\'') {
+            return Err(ScannerError::UnterminatedChar.into());
+        }
+
+        char
+    }
+
+    fn scan_any_string(&mut self) -> Result<ValueData> {
+        // Check for triple quotes by peeking at the next two characters
+        let is_triple = self.chars.get(self.index) == Some(&'"')
+            && self.chars.get(self.index + 1) == Some(&'"');
+
+        if is_triple {
+            self.scan_long_string()
+        } else {
+            self.scan_string()
         }
     }
 
@@ -336,6 +445,7 @@ impl Scanner {
             self.next_char();
         }
 
+        // comment
         if word.starts_with("//") {
             self.skip_eol();
             return Ok(None);
@@ -347,177 +457,7 @@ impl Scanner {
             Ok(Some(ValueData::Word(word)))
         }
     }
-
-    pub fn scan_value_list(&mut self, delimiter: &ValueData) -> Result<Vec<Value>> {
-        log::trace!("Scanner::scan_token_list {:?}", delimiter);
-        let mut buffer = Vec::new();
-
-        loop {
-            if let Some(value) = self.next() {
-                let value = value?;
-                if value.data == *delimiter {
-                    break;
-                }
-                buffer.push(value);
-            } else {
-                return Err(ScannerError::UnexpectedEndOfInput.into());
-            }
-        }
-
-        log::trace!("Scanner::scan_token_list <<< {:?}", buffer);
-        Ok(buffer)
-    }
 }
 
-impl Default for Scanner {
-    fn default() -> Self {
-        Scanner::new()
-    }
-}
-
-impl Scan for Scanner {
-    fn scan(&mut self, input: &str) -> Result<Vec<Result<Value>>> {
-        self.set_source(input);
-        let tokens = self.collect();
-        Ok(tokens)
-    }
-
-    fn set_source(&mut self, input: &str) {
-        self.input = input.to_string();
-        self.chars = self.input.chars().collect();
-        self.index = 0;
-        self.line = 1;
-        self.column = 1;
-        self.offset = 0;
-        self.end_of_input = false;
-    }
-
-    fn scan_value(&mut self) -> Option<Result<Value>> {
-        let next = self.next();
-        log::trace!("scanned {:?}", next);
-        next
-    }
-
-    fn scan_values_until(&mut self, value_data: ValueData) -> Result<Vec<Result<Value>>> {
-        let mut buffer = Vec::new();
-
-        while let Some(value) = self.scan_value() {
-            match value {
-                Ok(value) if value.data == value_data => break,
-                Ok(value) if value.data == ValueData::EndOfInput => {
-                    return Err(ScannerError::UnexpectedEndOfInput.into())
-                }
-                _ => buffer.push(value),
-            }
-        }
-
-        Ok(buffer)
-    }
-
-    fn read_string_until(&mut self, delimiter: &str) -> Result<String> {
-        let delimiter: Vec<char> = delimiter.chars().collect();
-        let mut buffer = Vec::new();
-
-        loop {
-            if let Some(c) = self.next_char() {
-                buffer.push(c);
-                if self.chars[self.index..].starts_with(&delimiter) {
-                    for _ in delimiter {
-                        let _ = self.next_char();
-                    }
-                    break;
-                }
-            } else {
-                return Err(ScannerError::UnexpectedEndOfInput.into());
-            }
-        }
-
-        Ok(buffer.iter().collect())
-    }
-}
-
-impl Iterator for Scanner {
-    type Item = result::Result<Value, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.end_of_input {
-            return None;
-        }
-
-        // Skip any whitespace before the next token
-        self.skip_whitespace();
-
-        // Record start position of token
-        let start_line = self.line;
-        let start_column = self.column;
-        let start_offset = self.offset;
-
-        // Get next character
-        let c = self.next_char();
-
-        if c.is_none() {
-            self.end_of_input = true;
-            return Some(Ok(Value::from_parts(
-                ValueData::EndOfInput,
-                "",
-                self.line,
-                self.column,
-                self.offset,
-                0,
-            )));
-        }
-
-        // Create token based on character
-        let c = c.unwrap();
-        let result = if c == '"' {
-            // Check for triple quotes by peeking at the next two characters
-            let is_triple = self.chars.get(self.index) == Some(&'"')
-                && self.chars.get(self.index + 1) == Some(&'"');
-
-            if is_triple {
-                self.scan_long_string()
-            } else {
-                self.scan_string()
-            }
-        } else if c == '\'' {
-            let char_result = self.scan_char();
-            if let Ok(ValueData::Char(_)) = char_result {
-                // Consume the closing single quote
-                if self.next_char() != Some('\'') {
-                    return Some(Err(Error::ScannerError(ScannerError::UnterminatedChar)));
-                }
-            }
-            char_result
-        } else {
-            match self.scan_word(c) {
-                Ok(Some(ValueData::Word(w))) => Ok(self.parse_word(&w)),
-                Ok(Some(vd)) => Ok(vd),
-                Ok(None) => {
-                    return self.next();
-                }
-                Err(err) => {
-                    return Some(Err(err));
-                }
-            }
-        };
-
-        // Calculate token length
-        let length = self.offset - start_offset;
-
-        // Wrap successful tokens with position information
-        Some(result.map(|value_data| {
-            Value::from_parts(
-                value_data,
-                &self.input[start_offset..self.offset],
-                start_line,
-                start_column,
-                start_offset,
-                length,
-            )
-        }))
-    }
-}
-
-// TODO: refactor into a new file
 #[cfg(test)]
 mod tests;

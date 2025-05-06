@@ -10,7 +10,7 @@ use module::Loader;
 pub mod module;
 
 use crate::config::Config;
-use crate::core::{Compile, Execute, Scan};
+use crate::core::{Compile, Execute};
 use crate::env::{Environment, Module};
 use crate::error::{CompilerError, Error, Result, ScannerError, VMError};
 use crate::shared::{shared, unshare_clone, Shared};
@@ -169,7 +169,7 @@ impl Compiler {
         let mut buffer = Vec::new();
         let module_key = self
             .current_scanner()
-            .map(|s| s.get_source_key())
+            .map(|s| s.source.get_key())
             .ok_or_else(|| CompilerError::InvalidState("no current module".to_string()))?;
 
         while let Some(result) = self.scan_value() {
@@ -449,7 +449,7 @@ impl Compiler {
         log::trace!("Compiler::compile_word_call {:?}", word);
         let module = self
             .peek_module()
-            .map(|m| m.scanner.get_source_key())
+            .map(|m| m.scanner.source.get_key())
             .ok_or(CompilerError::InvalidState("missing module".to_string()))?;
         let op_table_index = self
             .environment
@@ -496,7 +496,7 @@ impl Compiler {
         log::trace!("Compiler::add_function {:?}", lambda.name);
         let module_path = self
             .current_scanner()
-            .map(|s| Path::new(&s.get_source_key()).to_owned())
+            .map(|s| Path::new(&s.source.get_key()).to_owned())
             .ok_or_else(|| CompilerError::InvalidState("no scanner".to_string()))?;
         if let Some(env) = self.environment.as_ref() {
             env.borrow_mut()
@@ -538,11 +538,6 @@ impl Compiler {
         Ok(lambda)
     }
 
-    pub fn scan_str(&mut self, input: &str) -> Result<Vec<Result<Value>>> {
-        let scanner = Scanner::from_input_string(input);
-        Ok(scanner.collect())
-    }
-
     pub fn scan_value(&mut self) -> Option<Result<Value>> {
         self.current_scanner_mut().and_then(|s| s.scan_value())
     }
@@ -550,7 +545,10 @@ impl Compiler {
     pub fn scan_value_list(&mut self, delimiter: &ValueData) -> Result<Vec<Value>> {
         self.current_scanner_mut()
             .ok_or_else(|| ScannerError::NotInitialized.into())
-            .and_then(|s| s.scan_value_list(delimiter))
+            .and_then(|s| {
+                let list = s.scan_value_list(delimiter.clone())?;
+                list.into_iter().collect()
+            })
     }
 
     // TODO: when this is done, can I reimplement `scan` to be
@@ -658,7 +656,7 @@ impl Compiler {
 
     fn get_macro(&self, env: Shared<Environment>, trigger: &ValueData) -> Option<Lambda> {
         self.current_scanner().and_then(|s| {
-            let key = s.get_source_key();
+            let key = s.source.get_key();
             env.borrow().get_macro(&key, trigger).cloned()
         })
     }

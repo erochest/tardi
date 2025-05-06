@@ -1,20 +1,18 @@
-use crate::Tardi;
+use std::iter::from_fn;
 
 use super::*;
 
 // TODO: better tests for errors
 
 fn scan_raw(input: &str) -> Vec<Result<Value>> {
-    let mut tardi = Tardi::default();
-    tardi.scan_str(input).unwrap()
+    let mut scanner = Scanner::from_input_string(input);
+    from_fn(|| scanner.scan_value()).collect()
 }
 
 fn scan(input: &str) -> Vec<Value> {
-    let mut tardi = Tardi::default();
-    let tokens = tardi.scan_str(input);
-    assert!(tokens.is_ok());
-    let tokens = tokens.unwrap();
-    let tokens: Result<Vec<Value>> = tokens.into_iter().collect();
+    let mut scanner = Scanner::from_input_string(input);
+    let tokens = from_fn(|| scanner.scan_value());
+    let tokens: Result<Vec<Value>> = tokens.collect();
     assert!(tokens.is_ok());
     tokens.unwrap()
 }
@@ -236,21 +234,13 @@ fn test_scan_comments() {
     assert!(matches!(token.data, ValueData::Word(w) if w == "dup"));
     assert_eq!(token.lexeme, Some("dup".to_string()));
 
-    // Ensure there is only the EndOfInput token
-    assert_eq!(tokens.len(), 1);
-    assert_eq!(
-        tokens[0].data,
-        ValueData::EndOfInput,
-        "{:?} != {:?}",
-        tokens[0],
-        ValueData::EndOfInput
-    );
+    // Ensure no more tokens were read.
+    assert!(tokens.is_empty());
 }
 
 #[test]
 fn test_set_source() {
-    let mut scanner = Scanner::new();
-    scanner.set_source("something something here");
+    let scanner = Scanner::from_input_string("something something here");
     assert_eq!(scanner.input, "something something here".to_string());
     assert_eq!(scanner.index, 0);
     assert_eq!(scanner.line, 1);
@@ -260,8 +250,7 @@ fn test_set_source() {
 
 #[test]
 fn test_scan_token() {
-    let mut scanner = Scanner::new();
-    scanner.set_source("24 42 * word");
+    let mut scanner = Scanner::from_input_string("24 42 * word");
 
     let token = scanner.scan_value();
     assert!(matches!(token, Some(Ok(_))));
@@ -292,25 +281,17 @@ fn test_scan_token() {
         Value::from_parts(ValueData::Word("word".to_string()), "word", 1, 9, 8, 4),
     );
     let token = scanner.scan_value();
-    assert!(matches!(token, Some(Ok(_))));
-    let token = token.unwrap().unwrap();
-    assert_eq!(
-        token,
-        Value::from_parts(ValueData::EndOfInput, "", 1, 13, 12, 0),
-    );
-    let token = scanner.scan_value();
     assert!(token.is_none());
 }
 
 #[test]
-fn test_scan_tokens_until() {
-    let mut scanner = Scanner::new();
-    scanner.set_source("\n: double 2 * ;\n7 double\n");
+fn test_scan_value_list() {
+    let mut scanner = Scanner::from_input_string("\n: double 2 * ;\n7 double\n");
 
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word(":".to_string()))));
 
-    let tokens = scanner.scan_values_until(ValueData::Word(";".to_string()));
+    let tokens = scanner.scan_value_list(ValueData::Word(";".to_string()));
     assert!(tokens.is_ok());
     let tokens = tokens.unwrap();
     let tokens = tokens.into_iter().collect::<Result<Vec<_>>>();
@@ -336,8 +317,7 @@ fn test_scan_tokens_until() {
 
 #[test]
 fn test_read_string_until() {
-    let mut scanner = Scanner::new();
-    scanner.set_source("\n<< double 2 * >>\n7 double\n");
+    let mut scanner = Scanner::from_input_string("\n<< double 2 * >>\n7 double\n");
 
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("<<".to_string()))));
@@ -359,8 +339,7 @@ fn test_read_string_until() {
 
 #[test]
 fn test_words_starting_with_numbers() {
-    let mut scanner = Scanner::new();
-    scanner.set_source("123abc");
+    let mut scanner = Scanner::from_input_string("123abc");
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("123abc".to_string()))));
 }

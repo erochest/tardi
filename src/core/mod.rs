@@ -11,14 +11,6 @@ use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
 use crate::vm::{OpCode, VM};
 
-pub trait Scan {
-    fn scan(&mut self, input: &str) -> Result<Vec<Result<Value>>>;
-    fn set_source(&mut self, input: &str);
-    fn scan_value(&mut self) -> Option<Result<Value>>;
-    fn scan_values_until(&mut self, value_data: ValueData) -> Result<Vec<Result<Value>>>;
-    fn read_string_until(&mut self, delimiter: &str) -> Result<String>;
-}
-
 pub trait Compile {
     fn compile<E: Execute>(
         &mut self,
@@ -96,14 +88,6 @@ impl Tardi {
 
     pub fn reset(&mut self) {
         self.input = None;
-    }
-
-    pub fn scan_str(&mut self, input: &str) -> Result<Vec<Result<Value>>> {
-        log::debug!("input : {:?}", input);
-        let input = input.to_string();
-        self.input = Some(input);
-        // XXX: create a new scanner context for this input
-        self.compiler.scan_str(self.input.as_ref().unwrap())
     }
 
     pub fn compile(&mut self, module_key: &str, input: &str) -> Result<Shared<Environment>> {
