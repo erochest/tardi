@@ -353,3 +353,17 @@ fn test_words_starting_with_numbers() {
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("123abc".to_string()))));
 }
+
+#[test]
+fn test_multi_byte_utf8_characters() {
+    let mut scanner = Scanner::from_input_string("こんにちは world");
+    let token = scanner.scan_value();
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("こんにちは".to_string()))));
+    
+    let token = scanner.scan_value();
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("world".to_string()))));
+
+    assert_eq!(scanner.line, 1);
+    assert_eq!(scanner.column, 12); // 'world' starts at column 12 (1-based)
+    assert_eq!(scanner.offset, 21); // 'こんにちは' is 15 bytes + 1 space + 5 bytes for 'world'
+}

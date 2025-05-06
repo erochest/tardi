@@ -348,8 +348,21 @@ impl Scanner {
         Err(Error::ScannerError(ScannerError::UnterminatedString))
     }
 
+    /// Peeks at the next character without consuming it
+    fn peek(&self) -> Option<char> {
+        self.chars.get(self.index).copied()
+    }
+
+    /// Consumes and returns the next character
+    fn next_char(&mut self) -> Option<char> {
+        let c = self.peek()?;
+        self.advance(c);
+        Some(c)
+    }
+
     /// Advances the scanner state after consuming a character
     fn advance(&mut self, c: char) {
+        self.index += 1;
         self.offset += c.len_utf8();
         if c == '\n' {
             self.line += 1;
@@ -357,19 +370,6 @@ impl Scanner {
         } else {
             self.column += 1;
         }
-    }
-
-    /// Peeks at the next character without consuming it
-    fn peek(&mut self) -> Option<char> {
-        self.chars.get(self.index).copied()
-    }
-
-    /// Consumes and returns the next character
-    fn next_char(&mut self) -> Option<char> {
-        let c = *self.chars.get(self.index)?;
-        self.index += 1;
-        self.advance(c);
-        Some(c)
     }
 
     /// Skips whitespace characters
