@@ -1,10 +1,12 @@
 use std::iter::from_fn;
 
+use crate::error::Error;
+use crate::scanner::error::ScannerError;
 use super::*;
 
 // TODO: better tests for errors
 
-fn scan_raw(input: &str) -> Vec<Result<Value>> {
+fn scan_raw(input: &str) -> Vec<ScannerResult<Value>> {
     let mut scanner = Scanner::from_input_string(input);
     from_fn(|| scanner.scan_value()).collect()
 }
@@ -12,7 +14,7 @@ fn scan_raw(input: &str) -> Vec<Result<Value>> {
 fn scan(input: &str) -> Vec<Value> {
     let mut scanner = Scanner::from_input_string(input);
     let tokens = from_fn(|| scanner.scan_value());
-    let tokens: Result<Vec<Value>> = tokens.collect();
+    let tokens: ScannerResult<Vec<Value>> = tokens.collect();
     assert!(tokens.is_ok());
     tokens.unwrap()
 }
@@ -294,7 +296,7 @@ fn test_scan_value_list() {
     let tokens = scanner.scan_value_list(ValueData::Word(";".to_string()));
     assert!(tokens.is_ok());
     let tokens = tokens.unwrap();
-    let tokens = tokens.into_iter().collect::<Result<Vec<_>>>();
+    let tokens = tokens.into_iter().collect::<ScannerResult<Vec<_>>>();
     assert!(tokens.is_ok());
     let tokens = tokens.unwrap();
     assert_eq!(tokens.len(), 3);

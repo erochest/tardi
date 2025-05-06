@@ -1,4 +1,7 @@
-use crate::error::{Error, Result, ScannerError};
+
+pub mod error;
+
+use crate::scanner::error::{ScannerError, ScannerResult};
 use crate::value::{Value, ValueData};
 use std::char;
 use std::iter::from_fn;
@@ -113,7 +116,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_value(&mut self) -> Option<Result<Value>> {
+    pub fn scan_value(&mut self) -> Option<ScannerResult<Value>> {
         // Skip any whitespace before the next token
         self.skip_whitespace();
 
@@ -150,11 +153,11 @@ impl Scanner {
         }))
     }
 
-    pub fn scan_to_end(&mut self) -> Vec<Result<Value>> {
+    pub fn scan_to_end(&mut self) -> Vec<ScannerResult<Value>> {
         from_fn(|| self.scan_value()).collect()
     }
 
-    pub fn scan_value_list(&mut self, value_data: ValueData) -> Result<Vec<Result<Value>>> {
+    pub fn scan_value_list(&mut self, value_data: ValueData) -> ScannerResult<Vec<ScannerResult<Value>>> {
         let mut buffer = Vec::new();
 
         while let Some(value) = self.scan_value() {
@@ -167,7 +170,7 @@ impl Scanner {
         Err(ScannerError::UnexpectedEndOfInput.into())
     }
 
-    pub fn read_string_until(&mut self, delimiter: &str) -> Result<String> {
+    pub fn read_string_until(&mut self, delimiter: &str) -> ScannerResult<String> {
         let mut buffer = String::new();
         let delimiter_chars: Vec<char> = delimiter.chars().collect();
         let delimiter_len = delimiter_chars.len();
@@ -205,7 +208,7 @@ impl Scanner {
     }
 
     /// Scans hexadecimal digits up to the specified length
-    fn scan_hex_digits(&mut self, max_len: usize) -> Result<u32> {
+    fn scan_hex_digits(&mut self, max_len: usize) -> ScannerResult<u32> {
         let mut value = 0u32;
         let mut count = 0;
 
@@ -225,16 +228,16 @@ impl Scanner {
         }
 
         if count == 0 {
-            return Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+            return Err(ScannerError::InvalidEscapeSequence(
                 "Expected hexadecimal digits".to_string(),
-            )));
+            ).into());
         }
 
         Ok(value)
     }
 
     /// Processes an escape sequence in a string or character literal
-    fn process_escape_sequence(&mut self) -> Result<char> {
+    fn process_escape_sequence(&mut self) -> ScannerResult<char> {
         match self.next_char() {
             Some('n') => Ok('\n'),
             Some('r') => Ok('\r'),
@@ -252,44 +255,44 @@ impl Scanner {
                             Some('}') => match char::from_u32(value) {
                                 Some(c) => Ok(c),
                                 None => {
-                                    Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                                    Err(ScannerError::InvalidEscapeSequence(
                                         format!("Invalid Unicode codepoint: {}", value),
-                                    )))
+                                    ).into())
                                 }
                             },
-                            _ => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                            _ => Err(ScannerError::InvalidEscapeSequence(
                                 "Expected closing '}'".to_string(),
-                            ))),
+                            ).into()),
                         }
                     }
                     _ => {
                         // ASCII escape \uXX
                         let value = self.scan_hex_digits(2)?;
                         if value > 0x7F {
-                            return Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+                            return Err(ScannerError::InvalidEscapeSequence(
                                 format!("ASCII value out of range: {}", value),
-                            )));
+                            ).into());
                         }
                         Ok(char::from_u32(value).unwrap())
                     }
                 }
             }
-            Some(c) => Err(Error::ScannerError(ScannerError::InvalidEscapeSequence(
+            Some(c) => Err(ScannerError::InvalidEscapeSequence(
                 format!("\\{}", c),
-            ))),
-            None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
+            ).into()),
+            None => Err(ScannerError::UnterminatedChar.into()),
         }
     }
 
     /// Scans a character literal
-    fn scan_char(&mut self) -> Result<ValueData> {
+    fn scan_char(&mut self) -> ScannerResult<ValueData> {
         let char = match self.next_char() {
             Some('\\') => self.process_escape_sequence().map(ValueData::Char),
             Some('\'') => {
                 Err(ScannerError::InvalidLiteral("Empty character literal".to_string()).into())
             }
             Some(c) => Ok(ValueData::Char(c)),
-            None => Err(Error::ScannerError(ScannerError::UnterminatedChar)),
+            None => Err(ScannerError::UnterminatedChar.into()),
         };
 
         if self.next_char() != Some('\'') {
@@ -300,7 +303,7 @@ impl Scanner {
     }
 
     /// Scans any type of string literal (regular or triple-quoted)
-    fn scan_any_string(&mut self) -> Result<ValueData> {
+    fn scan_any_string(&mut self) -> ScannerResult<ValueData> {
         let mut string = String::new();
         let mut is_triple = false;
         let mut quote_count = 0;
@@ -310,9 +313,9 @@ impl Scanner {
             is_triple = true;
             // Consume the remaining two quotes
             if self.next_char() != Some('"') || self.next_char() != Some('"') {
-                return Err(Error::ScannerError(ScannerError::InvalidLiteral(
+                return Err(ScannerError::InvalidLiteral(
                     "Expected triple quote".to_string(),
-                )));
+                ).into());
             }
         }
 
@@ -345,7 +348,7 @@ impl Scanner {
             }
         }
 
-        Err(Error::ScannerError(ScannerError::UnterminatedString))
+        Err(ScannerError::UnterminatedString.into())
     }
 
     /// Peeks at the next character without consuming it
@@ -393,31 +396,61 @@ impl Scanner {
     }
 
     fn parse_word(&self, lexeme: &str) -> ValueData {
-        // TODO: Implement more number formats in the future:
+        // Try parsing in order of specificity
+        self.parse_boolean(lexeme)
+            .or_else(|| self.parse_number(lexeme))
+            .unwrap_or_else(|| ValueData::Word(lexeme.to_string()))
+    }
+
+    fn parse_boolean(&self, lexeme: &str) -> Option<ValueData> {
+        match lexeme {
+            "#t" => Some(ValueData::Boolean(true)),
+            "#f" => Some(ValueData::Boolean(false)),
+            _ => None,
+        }
+    }
+
+    fn parse_number(&self, lexeme: &str) -> Option<ValueData> {
+        // First try integer parsing
+        if let Ok(number) = lexeme.parse::<i64>() {
+            return Some(ValueData::Integer(number));
+        }
+
+        // Then try float parsing
+        if let Ok(number) = lexeme.parse::<f64>() {
+            return Some(ValueData::Float(number));
+        }
+
+        // TODO: Future number format support:
         // - Binary (0b prefix)
         // - Octal (0o prefix)
         // - Hexadecimal (0x prefix)
         // - Rational type (e.g., 3/4)
-        // - Exponential notation for floats (e.g., 1e-10)
+        // - Exponential notation (e.g., 1e-10)
         // - Floats without leading digit (e.g., .5)
-        if lexeme == "#t" {
-            ValueData::Boolean(true)
-        } else if lexeme == "#f" {
-            ValueData::Boolean(false)
-        } else if let Ok(number) = lexeme.parse::<i64>() {
-            ValueData::Integer(number)
-        } else if let Ok(number) = lexeme.parse::<f64>() {
-            ValueData::Float(number)
-        } else {
-            ValueData::Word(lexeme.to_string())
-        }
+        None
     }
 
     /// Scans a word (any sequence of non-whitespace characters)
-    fn scan_word(&mut self, first_char: char) -> Result<Option<ValueData>> {
+    fn scan_word(&mut self, first_char: char) -> ScannerResult<Option<ValueData>> {
+        let word = self.scan_word_chars(first_char);
+
+        // Handle special cases
+        if word.starts_with("//") {
+            self.skip_eol();
+            return Ok(None);
+        }
+
+        match word.as_str() {
+            "MACRO:" => Ok(Some(ValueData::Macro)),
+            _ => Ok(Some(ValueData::Word(word))),
+        }
+    }
+
+    /// Scans the characters that make up a word
+    fn scan_word_chars(&mut self, first_char: char) -> String {
         let mut word = String::from(first_char);
 
-        // Scan the rest of the word
         while let Some(c) = self.peek() {
             if c.is_ascii_whitespace() {
                 break;
@@ -426,17 +459,7 @@ impl Scanner {
             self.next_char();
         }
 
-        // comment
-        if word.starts_with("//") {
-            self.skip_eol();
-            return Ok(None);
-        }
-
-        if word == "MACRO:" {
-            Ok(Some(ValueData::Macro))
-        } else {
-            Ok(Some(ValueData::Word(word)))
-        }
+        word
     }
 }
 
