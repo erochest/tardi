@@ -338,6 +338,16 @@ fn test_read_string_until() {
 }
 
 #[test]
+fn test_read_string_until_overlapping_delimiters() {
+    let mut scanner = Scanner::from_input_string("bcababa");
+
+    let result = scanner.read_string_until("aba");
+    assert!(result.is_ok(), "error on {:?}", result);
+    let text_range = result.unwrap();
+    assert_eq!(text_range, "bc".to_string());
+}
+
+#[test]
 fn test_words_starting_with_numbers() {
     let mut scanner = Scanner::from_input_string("123abc");
     let token = scanner.scan_value();

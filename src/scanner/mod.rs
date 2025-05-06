@@ -159,32 +159,28 @@ impl Scanner {
 
         while let Some(value) = self.scan_value() {
             match value {
-                Ok(value) if value.data == value_data => break,
+                Ok(value) if value.data == value_data => return Ok(buffer),
                 _ => buffer.push(value),
             }
         }
 
-        // If we reached the end without finding the delimiter, return an error
-        if buffer.last().is_none() {
-            return Err(ScannerError::UnexpectedEndOfInput.into());
-        }
-
-        Ok(buffer)
+        Err(ScannerError::UnexpectedEndOfInput.into())
     }
 
     pub fn read_string_until(&mut self, delimiter: &str) -> Result<String> {
-        let delimiter: Vec<char> = delimiter.chars().collect();
-        let mut buffer = Vec::new();
+        let mut buffer = String::new();
+        let delimiter_chars: Vec<char> = delimiter.chars().collect();
+        let delimiter_len = delimiter_chars.len();
 
         while self.index < self.chars.len() {
-            let c = self.next_char().unwrap(); // Safe because we checked index < len
-            buffer.push(c);
-            if self.chars[self.index..].starts_with(&delimiter) {
-                for _ in delimiter {
-                    let _ = self.next_char();
+            if self.chars[self.index..].starts_with(&delimiter_chars) {
+                for _ in 0..delimiter_len {
+                    self.next_char();
                 }
-                return Ok(buffer.iter().collect());
+                return Ok(buffer);
             }
+
+            buffer.push(self.next_char().unwrap());
         }
 
         Err(ScannerError::UnexpectedEndOfInput.into())
