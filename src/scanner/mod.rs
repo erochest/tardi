@@ -71,6 +71,15 @@ impl Default for Scanner {
 }
 
 impl Scanner {
+    /// Creates a new Scanner from an input string.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The input string to scan
+    ///
+    /// # Returns
+    ///
+    /// A new Scanner instance initialized with the input string
     pub fn from_input_string(input: &str) -> Self {
         let input = input.to_string();
         let chars = input.chars().collect();
@@ -85,6 +94,16 @@ impl Scanner {
         }
     }
 
+    /// Creates a new Scanner from a script file.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the script file
+    /// * `input` - The content of the script file
+    ///
+    /// # Returns
+    ///
+    /// A new Scanner instance initialized with the script file content
     pub fn from_script(path: &Path, input: &str) -> Self {
         let path = path.to_path_buf();
         let input = input.to_string();
@@ -100,6 +119,17 @@ impl Scanner {
         }
     }
 
+    /// Creates a new Scanner from a module.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the module
+    /// * `path` - The path to the module file
+    /// * `input` - The content of the module file
+    ///
+    /// # Returns
+    ///
+    /// A new Scanner instance initialized with the module content
     pub fn from_module(name: &str, path: &Path, input: &str) -> Self {
         let name = name.to_string();
         let path = path.to_path_buf();
@@ -116,6 +146,17 @@ impl Scanner {
         }
     }
 
+    /// Scans and returns the next value from the input.
+    ///
+    /// This method skips any whitespace before reading the next value. It handles
+    /// various types of values including numbers, strings, characters, booleans,
+    /// and words.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Ok(Value))` - If a value was successfully scanned
+    /// * `Some(Err(Error))` - If there was an error while scanning
+    /// * `None` - If the end of input was reached
     pub fn scan_value(&mut self) -> Option<ScannerResult<Value>> {
         // Skip any whitespace before the next token
         self.skip_whitespace();
@@ -153,10 +194,29 @@ impl Scanner {
         }))
     }
 
+    /// Scans all values until the end of input is reached.
+    ///
+    /// # Returns
+    ///
+    /// A vector of ScannerResults, each containing either a Value or an Error
     pub fn scan_to_end(&mut self) -> Vec<ScannerResult<Value>> {
         from_fn(|| self.scan_value()).collect()
     }
 
+    /// Scans a list of values until a specific value is encountered.
+    ///
+    /// This method collects values until it finds one that matches the provided
+    /// value_data. The matching value is not included in the returned list.
+    ///
+    /// # Arguments
+    ///
+    /// * `value_data` - The ValueData to scan until
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// * `Ok(Vec<ScannerResult<Value>>)` - The list of values scanned
+    /// * `Err(Error)` - If an error occurred or end of input was reached
     pub fn scan_value_list(&mut self, value_data: ValueData) -> ScannerResult<Vec<ScannerResult<Value>>> {
         let mut buffer = Vec::new();
 
@@ -170,6 +230,21 @@ impl Scanner {
         Err(ScannerError::UnexpectedEndOfInput.into())
     }
 
+    /// Reads a string until a specific delimiter is encountered.
+    ///
+    /// This method reads characters into a buffer until it finds the specified
+    /// delimiter sequence. The delimiter is consumed but not included in the
+    /// returned string.
+    ///
+    /// # Arguments
+    ///
+    /// * `delimiter` - The string sequence to read until
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// * `Ok(String)` - The string read up to the delimiter
+    /// * `Err(Error)` - If the delimiter was not found before end of input
     pub fn read_string_until(&mut self, delimiter: &str) -> ScannerResult<String> {
         let mut buffer = String::new();
         let delimiter_chars: Vec<char> = delimiter.chars().collect();
