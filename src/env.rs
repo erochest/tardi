@@ -1,28 +1,35 @@
+use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::core::{create_kernel_module, create_op_table};
-use crate::error::{CompilerError, Result};
-use crate::shared::Shared;
+use crate::error::Result;
+use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
-use crate::value::{Value, ValueData};
+use crate::value::Value;
 use crate::vm::OpCode;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::result;
 
 #[derive(Default, Clone)]
 pub struct Module {
+    pub path: Option<PathBuf>,
+    pub name: String,
+
     /// This maps a word name to its index in the environment's `op_table`.
-    pub exports: HashMap<String, usize>,
+    pub defined: HashMap<String, usize>,
 
     /// This maps the imported word names to their indexes in the environment's `op_table`.
     pub imported: HashMap<String, usize>,
+}
 
-    /// This is the total namespace for this module.
-    pub namespace: HashMap<String, usize>,
-
-    /// This holds the macros currently in play.
-    pub macro_table: HashMap<String, Lambda>,
+impl Module {
+    pub fn get(&self, name: &str) -> Option<usize> {
+        self.defined
+            .get(name)
+            .or_else(|| self.imported.get(name))
+            .copied()
+    }
 }
 
 /// This holds the running environment.
@@ -124,34 +131,27 @@ impl Environment {
         self.op_table = op_table;
     }
 
-    pub fn add_to_op_table(&mut self, module_path: &Path, lambda: Shared<Lambda>) -> Result<()> {
-        // TODO: does this need to also add this to the module pointing to this?
+    pub fn add_to_op_table(
+        &mut self,
+        module_key: &str,
+        lambda: Shared<Lambda>,
+    ) -> CompilerResult<()> {
         let index = self.op_table.len();
         self.op_table.push(lambda.clone());
 
         if let Some(name) = lambda.borrow().name.as_ref() {
-            let module = self.get_module_mut(module_path).ok_or_else(|| {
-                CompilerError::ModuleNotFound(module_path.to_string_lossy().to_string())
-            })?;
-            module.exports.insert(name.clone(), index);
-            module.namespace.insert(name.clone(), index);
+            let module = self
+                .get_module_mut(module_key)
+                .ok_or_else(|| CompilerError::ModuleNotFound(module_key.to_string()))?;
+            module.defined.insert(name.clone(), index);
         }
 
         Ok(())
     }
 
-    pub fn set_macro_table(&mut self, module_path: &str, macro_table: HashMap<String, Lambda>) {
-        if let Some(module) = self.modules.get_mut(module_path) {
-            module.macro_table = macro_table;
-        }
-    }
-
     pub fn set_imported(&mut self, module_path: &str, imported: HashMap<String, usize>) {
         if let Some(module) = self.modules.get_mut(module_path) {
             module.imported = imported;
-            for (k, v) in module.imported.iter() {
-                module.namespace.insert(k.clone(), *v);
-            }
         }
     }
 
@@ -166,7 +166,7 @@ impl Environment {
     pub fn get_op_name(&self, ip: usize) -> Option<String> {
         // TODO: name here is actually the path, which isn't ideal
         for (name, module) in self.modules.iter() {
-            for (word, index) in module.exports.iter() {
+            for (word, index) in module.defined.iter() {
                 let lambda_ip = self.op_table.get(*index).and_then(|l| l.borrow().get_ip());
                 if lambda_ip == Some(ip) {
                     return Some(format!("{}.{}", name, word));
@@ -176,23 +176,8 @@ impl Environment {
         None
     }
 
-    pub fn get_macro_name(&self, op_code: usize) -> Option<String> {
-        // TODO: name here is actually the path, which isn't ideal
-        for (name, module) in self.modules.iter() {
-            for (word, lambda) in module.macro_table.iter() {
-                if lambda.get_ip() == Some(op_code) {
-                    return Some(format!("{}.{}", name, word));
-                }
-            }
-        }
-        None
-    }
-
     pub fn get_op_ip(&self, module: &str, word: &str) -> Option<usize> {
-        self.modules
-            .get(module)
-            .and_then(|m| m.namespace.get(word))
-            .copied()
+        self.modules.get(module).and_then(|m| m.get(word))
     }
 
     pub fn get_instruction(&self, ip: usize) -> Option<usize> {
@@ -213,9 +198,8 @@ impl Environment {
         self.modules.get(&path)
     }
 
-    pub fn get_module_mut(&mut self, path: &Path) -> Option<&mut Module> {
-        let path = path.to_string_lossy().to_string();
-        self.modules.get_mut(&path)
+    pub fn get_module_mut(&mut self, key: &str) -> Option<&mut Module> {
+        self.modules.get_mut(key)
     }
 
     pub fn add_module(&mut self, path: &Path, module: Module) {
@@ -223,26 +207,13 @@ impl Environment {
         self.modules.insert(path, module);
     }
 
-    pub fn get_macro(&self, module_key: &str, trigger: &ValueData) -> Option<&Lambda> {
-        self.modules
-            .get(module_key)
-            .and_then(|m| m.macro_table.get(&trigger.to_string()))
-    }
-
     pub fn get_callable(&self, op_table_index: usize) -> Option<Shared<Lambda>> {
         self.op_table.get(op_table_index).cloned()
     }
 
     pub fn add_macro(&mut self, module_key: &str, macro_lambda: Lambda) -> Result<()> {
-        let trigger = macro_lambda
-            .name
-            .clone()
-            .ok_or_else(|| CompilerError::InvalidState("macro without trigger/name".to_string()))?;
-        let module = self
-            .modules
-            .get_mut(module_key)
-            .ok_or_else(|| CompilerError::ModuleNotFound(module_key.to_string()))?;
-        module.macro_table.insert(trigger, macro_lambda);
+        let macro_lambda = shared(macro_lambda);
+        self.add_to_op_table(module_key, macro_lambda.clone())?;
         Ok(())
     }
 
@@ -403,7 +374,7 @@ impl Environment {
     }
 
     fn write_function_names(&self, f: &mut fmt::Formatter<'_>, ip: usize) -> fmt::Result {
-        let name = self.get_op_name(ip).or_else(|| self.get_macro_name(ip));
+        let name = self.get_op_name(ip);
 
         // TODO: sometimes the column before this is omitted. Make them line up.
         if let Some(name) = name {

@@ -5,7 +5,7 @@ use std::str::FromStr;
 use pretty_assertions::assert_eq;
 
 use super::*;
-use crate::error::{CompilerError, Error, Result};
+use crate::error::{Error, Result};
 
 fn setup() -> Result<Loader> {
     let pwd = env::current_dir()?;

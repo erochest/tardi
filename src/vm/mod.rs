@@ -2,7 +2,6 @@ use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::Lambda;
 use crate::Compiler;
 use log::{log_enabled, Level};
-use std::path::Path;
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
@@ -495,8 +494,8 @@ impl VM {
         log::trace!("function: {}", callable);
 
         // Add the function to the op_table
+        // XXX: this needs to operate on the compiler's current module
         if let Some(env) = self.environment.as_ref() {
-            let module = Path::new(module);
             let env = env.clone();
             (*env)
                 .borrow_mut()
@@ -518,7 +517,6 @@ impl VM {
 
         let lambda = Lambda::new_undefined(&name_str);
         let module = self.module_stack.last().ok_or(VMError::MissingModule)?;
-        let module = Path::new(module);
         // Add the function to the op_table
         if let Some(env) = self.environment.as_ref() {
             let env = env.clone();

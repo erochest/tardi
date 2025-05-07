@@ -2,7 +2,7 @@ use std::env;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
-use crate::error::CompilerError;
+use crate::compiler::error::CompilerError;
 use crate::{config::Config, error::Result};
 
 #[derive(Debug)]

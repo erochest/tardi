@@ -1,8 +1,8 @@
 use std::iter::from_fn;
 
+use super::*;
 use crate::error::Error;
 use crate::scanner::error::ScannerError;
-use super::*;
 
 // TODO: better tests for errors
 
@@ -333,10 +333,7 @@ fn test_read_string_until() {
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Integer(7))));
 
     let result = scanner.read_string_until(">>");
-    assert!(matches!(
-        result,
-        Err(Error::ScannerError(ScannerError::UnexpectedEndOfInput))
-    ));
+    assert!(matches!(result, Err(ScannerError::UnexpectedEndOfInput)));
 }
 
 #[test]
@@ -360,8 +357,10 @@ fn test_words_starting_with_numbers() {
 fn test_multi_byte_utf8_characters() {
     let mut scanner = Scanner::from_input_string("こんにちは world");
     let token = scanner.scan_value();
-    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("こんにちは".to_string()))));
-    
+    assert!(
+        token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("こんにちは".to_string())))
+    );
+
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("world".to_string()))));
 

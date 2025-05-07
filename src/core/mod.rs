@@ -12,16 +12,6 @@ use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
 use crate::vm::{OpCode, VM};
 
-pub trait Compile {
-    fn compile<E: Execute>(
-        &mut self,
-        module_key: &str,
-        executor: &mut E,
-        env: Shared<Environment>,
-        input: &str,
-    ) -> Result<()>;
-}
-
 pub trait Execute {
     fn run(&mut self, env: Shared<Environment>, compiler: &mut Compiler) -> Result<()>;
     fn stack(&self) -> Vec<Value>;
@@ -91,14 +81,10 @@ impl Tardi {
         self.input = None;
     }
 
-    pub fn compile(&mut self, module_key: &str, input: &str) -> Result<Shared<Environment>> {
+    pub fn compile(&mut self, _module_key: &str, input: &str) -> Result<Shared<Environment>> {
         log::debug!("input : {}", input);
-        self.compiler.compile(
-            module_key,
-            &mut self.executor,
-            self.environment.clone(),
-            input,
-        )?;
+        self.compiler
+            .compile_repl(&mut self.executor, self.environment.clone(), input)?;
         Ok(self.environment.clone())
     }
 
@@ -110,7 +96,7 @@ impl Tardi {
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
         self.reset();
-        self.compile("<input>", input)?;
+        self.compile("<repl>", input)?;
         self.execute()
     }
 
@@ -202,31 +188,23 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "scan-object-list", scan_object_list);
     push_op(&mut op_table, "lit", lit_stack);
     push_op(&mut op_table, "compile", compile);
+    push_macro(&mut op_table, "use:", use_module);
 
     op_table
 }
 
-pub fn create_macro_table() -> HashMap<String, Lambda> {
-    let mut macro_map = HashMap::new();
-
-    insert_macro(&mut macro_map, "use:", use_module);
-
-    macro_map
-}
-
 pub fn create_kernel_module() -> Module {
     let op_table = create_op_table();
-    let exports: HashMap<_, _> = op_table
+    let defined: HashMap<_, _> = op_table
         .iter()
         .enumerate()
         .map(|(index, lambda)| (lambda.borrow().name.clone().unwrap(), index))
         .collect();
-    let macros = create_macro_table();
     Module {
-        exports: exports.clone(),
         imported: HashMap::new(),
-        namespace: exports.clone(),
-        macro_table: macros,
+        path: None,
+        name: "kernel".to_string(),
+        defined,
     }
 }
 
@@ -235,9 +213,9 @@ fn push_op(op_table: &mut Vec<Shared<Lambda>>, name: &str, op: OpFn) {
     op_table.push(shared(lambda));
 }
 
-fn insert_macro(table: &mut HashMap<String, Lambda>, name: &str, op: OpFn) {
+fn push_macro(op_table: &mut Vec<Shared<Lambda>>, name: &str, op: OpFn) {
     let lambda = Lambda::new_builtin_macro(name, op);
-    table.insert(name.to_string(), lambda);
+    op_table.push(shared(lambda));
 }
 
 // Helper function to add an operation to the table and map

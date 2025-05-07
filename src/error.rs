@@ -7,6 +7,7 @@ use std::result;
 
 use rustyline::error::ReadlineError;
 
+use crate::compiler::error::CompilerError;
 use crate::scanner::error::ScannerError;
 
 pub type Result<R> = result::Result<R, Error>;
@@ -117,43 +118,5 @@ impl From<figment::Error> for Error {
 impl From<Infallible> for Error {
     fn from(_: Infallible) -> Self {
         InfallibleError
-    }
-}
-
-// TODO: move to compiler?
-#[derive(Debug)]
-pub enum CompilerError {
-    UnsupportedToken(String),
-    InvalidOperation(String),
-    UnmatchedBrace,
-    UndefinedWord(String),
-    InvalidFunction(String),
-    MissingEnvironment,
-    ValueHasNoTokenType(String),
-    ModuleNotFound(String),
-    InvalidState(String),
-}
-
-impl fmt::Display for CompilerError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CompilerError::UnsupportedToken(s) => write!(f, "Unsupported token: {}", s),
-            CompilerError::InvalidOperation(s) => write!(f, "Invalid operation: {}", s),
-            CompilerError::UnmatchedBrace => write!(f, "Unmatched closing brace"),
-            CompilerError::UndefinedWord(s) => write!(f, "Undefined word: {}", s),
-            CompilerError::InvalidFunction(s) => write!(f, "Invalid function: {}", s),
-            CompilerError::MissingEnvironment => write!(f, "Compiling with environment"),
-            CompilerError::ValueHasNoTokenType(s) => write!(f, "Value has to TokenType: {}", s),
-            CompilerError::ModuleNotFound(name) => write!(f, "Missing module '{}'", name),
-            CompilerError::InvalidState(s) => write!(f, "Invalid compiler state: {}", s),
-        }
-    }
-}
-
-impl error::Error for CompilerError {}
-
-impl From<CompilerError> for Error {
-    fn from(err: CompilerError) -> Error {
-        CompilerError(err)
     }
 }

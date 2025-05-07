@@ -1,9 +1,10 @@
+use crate::error::Error;
 use std::error;
 use std::fmt;
-use crate::error::Error;
+use std::result;
 
 /// Type alias for Result<T, Error> to make scanner-specific error handling clearer
-pub type ScannerResult<T, E = Error> = std::result::Result<T, E>;
+pub type ScannerResult<T> = result::Result<T, ScannerError>;
 
 #[derive(Debug)]
 pub enum ScannerError {

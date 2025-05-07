@@ -748,7 +748,7 @@ fn test_predeclare_function_adds_undefined_function_to_op_table() {
 
     assert_is_ok(input, &result);
     let env = tardi.environment.clone();
-    let index = tardi.compiler.get_current_export_for(&word);
+    let index = tardi.compiler.current_module().and_then(|m| m.get(&word));
     assert!(index.is_some(), "export {} = {:?}", word, index);
     let index = index.unwrap();
     assert_eq!(index, next_index);
@@ -788,7 +788,7 @@ fn test_function_defines_predeclared_function() {
 
     assert_is_ok(input, &result);
     let env = tardi.environment.clone();
-    let index = tardi.compiler.get_current_export_for(&word);
+    let index = tardi.compiler.current_module().and_then(|m| m.get(&word));
     assert!(index.is_some(), "export {} = {:?}", word, index);
     let index = index.unwrap();
     assert_eq!(index, next_index);

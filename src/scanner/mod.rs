@@ -1,4 +1,3 @@
-
 pub mod error;
 
 use crate::scanner::error::{ScannerError, ScannerResult};
@@ -23,9 +22,17 @@ pub enum Source {
 impl Source {
     pub fn get_key(&self) -> String {
         match &self {
-            Source::InputString => "<input>".to_string(),
+            Source::InputString => "<repl>".to_string(),
             Source::ScriptFile { path } => path.to_string_lossy().to_string(),
             Source::Module { path, .. } => path.to_string_lossy().to_string(),
+        }
+    }
+
+    pub fn get_path(&self) -> Option<&Path> {
+        match &self {
+            Source::InputString => None,
+            Source::ScriptFile { path } => Some(path),
+            Source::Module { path, .. } => Some(path),
         }
     }
 }
@@ -217,7 +224,10 @@ impl Scanner {
     /// A Result containing either:
     /// * `Ok(Vec<ScannerResult<Value>>)` - The list of values scanned
     /// * `Err(Error)` - If an error occurred or end of input was reached
-    pub fn scan_value_list(&mut self, value_data: ValueData) -> ScannerResult<Vec<ScannerResult<Value>>> {
+    pub fn scan_value_list(
+        &mut self,
+        value_data: ValueData,
+    ) -> ScannerResult<Vec<ScannerResult<Value>>> {
         let mut buffer = Vec::new();
 
         while let Some(value) = self.scan_value() {
@@ -305,7 +315,8 @@ impl Scanner {
         if count == 0 {
             return Err(ScannerError::InvalidEscapeSequence(
                 "Expected hexadecimal digits".to_string(),
-            ).into());
+            )
+            .into());
         }
 
         Ok(value)
@@ -329,32 +340,33 @@ impl Scanner {
                         match self.next_char() {
                             Some('}') => match char::from_u32(value) {
                                 Some(c) => Ok(c),
-                                None => {
-                                    Err(ScannerError::InvalidEscapeSequence(
-                                        format!("Invalid Unicode codepoint: {}", value),
-                                    ).into())
-                                }
+                                None => Err(ScannerError::InvalidEscapeSequence(format!(
+                                    "Invalid Unicode codepoint: {}",
+                                    value
+                                ))
+                                .into()),
                             },
                             _ => Err(ScannerError::InvalidEscapeSequence(
                                 "Expected closing '}'".to_string(),
-                            ).into()),
+                            )
+                            .into()),
                         }
                     }
                     _ => {
                         // ASCII escape \uXX
                         let value = self.scan_hex_digits(2)?;
                         if value > 0x7F {
-                            return Err(ScannerError::InvalidEscapeSequence(
-                                format!("ASCII value out of range: {}", value),
-                            ).into());
+                            return Err(ScannerError::InvalidEscapeSequence(format!(
+                                "ASCII value out of range: {}",
+                                value
+                            ))
+                            .into());
                         }
                         Ok(char::from_u32(value).unwrap())
                     }
                 }
             }
-            Some(c) => Err(ScannerError::InvalidEscapeSequence(
-                format!("\\{}", c),
-            ).into()),
+            Some(c) => Err(ScannerError::InvalidEscapeSequence(format!("\\{}", c)).into()),
             None => Err(ScannerError::UnterminatedChar.into()),
         }
     }
@@ -384,13 +396,14 @@ impl Scanner {
         let mut quote_count = 0;
 
         // Check for triple quotes
-        if self.chars.get(self.index) == Some(&'"') && self.chars.get(self.index + 1) == Some(&'"') {
+        if self.chars.get(self.index) == Some(&'"') && self.chars.get(self.index + 1) == Some(&'"')
+        {
             is_triple = true;
             // Consume the remaining two quotes
             if self.next_char() != Some('"') || self.next_char() != Some('"') {
-                return Err(ScannerError::InvalidLiteral(
-                    "Expected triple quote".to_string(),
-                ).into());
+                return Err(
+                    ScannerError::InvalidLiteral("Expected triple quote".to_string()).into(),
+                );
             }
         }
 

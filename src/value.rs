@@ -11,6 +11,8 @@ use crate::shared::{shared, unshare_clone};
 
 pub mod lambda;
 
+// TODO: group Value and ValueData implementations better
+
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
 
@@ -53,6 +55,16 @@ pub enum ValueData {
     Macro,
     Literal(Box<Value>),
     EndOfInput,
+}
+
+impl ValueData {
+    pub fn get_word(&self) -> Option<&str> {
+        if let ValueData::Word(ref w) = self {
+            Some(&w)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -175,6 +187,14 @@ impl Value {
     pub fn get_address(&self) -> Option<usize> {
         if let ValueData::Address(address) = self.data {
             Some(address)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_word(&self) -> Option<&str> {
+        if let ValueData::Word(ref w) = self.data {
+            Some(&w)
         } else {
             None
         }
