@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::fmt::Debug;
 use std::path::Path;
 use std::{fs, mem, result};
@@ -50,7 +50,7 @@ pub struct ModuleCompiler {
 impl From<ModuleCompiler> for Module {
     fn from(module_compiler: ModuleCompiler) -> Self {
         let (name, path) = match module_compiler.scanner.source {
-            Source::InputString => ("<repl>".to_string(), None),
+            Source::InputString => ("internal://sandbox".to_string(), None),
             Source::ScriptFile { path } => (path.to_string_lossy().to_string(), Some(path)),
             Source::Module { name, path } => (name, Some(path)),
         };
@@ -60,6 +60,27 @@ impl From<ModuleCompiler> for Module {
             defined: module_compiler.defined,
             imported: module_compiler.imported,
         }
+    }
+}
+
+impl TryFrom<&Module> for ModuleCompiler {
+    type Error = CompilerError;
+
+    fn try_from(module: &Module) -> CompilerResult<ModuleCompiler> {
+        let source = match module.path {
+            Some(ref path) => Source::Module {
+                name: module.name.clone(),
+                path: path.clone(),
+            },
+            None => Source::InputString,
+        };
+        let scanner = Scanner::try_from(source)?;
+        Ok(ModuleCompiler {
+            scanner,
+            module_key: module.get_key(),
+            defined: module.defined.clone(),
+            imported: module.imported.clone(),
+        })
     }
 }
 
@@ -75,6 +96,14 @@ impl ModuleCompiler {
             .get(word)
             .or_else(|| self.imported.get(word))
             .copied()
+    }
+
+    /// This assumes that the ModuleCompiler also already has everything
+    /// defined in the Module, so everything in there can can be
+    /// clobbered.
+    pub fn merge_into(self, module: &mut Module) {
+        module.defined = self.defined;
+        module.imported = self.imported;
     }
 }
 
@@ -115,22 +144,25 @@ impl Compiler {
         self.current_module_mut().map(|m| &mut m.scanner)
     }
 
-    fn start_module_compiler(&mut self, scanner: Scanner) -> String {
+    fn start_module_compiler(&mut self, module: &Module, scanner: Scanner) {
         // XXX: need to load the kernel words into `imported`
         // XXX: need to be able to handle if it's scanning more
         // for an existing, "finished" source, like repl input.
-        let module_key = scanner.source.get_key();
-        self.module_stack.push(ModuleCompiler {
+        let mc = ModuleCompiler {
             scanner,
-            module_key: module_key.clone(),
-            defined: HashMap::new(),
-            imported: HashMap::new(),
-        });
-        module_key
+            module_key: module.get_key(),
+            defined: module.defined.clone(),
+            imported: module.imported.clone(),
+        };
+        self.module_stack.push(mc);
     }
 
-    fn finish_module_compiler(&mut self) -> Option<ModuleCompiler> {
-        self.module_stack.pop()
+    fn finish_module_compiler(&mut self, module_stub: &mut Module) -> Result<()> {
+        let mc = self.module_stack.pop().ok_or_else(|| {
+            CompilerError::InvalidState("no current module being compiled".to_string())
+        })?;
+        mc.merge_into(module_stub);
+        Ok(())
     }
 
     #[allow(dead_code)]
@@ -598,9 +630,10 @@ impl Compiler {
             .find(module_word, None)?
             .ok_or_else(|| CompilerError::ModuleNotFound(module_word.to_string()))?;
         let module_file = module_file.canonicalize()?;
+        let module_key = module_file.to_string_lossy().to_string();
 
         let env = vm.environment.as_ref().unwrap().clone();
-        if let Some(module) = env.borrow().get_module(&module_file) {
+        if let Some(module) = env.borrow().get_module(&module_key) {
             let current_module = self.module_stack.last_mut().ok_or_else(|| {
                 CompilerError::InvalidState("no current module being compiled".to_string())
             })?;
@@ -608,22 +641,24 @@ impl Compiler {
             return Ok(());
         }
 
+        // XXX: make sure there aren't loops.
         let input = fs::read_to_string(&module_file)?;
         let scanner = Scanner::from_module(module_word, &module_file, &input);
-        self.start_module_compiler(scanner);
+        let module_key = scanner.source.get_key();
+        let mut stub = env.borrow().create_module(&module_key);
+
+        self.start_module_compiler(&stub, scanner);
 
         let intermediate = self.pass1(vm, env.clone())?;
         self.pass2(intermediate)?;
 
-        let module_compiler = self.finish_module_compiler().ok_or_else(|| {
-            CompilerError::InvalidState("no current module being compiled".to_string())
-        })?;
-        let module = Module::from(module_compiler);
+        self.finish_module_compiler(&mut stub)?;
+
         let current_module = self.module_stack.last_mut().ok_or_else(|| {
             CompilerError::InvalidState("no current module being compiled".to_string())
         })?;
-        current_module.import_module(&module);
-        env.borrow_mut().add_module(&module_file, module);
+        current_module.import_module(&stub);
+        env.borrow_mut().add_module(&module_key, stub);
 
         Ok(())
     }
@@ -683,16 +718,27 @@ impl Compiler {
         // - pop_module
         // - make module
         // - module to env
-        let module_key = self.start_module_compiler(scanner);
+        let key = scanner.source.get_key();
+        {
+            let mut env_borrow = env.borrow_mut();
+            let module = env_borrow.get_or_create_module_mut(&key);
+            log::trace!(
+                "Compiler::compile_scanner executing {:?} in module {:?}",
+                key,
+                module.name
+            );
+            log::trace!("Compiler::compile_scanner module\n{:?}", module);
+            self.start_module_compiler(module, scanner);
+        }
 
         let intermediate = self.pass1(vm, env.clone())?;
         self.pass2(intermediate)?;
 
-        let module_compiler = self.finish_module_compiler().ok_or_else(|| {
-            CompilerError::InvalidState("no current module being compiled".to_string())
-        })?;
-        let module = Module::from(module_compiler);
-        env.borrow_mut().add_module(Path::new(&module_key), module);
+        {
+            let mut env_borrow = env.borrow_mut();
+            let module = env_borrow.get_module_mut(&key).unwrap();
+            self.finish_module_compiler(module)?;
+        }
 
         Ok(())
     }

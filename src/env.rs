@@ -23,7 +23,66 @@ pub struct Module {
     pub imported: HashMap<String, usize>,
 }
 
+impl fmt::Debug for Module {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "MODULE  : {} / {}",
+            self.name,
+            self.path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default()
+        )?;
+        for (name, ip) in self.defined.iter() {
+            writeln!(f, "\tDEFINED : {:20} => {}", name, ip)?;
+        }
+        for (name, ip) in self.imported.iter() {
+            writeln!(f, "\tIMPORTED: {:20} => {}", name, ip)?;
+        }
+        writeln!(f)?;
+        Ok(())
+    }
+}
+
 impl Module {
+    pub fn new(name: &str) -> Module {
+        let name = name.to_string();
+        Module {
+            path: None,
+            name,
+            defined: HashMap::new(),
+            imported: HashMap::new(),
+        }
+    }
+
+    pub fn with_path(path: &Path, name: &str) -> Module {
+        let path = Some(path.to_path_buf());
+        let name = name.to_string();
+        Module {
+            path,
+            name,
+            defined: HashMap::new(),
+            imported: HashMap::new(),
+        }
+    }
+
+    pub fn with_imports(name: &str, module: &Module) -> Module {
+        let name = name.to_string();
+        let imported = module.defined.clone();
+        Module {
+            path: None,
+            name,
+            defined: HashMap::new(),
+            imported,
+        }
+    }
+
+    pub fn get_key(&self) -> String {
+        // XXX: The name may need to be canonicalized for relative imports.
+        self.name.clone()
+    }
+
     pub fn get(&self, name: &str) -> Option<usize> {
         self.defined
             .get(name)
@@ -99,9 +158,20 @@ impl Environment {
         env.set_op_table(op_table);
 
         let kernel = create_kernel_module();
+        // TODO: use consts for the string literals.
         env.modules.insert("kernel".to_string(), kernel);
 
+        let sandbox = env.create_module("sandbox");
+        env.modules.insert("sandbox".to_string(), sandbox);
+
         env
+    }
+
+    /// Create a new module with a given name and import words from the
+    /// kernel.
+    pub fn create_module(&self, name: &str) -> Module {
+        let kernel = &self.modules["kernel"];
+        Module::with_imports(name, kernel)
     }
 
     /// Appends the instructions to the main instruction vector, and returns the
@@ -193,18 +263,32 @@ impl Environment {
     }
 
     // TODO: change these to accept &str
-    pub fn get_module(&self, path: &Path) -> Option<&Module> {
-        let path = path.to_string_lossy().to_string();
-        self.modules.get(&path)
+    pub fn get_module(&self, key: &str) -> Option<&Module> {
+        self.modules.get(key)
     }
 
     pub fn get_module_mut(&mut self, key: &str) -> Option<&mut Module> {
         self.modules.get_mut(key)
     }
 
-    pub fn add_module(&mut self, path: &Path, module: Module) {
-        let path = path.to_string_lossy().to_string();
-        self.modules.insert(path, module);
+    pub fn add_module(&mut self, key: &str, module: Module) {
+        self.modules.insert(key.to_string(), module);
+    }
+
+    pub fn get_or_create_module_mut<'a>(&'a mut self, key: &str) -> &'a mut Module {
+        log::trace!("Environment::get_or_create_module_mut {:?}", key);
+        if self.modules.contains_key(key) {
+            log::trace!(
+                "Environment::get_or_create_module_mut get existing {:?}",
+                key
+            );
+            self.modules.get_mut(key).unwrap()
+        } else {
+            log::trace!("Environment::get_or_create_module_mut create new {:?}", key);
+            let module = self.create_module(key);
+            self.add_module(key, module);
+            self.modules.get_mut(key).unwrap()
+        }
     }
 
     pub fn get_callable(&self, op_table_index: usize) -> Option<Shared<Lambda>> {

@@ -81,10 +81,16 @@ impl Tardi {
         self.input = None;
     }
 
-    pub fn compile(&mut self, _module_key: &str, input: &str) -> Result<Shared<Environment>> {
+    pub fn compile_str(&mut self, module_key: &str, input: &str) -> Result<Shared<Environment>> {
         log::debug!("input : {}", input);
         self.compiler
             .compile_repl(&mut self.executor, self.environment.clone(), input)?;
+        Ok(self.environment.clone())
+    }
+
+    pub fn compile_script(&mut self, path: &Path) -> Result<Shared<Environment>> {
+        self.compiler
+            .compile_script(&mut self.executor, self.environment.clone(), path)?;
         Ok(self.environment.clone())
     }
 
@@ -96,12 +102,14 @@ impl Tardi {
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
         self.reset();
-        self.compile("<repl>", input)?;
+        self.compile_str("internal://sandbox", input)?;
         self.execute()
     }
 
-    pub fn execute_file(&mut self, _path: &Path) -> Result<()> {
-        todo!("Tardi::execute_file")
+    pub fn execute_file(&mut self, path: &Path) -> Result<()> {
+        self.reset();
+        self.compile_script(path)?;
+        self.execute()
     }
 
     pub fn stack(&self) -> Vec<Value> {
@@ -142,7 +150,9 @@ impl From<&Config> for Tardi {
     }
 }
 
-// Create the default operation table
+// TODO: this needs to pay attention to modules and set up all
+// internal modules.
+/// Create the default operation table
 pub fn create_op_table() -> Vec<Shared<Lambda>> {
     let size = OpCode::StringConcat as usize + 1;
     let mut op_table = Vec::with_capacity(size);

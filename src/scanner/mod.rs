@@ -2,9 +2,10 @@ pub mod error;
 
 use crate::scanner::error::{ScannerError, ScannerResult};
 use crate::value::{Value, ValueData};
-use std::char;
+use std::convert::TryFrom;
 use std::iter::from_fn;
 use std::path::{Path, PathBuf};
+use std::{char, fs, result};
 
 #[derive(Debug, Default)]
 pub enum Source {
@@ -22,9 +23,9 @@ pub enum Source {
 impl Source {
     pub fn get_key(&self) -> String {
         match &self {
-            Source::InputString => "<repl>".to_string(),
+            Source::InputString => "sandbox".to_string(),
             Source::ScriptFile { path } => path.to_string_lossy().to_string(),
-            Source::Module { path, .. } => path.to_string_lossy().to_string(),
+            Source::Module { name, .. } => name.clone(),
         }
     }
 
@@ -34,6 +35,22 @@ impl Source {
             Source::ScriptFile { path } => Some(path),
             Source::Module { path, .. } => Some(path),
         }
+    }
+}
+
+impl TryFrom<Source> for Scanner {
+    type Error = ScannerError;
+
+    fn try_from(source: Source) -> result::Result<Self, ScannerError> {
+        let mut scanner = Scanner::default();
+        scanner.input = match source {
+            Source::InputString => String::new(),
+            Source::ScriptFile { path } => fs::read_to_string(&path)?,
+            Source::Module { path, .. } => fs::read_to_string(&path)?,
+        };
+        scanner.chars = scanner.input.chars().collect();
+
+        Ok(scanner)
     }
 }
 
@@ -151,6 +168,12 @@ impl Scanner {
             column: 1,
             offset: 0,
         }
+    }
+
+    pub fn set_input_string(&mut self, input: &str) {
+        self.source = Source::InputString;
+        self.input = input.to_string();
+        self.chars = input.chars().collect();
     }
 
     /// Scans and returns the next value from the input.

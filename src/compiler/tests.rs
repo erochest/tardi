@@ -108,8 +108,7 @@ fn test_compile_word() -> Result<()> {
 fn test_compile_character_literals() -> Result<()> {
     let environment = compile("'a' '\\n' '\\t' '\\r' '\\'' '\\\\' '🦀' '\\u41' '\\u{1F600}'")?;
 
-    let mut expected_ops = vec![OpCode::Lit; 9]; // One lit operation for each character
-    expected_ops.push(OpCode::Return);
+    let expected_ops = vec![OpCode::Lit; 9]; // One lit operation for each character
 
     let mut actual_ops = Vec::new();
     let environment = environment.borrow();

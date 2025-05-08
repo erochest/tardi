@@ -9,6 +9,7 @@ pub type OpFn = fn(&mut VM, &mut Compiler) -> Result<()>;
 /// Function structure for user-defined functions and lambdas
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Lambda {
+    // TODO: this needs to include the module as well somehow
     /// Optional name (None for lambdas)
     pub name: Option<String>,
 
