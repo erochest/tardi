@@ -422,7 +422,7 @@ fn test_compile_define_use_function() {
 // like a hashmap or set. Maybe I need a new test to build this out.
 #[test]
 fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures() {
-    // env_logger::init();
+    env_logger::init();
     let mut tardi = Tardi::default();
 
     // TODO: can I embed a list in a `{ ... }` lambda?

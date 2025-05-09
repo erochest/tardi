@@ -105,18 +105,12 @@ impl ModuleCompiler {
     /// defined in the Module, so everything in there can can be
     /// clobbered.
     pub fn merge_into(self, module: &mut Module) {
-        log::trace!(
-            "ModuleCompiler::merge_into {} => {}",
-            self.module_key,
-            module.name
-        );
         log::trace!("ModuleCompiler::merge_into defined {:#?}", self.defined);
         log::trace!(
             "ModuleCompiler::merge_into {} => {}",
             self.name,
             module.name
         );
-        log::trace!("ModuleCompiler::merge_into defined {:#?}", self.defined);
         module.defined = self.defined;
         module.imported = self.imported;
     }
@@ -176,7 +170,9 @@ impl Compiler {
         let mc = self.module_stack.pop().ok_or_else(|| {
             CompilerError::InvalidState("no current module being compiled".to_string())
         })?;
-        mc.merge_into(module_stub);
+        // TODO: things are getting defined directly in the module in the enviroment. can i just
+        // not do module compilers?
+        // mc.merge_into(module_stub);
         Ok(())
     }
 
@@ -348,6 +344,10 @@ impl Compiler {
         for word in words {
             // TODO: some of this seems duplicated from `pass1`. DRY it up
             if let Some(lambda) = self.get_macro(env.clone(), &word.data) {
+                log::trace!(
+                    "Compiler::compile_list executing macro {:?}",
+                    lambda.borrow().name
+                );
                 // TODO: see todo in `pass1` about benchmarking going back and forth
                 // between Shared<Value> and Vec<Value>.
                 let accumulator = shared(buffer.into());
@@ -688,59 +688,33 @@ impl Compiler {
     }
 
     fn get_macro(&self, env: Shared<Environment>, trigger: &ValueData) -> Option<Shared<Lambda>> {
-        log::trace!("Compiler::get_macro {}", trigger);
-        if let Some(word) = trigger.get_word() {
-            log::trace!("Compiler::get_macro word {}", word);
-            if let Some(module) = self.current_module() {
-                log::trace!("Compiler::get_macro module {:?}", module.module_key);
-                if let Some(index) = module.get(word) {
-                    log::trace!("Compiler::get_macro index {}", index);
-                    if let Some(lambda) = env.borrow().op_table.get(index).cloned() {
-                        log::trace!("Compiler::get_macro lambda {}", lambda.borrow());
-                        if lambda.borrow().immediate {
-                            log::trace!("Compiler::get_macro found macro {}", lambda.borrow());
-                            return Some(lambda);
-                        }
-                    }
-                }
-            }
-        }
-        log::trace!("Compiler::get_macro None");
-        None
-
-        // trigger
-        //     .get_word()
-        //     .and_then(|word| self.current_module().and_then(|m| m.get(word)))
-        //     .and_then(|index| env.borrow().op_table.get(index).cloned())
-        //     .filter(|lambda| lambda.borrow().immediate)
-        // XXX: don't do this. just don't
-        if log::log_enabled!(Level::Trace) {
-            log::trace!("Compiler::get_macro {}", trigger);
-            if let Some(word) = trigger.get_word() {
-                log::trace!("Compiler::get_macro word {}", word);
-                if let Some(module) = self.current_module() {
-                    log::trace!("Compiler::get_macro module {:?}", module.name);
-                    if let Some(index) = module.get(word) {
-                        log::trace!("Compiler::get_macro index {}", index);
-                        if let Some(lambda) = env.borrow().op_table.get(index).cloned() {
-                            log::trace!("Compiler::get_macro lambda {}", lambda.borrow());
-                            if lambda.borrow().immediate {
-                                log::trace!("Compiler::get_macro found macro {}", lambda.borrow());
-                                return Some(lambda);
-                            }
-                        }
-                    }
-                }
-            }
-            log::trace!("Compiler::get_macro None");
-            None
-        } else {
-            trigger
-                .get_word()
-                .and_then(|word| self.current_module().and_then(|m| m.get(word)))
-                .and_then(|index| env.borrow().op_table.get(index).cloned())
-                .filter(|lambda| lambda.borrow().immediate)
-        }
+        // if log::log_enabled!(Level::Trace) {
+        //     log::trace!("Compiler::get_macro {}", trigger);
+        //     if let Some(word) = trigger.get_word() {
+        //         log::trace!("Compiler::get_macro word {}", word);
+        //         if let Some(module) = self.current_module() {
+        //             log::trace!("Compiler::get_macro module {:?}", module.name);
+        //             if let Some(index) = module.get(word) {
+        //                 log::trace!("Compiler::get_macro index {}", index);
+        //                 if let Some(lambda) = env.borrow().op_table.get(index).cloned() {
+        //                     log::trace!("Compiler::get_macro lambda {}", lambda.borrow());
+        //                     if lambda.borrow().immediate {
+        //                         log::trace!("Compiler::get_macro found macro {}", lambda.borrow());
+        //                         return Some(lambda);
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     log::trace!("Compiler::get_macro None");
+        //     None
+        // } else {
+        trigger
+            .get_word()
+            .and_then(|word| self.current_module().and_then(|m| m.get(word)))
+            .and_then(|index| env.borrow().op_table.get(index).cloned())
+            .filter(|lambda| lambda.borrow().immediate)
+        // }
     }
 
     pub fn compile_repl(

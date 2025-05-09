@@ -1,7 +1,7 @@
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::Lambda;
 use crate::Compiler;
-use log::{log_enabled, Level};
+use log::{log_enabled, Level, Log};
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
@@ -513,6 +513,10 @@ impl VM {
             _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
         };
         log::trace!("VM::predefine_function {}", name_str);
+        if log::log_enabled!(Level::Trace) {
+            let module_names = self.module_stack.join(" :: ");
+            log::trace!("module stack '{}'", module_names);
+        }
 
         let lambda = Lambda::new_undefined(&name_str);
         let module = self.module_stack.last().ok_or(VMError::MissingModule)?;

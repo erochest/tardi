@@ -212,6 +212,13 @@ impl Environment {
             let module = self
                 .get_module_mut(module_key)
                 .ok_or_else(|| CompilerError::ModuleNotFound(module_key.to_string()))?;
+            log::trace!(
+                "Environment::add_to_op_table '{}' '{}' L {:?} => {}",
+                module_key,
+                name,
+                lambda.borrow().name,
+                index
+            );
             module.defined.insert(name.clone(), index);
         }
 
@@ -267,6 +274,7 @@ impl Environment {
     }
 
     pub fn get_module_mut(&mut self, key: &str) -> Option<&mut Module> {
+        log::trace!("Environment::get_module_mut {:?}", key);
         self.modules.get_mut(key)
     }
 
@@ -298,18 +306,7 @@ impl Environment {
         self.op_table.get(op_table_index).cloned()
     }
 
-    pub fn add_macro(&mut self, module_key: &str, macro_lambda: Lambda) -> Result<()> {
-        log::trace!(
-            "Environment::add_macro '{}' L {:?}",
-            module_key,
-            macro_lambda.name
-        );
     pub fn add_macro(&mut self, module_name: &str, macro_lambda: Lambda) -> Result<()> {
-        log::trace!(
-            "Environment::add_macro '{}' L {:?}",
-            module_name,
-            macro_lambda.name
-        );
         let macro_lambda = shared(macro_lambda);
         self.add_to_op_table(module_name, macro_lambda.clone())?;
         Ok(())

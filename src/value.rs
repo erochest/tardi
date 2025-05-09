@@ -51,6 +51,8 @@ pub enum ValueData {
     List(Vec<SharedValue>),
     Function(Lambda),
     Address(usize),
+    // TODO: I think that at some point we need to
+    // save the module that this is created in.
     Word(String),
     Symbol { module: String, word: String },
     Macro,
@@ -61,7 +63,7 @@ pub enum ValueData {
 impl ValueData {
     pub fn get_word(&self) -> Option<&str> {
         if let ValueData::Word(ref w) = self {
-            Some(&w)
+            Some(w)
         } else {
             None
         }
