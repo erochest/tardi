@@ -52,6 +52,7 @@ pub enum ValueData {
     Function(Lambda),
     Address(usize),
     Word(String),
+    Symbol { module: String, word: String },
     Macro,
     Literal(Box<Value>),
     EndOfInput,
@@ -195,6 +196,18 @@ impl Value {
     pub fn get_word(&self) -> Option<&str> {
         if let ValueData::Word(ref w) = self.data {
             Some(&w)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_symbol(&self) -> Option<(&str, &str)> {
+        if let ValueData::Symbol {
+            ref module,
+            ref word,
+        } = self.data
+        {
+            Some((&module, &word))
         } else {
             None
         }
@@ -357,6 +370,7 @@ impl fmt::Display for ValueData {
             ValueData::Function(lambda) => write!(f, "{}", lambda),
             ValueData::Address(addr) => write!(f, "<@{}>", addr),
             ValueData::Word(word) => write!(f, "{}", word),
+            ValueData::Symbol { module, word } => write!(f, "{}::{}", module, word),
             ValueData::Macro => write!(f, "MACRO:"),
             ValueData::Literal(value) => write!(f, "\\ {}", value),
             ValueData::EndOfInput => write!(f, "<EOI>"),

@@ -35,8 +35,8 @@ struct LambdaCompiler {
 pub struct ModuleCompiler {
     scanner: Scanner,
 
-    /// Right now the pathname or "<input>". It will be indexed under this later.
-    module_key: String,
+    /// The name of the module.
+    name: String,
 
     /// This maps a word name to its index in the environment's `op_table`. Macros
     /// have the `immediate` flag set.
@@ -50,8 +50,11 @@ pub struct ModuleCompiler {
 impl From<ModuleCompiler> for Module {
     fn from(module_compiler: ModuleCompiler) -> Self {
         let (name, path) = match module_compiler.scanner.source {
-            Source::InputString => ("internal://sandbox".to_string(), None),
-            Source::ScriptFile { path } => (path.to_string_lossy().to_string(), Some(path)),
+            Source::InputString => ("sandbox".to_string(), None),
+            Source::ScriptFile { path } => (
+                path.file_stem().unwrap().to_string_lossy().to_string(),
+                Some(path),
+            ),
             Source::Module { name, path } => (name, Some(path)),
         };
         Module {
@@ -77,7 +80,7 @@ impl TryFrom<&Module> for ModuleCompiler {
         let scanner = Scanner::try_from(source)?;
         Ok(ModuleCompiler {
             scanner,
-            module_key: module.get_key(),
+            name: module.get_key(),
             defined: module.defined.clone(),
             imported: module.imported.clone(),
         })
@@ -102,6 +105,18 @@ impl ModuleCompiler {
     /// defined in the Module, so everything in there can can be
     /// clobbered.
     pub fn merge_into(self, module: &mut Module) {
+        log::trace!(
+            "ModuleCompiler::merge_into {} => {}",
+            self.module_key,
+            module.name
+        );
+        log::trace!("ModuleCompiler::merge_into defined {:#?}", self.defined);
+        log::trace!(
+            "ModuleCompiler::merge_into {} => {}",
+            self.name,
+            module.name
+        );
+        log::trace!("ModuleCompiler::merge_into defined {:#?}", self.defined);
         module.defined = self.defined;
         module.imported = self.imported;
     }
@@ -150,7 +165,7 @@ impl Compiler {
         // for an existing, "finished" source, like repl input.
         let mc = ModuleCompiler {
             scanner,
-            module_key: module.get_key(),
+            name: module.get_key(),
             defined: module.defined.clone(),
             imported: module.imported.clone(),
         };
@@ -178,9 +193,9 @@ impl Compiler {
         env: Shared<Environment>,
     ) -> Result<Vec<Value>> {
         let mut buffer = Vec::new();
-        let module_key = self
+        let module_name = self
             .current_module()
-            .map(|m| m.module_key.clone())
+            .map(|m| m.name.clone())
             .ok_or_else(|| CompilerError::InvalidState("no current module".to_string()))?;
 
         while let Some(result) = self.scan_value() {
@@ -190,7 +205,7 @@ impl Compiler {
             // TODO: also compile functions here? there'd be fewer constants hanging around.
             if value.data == ValueData::Macro {
                 let lambda = self.compile_macro(executor, env.clone())?;
-                env.borrow_mut().add_macro(&module_key, lambda)?;
+                env.borrow_mut().add_macro(&module_name, lambda)?;
             } else if let Some(lambda) = self.get_macro(env.clone(), &value.data) {
                 log::trace!("Compiler::pass1 executing macro {:?}", lambda.borrow().name);
                 // TODO: once we get more code to test on, benchmark whether it's better to
@@ -237,7 +252,8 @@ impl Compiler {
             | ValueData::List(_)
             | ValueData::String(_)
             | ValueData::Address(_)
-            | ValueData::Literal(_) => self.compile_constant(value),
+            | ValueData::Literal(_)
+            | ValueData::Symbol { .. } => self.compile_constant(value),
             ValueData::Function(ref lambda) if lambda.name.is_none() => {
                 self.compile_constant(value)
             }
@@ -255,13 +271,12 @@ impl Compiler {
 
     fn compile_word(&mut self, value: Value) -> CompilerResult<()> {
         log::trace!("Compiler::compile_word {:?}", value.lexeme);
-        let word = if let ValueData::Word(w) = value.data {
-            Ok(w)
-        } else {
-            Err(CompilerError::UnsupportedToken(format!("{:?}", value)))
-        }?;
+        let word = value
+            .data
+            .get_word()
+            .ok_or_else(|| CompilerError::UnsupportedToken(format!("{:?}", value)))?;
 
-        match word.as_str() {
+        match word {
             "dup" => self.compile_op(OpCode::Dup),
             "swap" => self.compile_op(OpCode::Swap),
             "rot" => self.compile_op(OpCode::Rot),
@@ -310,7 +325,7 @@ impl Compiler {
             "scan-object-list" => self.compile_op(OpCode::ScanObjectList),
             "compile" => self.compile_op(OpCode::Compile),
             "exit" => self.compile_op(OpCode::Exit),
-            _ => self.compile_word_call(&word),
+            _ => self.compile_word_call(&word, &value),
         }
     }
 
@@ -456,11 +471,11 @@ impl Compiler {
     }
 
     /// Compiles a word as a function call
-    fn compile_word_call(&mut self, word: &str) -> CompilerResult<()> {
+    fn compile_word_call(&mut self, word: &str, value: &Value) -> CompilerResult<()> {
         log::trace!("Compiler::compile_word_call {:?}", word);
         let module = self
             .current_module()
-            .map(|m| &m.module_key)
+            .map(|m| &m.name)
             .ok_or(CompilerError::InvalidState("missing scanner".to_string()))?;
         let op_table_index = self
             .environment
@@ -470,7 +485,13 @@ impl Compiler {
             self.compile_instruction(op_table_index);
             Ok(())
         } else {
-            self.compile_constant(Value::with_lexeme(ValueData::Word(word.to_string()), word))?;
+            self.compile_constant(Value {
+                data: ValueData::Symbol {
+                    module: module.clone(),
+                    word: word.to_string(),
+                },
+                ..value.clone()
+            })?;
             Ok(())
         }
     }
@@ -496,14 +517,13 @@ impl Compiler {
     /// Adds a function defined in a macro to the environment
     fn add_function(&mut self, lambda: Lambda) -> CompilerResult<()> {
         log::trace!("Compiler::add_function {:?}", lambda.name);
-        let module_str = self
+        let module_name = self
             .current_scanner()
-            .and_then(|s| s.source.get_path())
-            .map(|p| p.to_string_lossy().to_string())
+            .map(|s| s.source.get_key())
             .ok_or_else(|| CompilerError::InvalidState("unknown path for module".to_string()))?;
         if let Some(env) = self.environment.as_ref() {
             env.borrow_mut()
-                .add_to_op_table(&module_str, shared(lambda))?;
+                .add_to_op_table(&module_name, shared(lambda))?;
             Ok(())
         } else {
             Err(CompilerError::MissingEnvironment)
@@ -577,18 +597,25 @@ impl Compiler {
             ))
             .into());
         }
+        // This will usually come in as a Symbol, but those aren't created
+        // until after this point in the pipeline, so `scan_value`
+        // will never return a Symbol. We'll downgrade this back to a Word
+        // for the equality check.
+        let delimiter = if let ValueData::Symbol { word, .. } = delimiter {
+            ValueData::Word(word.clone())
+        } else {
+            delimiter
+        };
 
         while let Some(value) = self.scan_value() {
             let value = value?;
             log::trace!("Compiler::scan_object_list ({}) read {}", delimiter, value);
             if value.data == delimiter {
-                if log::log_enabled!(Level::Trace) {
-                    log::trace!(
-                        "Compiler::scan_object_list ({}) returning {}",
-                        delimiter,
-                        accumulator.borrow()
-                    );
-                }
+                log::trace!(
+                    "Compiler::scan_object_list ({}) returning {}",
+                    delimiter,
+                    accumulator.borrow()
+                );
                 return Ok(());
             } else if let Some(lambda) = self.get_macro(env.clone(), &value.data) {
                 log::trace!(
@@ -621,19 +648,17 @@ impl Compiler {
             .scan_value()
             .ok_or(ScannerError::UnexpectedEndOfInput)?;
         let module_word = module_word?;
-        let module_word = module_word
+        let module_spec = module_word
             .get_word()
             .ok_or_else(|| CompilerError::UnsupportedToken(format!("{}", module_word)))?;
         // XXX: get the context from the compiler's stack of modules it's compiling
-        let module_file = self
+        let (module_name, module_file) = self
             .loader
-            .find(module_word, None)?
-            .ok_or_else(|| CompilerError::ModuleNotFound(module_word.to_string()))?;
-        let module_file = module_file.canonicalize()?;
-        let module_key = module_file.to_string_lossy().to_string();
+            .find(module_spec, None)?
+            .ok_or_else(|| CompilerError::ModuleNotFound(module_spec.to_string()))?;
 
         let env = vm.environment.as_ref().unwrap().clone();
-        if let Some(module) = env.borrow().get_module(&module_key) {
+        if let Some(module) = env.borrow().get_module(&module_name) {
             let current_module = self.module_stack.last_mut().ok_or_else(|| {
                 CompilerError::InvalidState("no current module being compiled".to_string())
             })?;
@@ -643,9 +668,8 @@ impl Compiler {
 
         // XXX: make sure there aren't loops.
         let input = fs::read_to_string(&module_file)?;
-        let scanner = Scanner::from_module(module_word, &module_file, &input);
-        let module_key = scanner.source.get_key();
-        let mut stub = env.borrow().create_module(&module_key);
+        let scanner = Scanner::from_module(&module_name, &module_file, &input);
+        let mut stub = env.borrow().create_module(&module_name);
 
         self.start_module_compiler(&stub, scanner);
 
@@ -658,17 +682,65 @@ impl Compiler {
             CompilerError::InvalidState("no current module being compiled".to_string())
         })?;
         current_module.import_module(&stub);
-        env.borrow_mut().add_module(&module_key, stub);
+        env.borrow_mut().add_module(stub);
 
         Ok(())
     }
 
     fn get_macro(&self, env: Shared<Environment>, trigger: &ValueData) -> Option<Shared<Lambda>> {
-        trigger
-            .get_word()
-            .and_then(|word| self.current_module().and_then(|m| m.get(word)))
-            .and_then(|index| env.borrow().op_table.get(index).cloned())
-            .filter(|lambda| lambda.borrow().immediate)
+        log::trace!("Compiler::get_macro {}", trigger);
+        if let Some(word) = trigger.get_word() {
+            log::trace!("Compiler::get_macro word {}", word);
+            if let Some(module) = self.current_module() {
+                log::trace!("Compiler::get_macro module {:?}", module.module_key);
+                if let Some(index) = module.get(word) {
+                    log::trace!("Compiler::get_macro index {}", index);
+                    if let Some(lambda) = env.borrow().op_table.get(index).cloned() {
+                        log::trace!("Compiler::get_macro lambda {}", lambda.borrow());
+                        if lambda.borrow().immediate {
+                            log::trace!("Compiler::get_macro found macro {}", lambda.borrow());
+                            return Some(lambda);
+                        }
+                    }
+                }
+            }
+        }
+        log::trace!("Compiler::get_macro None");
+        None
+
+        // trigger
+        //     .get_word()
+        //     .and_then(|word| self.current_module().and_then(|m| m.get(word)))
+        //     .and_then(|index| env.borrow().op_table.get(index).cloned())
+        //     .filter(|lambda| lambda.borrow().immediate)
+        // XXX: don't do this. just don't
+        if log::log_enabled!(Level::Trace) {
+            log::trace!("Compiler::get_macro {}", trigger);
+            if let Some(word) = trigger.get_word() {
+                log::trace!("Compiler::get_macro word {}", word);
+                if let Some(module) = self.current_module() {
+                    log::trace!("Compiler::get_macro module {:?}", module.name);
+                    if let Some(index) = module.get(word) {
+                        log::trace!("Compiler::get_macro index {}", index);
+                        if let Some(lambda) = env.borrow().op_table.get(index).cloned() {
+                            log::trace!("Compiler::get_macro lambda {}", lambda.borrow());
+                            if lambda.borrow().immediate {
+                                log::trace!("Compiler::get_macro found macro {}", lambda.borrow());
+                                return Some(lambda);
+                            }
+                        }
+                    }
+                }
+            }
+            log::trace!("Compiler::get_macro None");
+            None
+        } else {
+            trigger
+                .get_word()
+                .and_then(|word| self.current_module().and_then(|m| m.get(word)))
+                .and_then(|index| env.borrow().op_table.get(index).cloned())
+                .filter(|lambda| lambda.borrow().immediate)
+        }
     }
 
     pub fn compile_repl(
@@ -718,13 +790,13 @@ impl Compiler {
         // - pop_module
         // - make module
         // - module to env
-        let key = scanner.source.get_key();
+        let module_name = scanner.source.get_key();
+        // TODO: make these methods
         {
             let mut env_borrow = env.borrow_mut();
-            let module = env_borrow.get_or_create_module_mut(&key);
+            let module = env_borrow.get_or_create_module_mut(&module_name);
             log::trace!(
-                "Compiler::compile_scanner executing {:?} in module {:?}",
-                key,
+                "Compiler::compile_scanner executing module {:?}",
                 module.name
             );
             log::trace!("Compiler::compile_scanner module\n{:?}", module);
@@ -736,7 +808,7 @@ impl Compiler {
 
         {
             let mut env_borrow = env.borrow_mut();
-            let module = env_borrow.get_module_mut(&key).unwrap();
+            let module = env_borrow.get_module_mut(&module_name).unwrap();
             self.finish_module_compiler(module)?;
         }
 

@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use crate::error::Error;
 
-// TODO: divmod
+// TODO: /mod (divmod)
 // TODO: move things out of opcodes and just have native functions
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {

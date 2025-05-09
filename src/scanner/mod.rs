@@ -24,7 +24,7 @@ impl Source {
     pub fn get_key(&self) -> String {
         match &self {
             Source::InputString => "sandbox".to_string(),
-            Source::ScriptFile { path } => path.to_string_lossy().to_string(),
+            Source::ScriptFile { path } => path.file_stem().unwrap().to_string_lossy().to_string(),
             Source::Module { name, .. } => name.clone(),
         }
     }
@@ -252,6 +252,13 @@ impl Scanner {
         value_data: ValueData,
     ) -> ScannerResult<Vec<ScannerResult<Value>>> {
         let mut buffer = Vec::new();
+        // This will often come in as a Symbol, but those aren't created
+        // until after this point in the pipeline.
+        let value_data = if let ValueData::Symbol { word, .. } = value_data {
+            ValueData::Word(word.clone())
+        } else {
+            value_data
+        };
 
         while let Some(value) = self.scan_value() {
             match value {

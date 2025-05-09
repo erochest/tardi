@@ -2,7 +2,7 @@ use std::env;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
-use crate::compiler::error::CompilerError;
+use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::{config::Config, error::Result};
 
 #[derive(Debug)]
@@ -12,15 +12,22 @@ pub struct Loader {
 
 impl Loader {
     pub fn new<P: AsRef<Path>>(paths: &[P]) -> Loader {
-        let paths = Vec::from_iter(paths.iter().map(|p| p.as_ref().to_path_buf()));
+        let paths = Vec::from_iter(
+            paths
+                .iter()
+                .filter_map(|p| p.as_ref().to_path_buf().canonicalize().ok()),
+        );
         Loader { paths }
     }
 
-    pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<PathBuf>> {
+    // TODO: special handling for known internal modules
+    pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {
         log::debug!("finding module '{}' in context {:?}", module, context);
         if module.starts_with("./") || module.starts_with("../") {
             if let Some(context) = context {
-                return self.find_relative(module, context);
+                return self
+                    .find_abs_module(context, module)
+                    .map_err(|err| err.into());
             } else {
                 return Err(CompilerError::ModuleNotFound(module.to_string()).into());
             }
@@ -32,25 +39,46 @@ impl Loader {
             log::trace!("testing module at {:?}", target);
             if target.exists() {
                 let target = target.canonicalize()?;
-                return Ok(Some(target));
+                return Ok(Some((module.to_string(), target)));
             }
         }
 
         Ok(None)
     }
 
-    fn find_relative(&self, module: &str, context: &Path) -> Result<Option<PathBuf>> {
-        let context = context.parent().unwrap();
-        let target = context.join(module);
-        let target = target.with_extension("tardi");
-        log::trace!("testing relative module at {:?}", target);
+    /// Takes a source module and a relative target module.
+    /// It returns the absolute name and path to the target.
+    ///
+    /// The module has to be found under one of the search
+    /// directories.
+    pub fn find_abs_module(
+        &self,
+        source_module_path: &Path,
+        target_module: &str,
+    ) -> CompilerResult<Option<(String, PathBuf)>> {
+        let target = source_module_path
+            .parent()
+            .ok_or_else(|| CompilerError::InvalidModulePath(source_module_path.to_owned()))?
+            .join(target_module)
+            .with_extension("tardi");
+        let target = target.canonicalize();
 
-        if target.exists() {
-            let target = target.canonicalize()?;
-            return Ok(Some(target));
+        if target.is_err() {
+            return Ok(None);
         }
 
-        Ok(None)
+        let target = target.unwrap();
+        for path in self.paths.iter() {
+            if let Ok(suffix) = target.strip_prefix(path) {
+                if let Some(name) = suffix.file_stem() {
+                    let name = name.to_string_lossy();
+                    let name = name.replace("\\", "/");
+                    return Ok(Some((name, target)));
+                }
+            }
+        }
+
+        Err(CompilerError::InvalidModulePath(target))
     }
 }
 

@@ -79,7 +79,6 @@ impl Module {
     }
 
     pub fn get_key(&self) -> String {
-        // XXX: The name may need to be canonicalized for relative imports.
         self.name.clone()
     }
 
@@ -271,23 +270,27 @@ impl Environment {
         self.modules.get_mut(key)
     }
 
-    pub fn add_module(&mut self, key: &str, module: Module) {
-        self.modules.insert(key.to_string(), module);
+    pub fn add_module(&mut self, module: Module) {
+        let name = module.name.clone();
+        self.modules.insert(name, module);
     }
 
-    pub fn get_or_create_module_mut<'a>(&'a mut self, key: &str) -> &'a mut Module {
-        log::trace!("Environment::get_or_create_module_mut {:?}", key);
-        if self.modules.contains_key(key) {
+    pub fn get_or_create_module_mut<'a>(&'a mut self, name: &str) -> &'a mut Module {
+        log::trace!("Environment::get_or_create_module_mut {:?}", name);
+        if self.modules.contains_key(name) {
             log::trace!(
                 "Environment::get_or_create_module_mut get existing {:?}",
-                key
+                name
             );
-            self.modules.get_mut(key).unwrap()
+            self.modules.get_mut(name).unwrap()
         } else {
-            log::trace!("Environment::get_or_create_module_mut create new {:?}", key);
-            let module = self.create_module(key);
-            self.add_module(key, module);
-            self.modules.get_mut(key).unwrap()
+            log::trace!(
+                "Environment::get_or_create_module_mut create new {:?}",
+                name
+            );
+            let module = self.create_module(name);
+            self.add_module(module);
+            self.modules.get_mut(name).unwrap()
         }
     }
 
@@ -296,8 +299,19 @@ impl Environment {
     }
 
     pub fn add_macro(&mut self, module_key: &str, macro_lambda: Lambda) -> Result<()> {
+        log::trace!(
+            "Environment::add_macro '{}' L {:?}",
+            module_key,
+            macro_lambda.name
+        );
+    pub fn add_macro(&mut self, module_name: &str, macro_lambda: Lambda) -> Result<()> {
+        log::trace!(
+            "Environment::add_macro '{}' L {:?}",
+            module_name,
+            macro_lambda.name
+        );
         let macro_lambda = shared(macro_lambda);
-        self.add_to_op_table(module_key, macro_lambda.clone())?;
+        self.add_to_op_table(module_name, macro_lambda.clone())?;
         Ok(())
     }
 

@@ -64,7 +64,6 @@ fn test_compile_comparison_operators() -> Result<()> {
         OpCode::Lit,
         OpCode::Less,
         OpCode::Not,
-        OpCode::Return,
     ];
     let actual_ops = get_ops(environment);
 
@@ -77,13 +76,7 @@ fn test_compile_comparison_operators() -> Result<()> {
 fn test_compile_return_stack_operations() -> Result<()> {
     let environment = compile("42 >r r@ r>")?;
 
-    let expected_ops = vec![
-        OpCode::Lit,
-        OpCode::ToR,
-        OpCode::RFetch,
-        OpCode::RFrom,
-        OpCode::Return,
-    ];
+    let expected_ops = vec![OpCode::Lit, OpCode::ToR, OpCode::RFetch, OpCode::RFrom];
     let actual_ops = get_ops(environment);
 
     assert_eq!(actual_ops, expected_ops);
@@ -207,10 +200,13 @@ fn test_compile_macro_basic() {
 
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
-    assert!(tardi
-        .compiler
-        .get_macro(tardi.environment.clone(), &ValueData::Word("&".to_string()))
-        .is_some());
+    let ip = tardi.environment.borrow().get_op_ip("sandbox", "&");
+    assert!(ip.is_some(), "ip {:?}", ip);
+    let ip = ip.unwrap();
+    let lambda = tardi.environment.borrow().get_op(ip);
+    assert!(lambda.is_some(), "lambda {:?}", lambda);
+    let lambda = lambda.unwrap();
+    assert!(lambda.borrow().immediate, "is not immediate");
 
     let result = tardi.execute_str("40 41 & 42");
 
@@ -351,6 +347,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
+    // TODO: the outer macro call isn't finishing up (`swap append`).
     let result = tardi.execute_str(r#"[ 40 41 42 [ 43 44 45 ] ]"#);
     assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
     let stack = tardi.stack();

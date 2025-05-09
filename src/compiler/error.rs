@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::error;
 use std::fmt;
 use std::io;
+use std::path::PathBuf;
 use std::result;
 
 use crate::error::Error;
@@ -20,6 +21,7 @@ pub enum CompilerError {
     MissingEnvironment,
     ValueHasNoTokenType(String),
     ModuleNotFound(String),
+    InvalidModulePath(PathBuf),
     InvalidState(String),
     ScannerError(ScannerError),
     TypeMismatch(String),
@@ -38,6 +40,7 @@ impl fmt::Display for CompilerError {
             CompilerError::MissingEnvironment => write!(f, "Compiling with environment"),
             CompilerError::ValueHasNoTokenType(s) => write!(f, "Value has to TokenType: {}", s),
             CompilerError::ModuleNotFound(name) => write!(f, "Missing module '{}'", name),
+            CompilerError::InvalidModulePath(path) => write!(f, "Invalid module path: {:?}", path),
             CompilerError::InvalidState(s) => write!(f, "Invalid compiler state: {}", s),
             CompilerError::ScannerError(err) => err.fmt(f),
             CompilerError::TypeMismatch(s) => write!(f, "Type mismatch: {}", s),

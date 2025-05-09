@@ -457,22 +457,23 @@ impl VM {
         let lambda = self.pop()?;
         let name = self.pop()?;
 
-        let name_str = match name.borrow().data {
-            ValueData::String(ref s) => s.to_string(),
-            ValueData::Word(ref w) => w.to_string(),
-            _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
-        };
+        let name = name.borrow();
+        let (module_name, name_str) = name
+            .get_symbol()
+            .ok_or_else(|| VMError::TypeMismatch("function name".to_string()))?;
+        log::trace!("VM::function {}::{}", module_name, name_str);
+        if log::log_enabled!(Level::Trace) {
+            let module_names = self.module_stack.join(" :: ");
+            log::trace!("module stack '{}'", module_names);
+        }
 
         let env = self.environment.clone().unwrap();
 
         // Define a predeclared word
-        // TODO: need to be consist whether I'm using Path or str to identify modules
-        // TODO: use `module_key` for the module index to make it more abstract
         let module = self.module_stack.last().ok_or(VMError::MissingModule)?;
-        let index = env.borrow().get_op_ip(module, &name_str);
-        if let Some(index) = index {
-            let predeclared = &env.borrow_mut().op_table[index];
+        if let Some(index) = env.borrow().get_op_ip(module, &name_str) {
             log::trace!("VM::function defining predeclared function {}", name_str);
+            let predeclared = &env.borrow_mut().op_table[index];
             let ip = (*lambda)
                 .borrow()
                 .get_function()
@@ -488,18 +489,16 @@ impl VM {
             .get_function_mut()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("lambda".to_string())))
             .map(|c| {
-                c.name = Some(name_str);
+                c.name = Some(name_str.to_string());
                 c.clone()
             })?;
         log::trace!("function: {}", callable);
 
-        // Add the function to the op_table
-        // XXX: this needs to operate on the compiler's current module
         if let Some(env) = self.environment.as_ref() {
             let env = env.clone();
             (*env)
                 .borrow_mut()
-                .add_to_op_table(module, shared(callable))?;
+                .add_to_op_table(module_name, shared(callable))?;
         }
 
         Ok(())
@@ -530,6 +529,7 @@ impl VM {
 
     /// Returns from a function
     pub fn return_op(&mut self) -> Result<()> {
+        log::trace!("VM::return_op");
         if self.return_stack.is_empty() {
             // TODO: not wild about using `VMError::Exit` for flow control here.
             return Err(VMError::Exit.into());
@@ -547,6 +547,7 @@ impl VM {
 
     /// Return from a macro
     pub fn exit(&self) -> Result<()> {
+        log::trace!("exit");
         Err(VMError::Exit.into())
     }
 
@@ -590,7 +591,7 @@ impl VM {
     fn debug_op(&self) {
         let env_loc = EnvLoc::new(self.environment.clone().unwrap(), self.ip);
         let debugged = format!("{:?}", env_loc);
-        log::debug!("{}", debugged.trim_end());
+        log::debug!("IP: {}", debugged.trim_end());
     }
 
     fn debug_stacks(&self) {
@@ -656,7 +657,10 @@ impl Execute for VM {
             let result = operation.call(self, compiler);
             match result {
                 Ok(()) => {}
-                Err(Error::VMError(VMError::Exit)) => return Ok(()),
+                Err(Error::VMError(VMError::Exit)) => {
+                    log::trace!("exiting");
+                    return Ok(());
+                }
                 err => {
                     self.ip = max_ip;
                     self.return_stack.clear();
@@ -676,19 +680,21 @@ impl Execute for VM {
         lambda: &Lambda,
         tokens: Shared<Value>,
     ) -> Result<()> {
-        if log::log_enabled!(Level::Trace) {
-            log::trace!(
-                "VM::execute_macro {} -- current input {}",
-                trigger,
-                tokens.borrow()
-            );
-        }
+        log::trace!(
+            "VM::execute_macro {} -- current input {}",
+            trigger,
+            tokens.borrow()
+        );
         // Convert the tokens seen already to a form we can work on.
         self.stack.push(tokens.clone());
 
         match lambda.call(self, compiler) {
-            Ok(()) => {}
-            Err(Error::VMError(VMError::Exit)) => {}
+            Ok(()) => {
+                log::trace!("received success from macro call. continuing.")
+            }
+            Err(Error::VMError(VMError::Exit)) => {
+                log::trace!("received exit from macro call. continuing.")
+            }
             Err(err) => return Err(err),
         }
         // It's not currently in an execution loop. Builtins are run
@@ -696,9 +702,16 @@ impl Execute for VM {
         // move the IP.
         if lambda.is_compiled() {
             // TODO: DRY these up some
+            log::trace!("{:?} is compiled. executing ip", lambda.name);
             match self.run(env.clone(), compiler) {
-                Ok(()) => {}
-                Err(Error::VMError(VMError::Exit)) => {}
+                Ok(()) => {
+                    self.return_op()?;
+                    log::trace!("received success from macro run. continuing.")
+                }
+                Err(Error::VMError(VMError::Exit)) => {
+                    self.return_op()?;
+                    log::trace!("received exit from macro run. continuing.")
+                }
                 Err(err) => return Err(err),
             }
         }
