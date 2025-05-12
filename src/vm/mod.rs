@@ -460,7 +460,7 @@ impl VM {
         let name = name.borrow();
         let (module_name, name_str) = name
             .get_symbol()
-            .ok_or_else(|| VMError::TypeMismatch("function name".to_string()))?;
+            .ok_or_else(|| VMError::TypeMismatch(format!("function name: {:?}", name)))?;
         log::trace!("VM::function {}::{}", module_name, name_str);
         if log::log_enabled!(Level::Trace) {
             let module_names = self.module_stack.join(" :: ");
@@ -470,8 +470,7 @@ impl VM {
         let env = self.environment.clone().unwrap();
 
         // Define a predeclared word
-        let module = self.module_stack.last().ok_or(VMError::MissingModule)?;
-        if let Some(index) = env.borrow().get_op_ip(module, &name_str) {
+        if let Some(index) = env.borrow().get_op_ip(&module_name, &name_str) {
             log::trace!("VM::function defining predeclared function {}", name_str);
             let predeclared = &env.borrow_mut().op_table[index];
             let ip = (*lambda)

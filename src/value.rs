@@ -399,6 +399,18 @@ impl PartialEq for ValueData {
             (ValueData::Function(a), ValueData::Function(b)) => a == b,
             (ValueData::Address(a), ValueData::Address(b)) => a == b,
             (ValueData::Word(a), ValueData::Word(b)) => a == b,
+            (ValueData::Word(a), ValueData::Symbol { word: b, .. }) => a == b,
+            (ValueData::Symbol { word: a, .. }, ValueData::Word(b)) => a == b,
+            (
+                ValueData::Symbol {
+                    module: m1,
+                    word: a,
+                },
+                ValueData::Symbol {
+                    module: m2,
+                    word: b,
+                },
+            ) => m1 == m2 && a == b,
             (ValueData::Macro, ValueData::Macro) => true,
             (ValueData::Literal(a), ValueData::Literal(b)) => a == b,
             (ValueData::EndOfInput, ValueData::EndOfInput) => true,
@@ -437,6 +449,17 @@ impl PartialOrd for ValueData {
             (ValueData::String(a), ValueData::String(b)) => a.partial_cmp(b),
             (ValueData::Function(a), ValueData::Function(b)) => a.partial_cmp(b), // Functions cannot be ordered
             (ValueData::Word(a), ValueData::Word(b)) => a.partial_cmp(b),
+            (
+                ValueData::Symbol {
+                    module: m1,
+                    word: w1,
+                },
+                ValueData::Symbol {
+                    module: m2,
+                    word: w2,
+                },
+            ) => (m1, w1).partial_cmp(&(m2, w2)),
+
             _ => None,
         }
     }

@@ -1,7 +1,6 @@
 use std::iter::from_fn;
 
 use super::*;
-use crate::error::Error;
 use crate::scanner::error::ScannerError;
 
 // TODO: better tests for errors
@@ -78,7 +77,11 @@ fn test_scan_integers() {
 
     // Test "42"
     let token = assert_top(&mut tokens, 1, 1, 2, Some("42"));
-    assert!(matches!(token.data, ValueData::Integer(42)));
+    assert!(
+        matches!(token.data, ValueData::Integer(42)),
+        "not an int {:?}",
+        token.data
+    );
 
     // Test "123"
     let token = top(&mut tokens);
@@ -213,7 +216,7 @@ fn test_scan_booleans() {
 
     // Test error "#x"
     let token = top(&mut tokens);
-    assert!(token.is_ok_and(|token| matches!(token.data, ValueData::Word(_))));
+    assert!(token.is_ok_and(|token| matches!(token.data, ValueData::Symbol { .. })));
 }
 
 #[test]
@@ -228,12 +231,16 @@ fn test_scan_comments() {
 
     // Test "<list>"
     let token = top(&mut tokens);
-    assert!(matches!(token.data, ValueData::Word(w) if w == "<list>"));
+    assert!(
+        matches!(token.data, ValueData::Symbol { word: ref w, .. } if w == "<list>"),
+        "not a symbol: {:?}",
+        token.data
+    );
     assert_eq!(token.lexeme, Some("<list>".to_string()));
 
     // Test "dup"
     let token = top(&mut tokens);
-    assert!(matches!(token.data, ValueData::Word(w) if w == "dup"));
+    assert!(matches!(token.data, ValueData::Symbol { word: w, .. } if w == "dup"));
     assert_eq!(token.lexeme, Some("dup".to_string()));
 
     // Ensure no more tokens were read.
@@ -273,14 +280,34 @@ fn test_scan_token() {
     let token = token.unwrap().unwrap();
     assert_eq!(
         token,
-        Value::from_parts(ValueData::Word("*".to_string()), "*", 1, 7, 6, 1),
+        Value::from_parts(
+            ValueData::Symbol {
+                module: "sandbox".to_string(),
+                word: "*".to_string()
+            },
+            "*",
+            1,
+            7,
+            6,
+            1
+        ),
     );
     let token = scanner.scan_value();
     assert!(matches!(token, Some(Ok(_))));
     let token = token.unwrap().unwrap();
     assert_eq!(
         token,
-        Value::from_parts(ValueData::Word("word".to_string()), "word", 1, 9, 8, 4),
+        Value::from_parts(
+            ValueData::Symbol {
+                module: "sandbox".to_string(),
+                word: "word".to_string()
+            },
+            "word",
+            1,
+            9,
+            8,
+            4
+        ),
     );
     let token = scanner.scan_value();
     assert!(token.is_none());
@@ -291,7 +318,11 @@ fn test_scan_value_list() {
     let mut scanner = Scanner::from_input_string("\n: double 2 * ;\n7 double\n");
 
     let token = scanner.scan_value();
-    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word(":".to_string()))));
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
+        == ValueData::Symbol {
+            module: "sandbox".to_string(),
+            word: ":".to_string()
+        })));
 
     let tokens = scanner.scan_value_list(ValueData::Word(";".to_string()));
     assert!(tokens.is_ok());
@@ -302,7 +333,17 @@ fn test_scan_value_list() {
     assert_eq!(tokens.len(), 3);
     assert_eq!(
         tokens[0],
-        Value::from_parts(ValueData::Word("double".to_string()), "double", 2, 3, 3, 6)
+        Value::from_parts(
+            ValueData::Symbol {
+                module: "sandbox".to_string(),
+                word: "double".to_string()
+            },
+            "double",
+            2,
+            3,
+            3,
+            6
+        )
     );
     assert_eq!(
         tokens[1],
@@ -310,7 +351,17 @@ fn test_scan_value_list() {
     );
     assert_eq!(
         tokens[2],
-        Value::from_parts(ValueData::Word("*".to_string()), "*", 2, 12, 12, 1)
+        Value::from_parts(
+            ValueData::Symbol {
+                module: "sandbox".to_string(),
+                word: "*".to_string()
+            },
+            "*",
+            2,
+            12,
+            12,
+            1
+        )
     );
 
     let token = scanner.scan_value();
@@ -322,7 +373,11 @@ fn test_read_string_until() {
     let mut scanner = Scanner::from_input_string("\n<< double 2 * >>\n7 double\n");
 
     let token = scanner.scan_value();
-    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("<<".to_string()))));
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
+        == ValueData::Symbol {
+            module: "sandbox".to_string(),
+            word: "<<".to_string()
+        })));
 
     let result = scanner.read_string_until(">>");
     assert!(result.is_ok(), "error on {:?}", result);
@@ -350,19 +405,29 @@ fn test_read_string_until_overlapping_delimiters() {
 fn test_words_starting_with_numbers() {
     let mut scanner = Scanner::from_input_string("123abc");
     let token = scanner.scan_value();
-    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("123abc".to_string()))));
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
+        == ValueData::Symbol {
+            module: "sandbox".to_string(),
+            word: "123abc".to_string()
+        })));
 }
 
 #[test]
 fn test_multi_byte_utf8_characters() {
     let mut scanner = Scanner::from_input_string("こんにちは world");
     let token = scanner.scan_value();
-    assert!(
-        token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("こんにちは".to_string())))
-    );
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
+        == ValueData::Symbol {
+            module: "sandbox".to_string(),
+            word: "こんにちは".to_string()
+        })));
 
     let token = scanner.scan_value();
-    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data == ValueData::Word("world".to_string()))));
+    assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
+        == ValueData::Symbol {
+            module: "sandbox".to_string(),
+            word: "world".to_string()
+        })));
 
     assert_eq!(scanner.line, 1);
     assert_eq!(scanner.column, 12); // 'world' starts at column 12 (1-based)

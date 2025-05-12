@@ -517,7 +517,10 @@ impl Scanner {
         // Try parsing in order of specificity
         self.parse_boolean(lexeme)
             .or_else(|| self.parse_number(lexeme))
-            .unwrap_or_else(|| ValueData::Word(lexeme.to_string()))
+            .unwrap_or_else(|| ValueData::Symbol {
+                module: self.source.get_key(),
+                word: lexeme.to_string(),
+            })
     }
 
     fn parse_boolean(&self, lexeme: &str) -> Option<ValueData> {

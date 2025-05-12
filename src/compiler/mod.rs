@@ -265,6 +265,7 @@ impl Compiler {
         }
     }
 
+    // XXX: make sure this works with symbols also
     fn compile_word(&mut self, value: Value) -> CompilerResult<()> {
         log::trace!("Compiler::compile_word {:?}", value.lexeme);
         let word = value
