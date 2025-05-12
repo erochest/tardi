@@ -248,13 +248,12 @@ impl Compiler {
             | ValueData::List(_)
             | ValueData::String(_)
             | ValueData::Address(_)
-            | ValueData::Literal(_)
-            | ValueData::Symbol { .. } => self.compile_constant(value),
+            | ValueData::Literal(_) => self.compile_constant(value),
             ValueData::Function(ref lambda) if lambda.name.is_none() => {
                 self.compile_constant(value)
             }
             ValueData::Function(lambda) => self.add_function(lambda),
-            ValueData::Word(_) => self.compile_word(value),
+            ValueData::Symbol { .. } => self.compile_symbol(value),
             ValueData::Macro => unreachable!("This is handled by the Scanner."),
             // XXX: does this ever get emitted anymore?
             ValueData::EndOfInput => {
@@ -262,11 +261,11 @@ impl Compiler {
                 self.compile_op(OpCode::Return)?;
                 Ok(())
             }
+            ValueData::Word(_) => unreachable!("ValueData::Word should not be compiled"),
         }
     }
 
-    // XXX: make sure this works with symbols also
-    fn compile_word(&mut self, value: Value) -> CompilerResult<()> {
+    fn compile_symbol(&mut self, value: Value) -> CompilerResult<()> {
         log::trace!("Compiler::compile_word {:?}", value.lexeme);
         let word = value
             .data
@@ -322,7 +321,7 @@ impl Compiler {
             "scan-object-list" => self.compile_op(OpCode::ScanObjectList),
             "compile" => self.compile_op(OpCode::Compile),
             "exit" => self.compile_op(OpCode::Exit),
-            _ => self.compile_word_call(&word, &value),
+            _ => self.compile_symbol_call(&value),
         }
     }
 
@@ -472,12 +471,14 @@ impl Compiler {
     }
 
     /// Compiles a word as a function call
-    fn compile_word_call(&mut self, word: &str, value: &Value) -> CompilerResult<()> {
-        log::trace!("Compiler::compile_word_call {:?}", word);
-        let module = self
-            .current_module()
-            .map(|m| &m.name)
-            .ok_or(CompilerError::InvalidState("missing scanner".to_string()))?;
+    fn compile_symbol_call(&mut self, value: &Value) -> CompilerResult<()> {
+        log::trace!("Compiler::compile_symbol_call {}", value);
+        let (module, word) = value.get_symbol().ok_or_else(|| {
+            CompilerError::InvalidState(format!(
+                "Compiler::compile_symbol_call not a symbol {:?}",
+                value
+            ))
+        })?;
         let op_table_index = self
             .environment
             .as_ref()
@@ -488,7 +489,7 @@ impl Compiler {
         } else {
             self.compile_constant(Value {
                 data: ValueData::Symbol {
-                    module: module.clone(),
+                    module: module.to_string(),
                     word: word.to_string(),
                 },
                 ..value.clone()
@@ -598,10 +599,8 @@ impl Compiler {
             ))
             .into());
         }
-        // This will usually come in as a Symbol, but those aren't created
-        // until after this point in the pipeline, so `scan_value`
-        // will never return a Symbol. We'll downgrade this back to a Word
-        // for the equality check.
+        // We don't want the module to matter for this, so we'll coerce this
+        // back down to a word.
         let delimiter = if let ValueData::Symbol { word, .. } = delimiter {
             ValueData::Word(word.clone())
         } else {
@@ -652,10 +651,14 @@ impl Compiler {
         let module_spec = module_word
             .get_word()
             .ok_or_else(|| CompilerError::UnsupportedToken(format!("{}", module_word)))?;
-        // XXX: get the context from the compiler's stack of modules it's compiling
+        let context = self
+            .current_scanner()
+            .ok_or_else(|| CompilerError::InvalidState("missing scanner".to_string()))?
+            .source
+            .get_path();
         let (module_name, module_file) = self
             .loader
-            .find(module_spec, None)?
+            .find(module_spec, context)?
             .ok_or_else(|| CompilerError::ModuleNotFound(module_spec.to_string()))?;
 
         let env = vm.environment.as_ref().unwrap().clone();
