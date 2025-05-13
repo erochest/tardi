@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::{config::Config, error::Result};
 
+pub const KERNEL: &str = "std/kernel";
+pub const SANDBOX: &str = "std/sandbox";
+
 #[derive(Debug)]
 pub struct Loader {
     pub paths: Vec<PathBuf>,

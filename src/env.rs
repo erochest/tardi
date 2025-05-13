@@ -1,4 +1,5 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
+use crate::compiler::module::{KERNEL, SANDBOX};
 use crate::core::{create_kernel_module, create_op_table};
 use crate::error::Result;
 use crate::shared::{shared, Shared};
@@ -158,10 +159,10 @@ impl Environment {
 
         let kernel = create_kernel_module();
         // TODO: use consts for the string literals.
-        env.modules.insert("kernel".to_string(), kernel);
+        env.modules.insert(KERNEL.to_string(), kernel);
 
-        let sandbox = env.create_module("sandbox");
-        env.modules.insert("sandbox".to_string(), sandbox);
+        let sandbox = env.create_module(SANDBOX);
+        env.modules.insert(SANDBOX.to_string(), sandbox);
 
         env
     }
@@ -169,7 +170,7 @@ impl Environment {
     /// Create a new module with a given name and import words from the
     /// kernel.
     pub fn create_module(&self, name: &str) -> Module {
-        let kernel = &self.modules["kernel"];
+        let kernel = &self.modules[KERNEL];
         Module::with_imports(name, kernel)
     }
 

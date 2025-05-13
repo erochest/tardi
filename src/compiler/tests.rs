@@ -6,6 +6,7 @@ use crate::env::Environment;
 use crate::shared::unshare_clone;
 use crate::value::{Pos, Value};
 
+use module::SANDBOX;
 use pretty_assertions::assert_eq;
 
 // TODO: more tests
@@ -200,7 +201,7 @@ fn test_compile_macro_basic() {
 
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
-    let ip = tardi.environment.borrow().get_op_index("sandbox", "&");
+    let ip = tardi.environment.borrow().get_op_index(SANDBOX, "&");
     assert!(ip.is_some(), "ip {:?}", ip);
     let ip = ip.unwrap();
     let lambda = tardi.environment.borrow().get_op(ip);

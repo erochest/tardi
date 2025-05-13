@@ -5,7 +5,7 @@ use std::path::Path;
 use std::{fs, mem, result};
 
 use log::Level;
-use module::Loader;
+use module::{Loader, SANDBOX};
 
 pub mod error;
 pub mod module;
@@ -50,12 +50,13 @@ pub struct ModuleCompiler {
 impl From<ModuleCompiler> for Module {
     fn from(module_compiler: ModuleCompiler) -> Self {
         let (name, path) = match module_compiler.scanner.source {
-            Source::InputString => ("sandbox".to_string(), None),
+            Source::InputString => (SANDBOX.to_string(), None),
             Source::ScriptFile { path } => (
                 path.file_stem().unwrap().to_string_lossy().to_string(),
                 Some(path),
             ),
             Source::Module { name, path } => (name, Some(path)),
+            Source::Internal { name } => (name, None),
         };
         Module {
             path,
@@ -734,6 +735,16 @@ impl Compiler {
     ) -> Result<()> {
         let input = fs::read_to_string(file)?;
         self.compile_scanner(vm, env, Scanner::from_module(name, file, &input))
+    }
+
+    pub fn compile_internal(
+        &mut self,
+        vm: &mut VM,
+        env: Shared<Environment>,
+        name: &str,
+        input: &str,
+    ) -> Result<()> {
+        self.compile_scanner(vm, env, Scanner::from_internal_module(name, input))
     }
 
     // XXX: make this either take a Source or add a specific method for each

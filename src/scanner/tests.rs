@@ -1,7 +1,7 @@
 use std::iter::from_fn;
 
 use super::*;
-use crate::scanner::error::ScannerError;
+use crate::{compiler::module::SANDBOX, scanner::error::ScannerError};
 
 // TODO: better tests for errors
 
@@ -282,7 +282,7 @@ fn test_scan_token() {
         token,
         Value::from_parts(
             ValueData::Symbol {
-                module: "sandbox".to_string(),
+                module: SANDBOX.to_string(),
                 word: "*".to_string()
             },
             "*",
@@ -299,7 +299,7 @@ fn test_scan_token() {
         token,
         Value::from_parts(
             ValueData::Symbol {
-                module: "sandbox".to_string(),
+                module: SANDBOX.to_string(),
                 word: "word".to_string()
             },
             "word",
@@ -320,7 +320,7 @@ fn test_scan_value_list() {
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
         == ValueData::Symbol {
-            module: "sandbox".to_string(),
+            module: SANDBOX.to_string(),
             word: ":".to_string()
         })));
 
@@ -335,7 +335,7 @@ fn test_scan_value_list() {
         tokens[0],
         Value::from_parts(
             ValueData::Symbol {
-                module: "sandbox".to_string(),
+                module: SANDBOX.to_string(),
                 word: "double".to_string()
             },
             "double",
@@ -353,7 +353,7 @@ fn test_scan_value_list() {
         tokens[2],
         Value::from_parts(
             ValueData::Symbol {
-                module: "sandbox".to_string(),
+                module: SANDBOX.to_string(),
                 word: "*".to_string()
             },
             "*",
@@ -375,7 +375,7 @@ fn test_read_string_until() {
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
         == ValueData::Symbol {
-            module: "sandbox".to_string(),
+            module: SANDBOX.to_string(),
             word: "<<".to_string()
         })));
 
@@ -407,7 +407,7 @@ fn test_words_starting_with_numbers() {
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
         == ValueData::Symbol {
-            module: "sandbox".to_string(),
+            module: SANDBOX.to_string(),
             word: "123abc".to_string()
         })));
 }
@@ -418,14 +418,14 @@ fn test_multi_byte_utf8_characters() {
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
         == ValueData::Symbol {
-            module: "sandbox".to_string(),
+            module: SANDBOX.to_string(),
             word: "こんにちは".to_string()
         })));
 
     let token = scanner.scan_value();
     assert!(token.is_some_and(|r| r.is_ok_and(|t| t.data
         == ValueData::Symbol {
-            module: "sandbox".to_string(),
+            module: SANDBOX.to_string(),
             word: "world".to_string()
         })));
 

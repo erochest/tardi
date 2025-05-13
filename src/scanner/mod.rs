@@ -1,5 +1,6 @@
 pub mod error;
 
+use crate::compiler::module::SANDBOX;
 use crate::scanner::error::{ScannerError, ScannerResult};
 use crate::value::{Value, ValueData};
 use std::convert::TryFrom;
@@ -18,14 +19,18 @@ pub enum Source {
         name: String,
         path: PathBuf,
     },
+    Internal {
+        name: String,
+    },
 }
 
 impl Source {
     pub fn get_key(&self) -> String {
         match &self {
-            Source::InputString => "sandbox".to_string(),
+            Source::InputString => SANDBOX.to_string(),
             Source::ScriptFile { path } => path.file_stem().unwrap().to_string_lossy().to_string(),
             Source::Module { name, .. } => name.clone(),
+            Source::Internal { name } => name.clone(),
         }
     }
 
@@ -34,6 +39,7 @@ impl Source {
             Source::InputString => None,
             Source::ScriptFile { path } => Some(path),
             Source::Module { path, .. } => Some(path),
+            Source::Internal { .. } => None,
         }
     }
 }
@@ -47,6 +53,7 @@ impl TryFrom<Source> for Scanner {
             Source::InputString => String::new(),
             Source::ScriptFile { path } => fs::read_to_string(&path)?,
             Source::Module { path, .. } => fs::read_to_string(&path)?,
+            Source::Internal { .. } => String::new(),
         };
         scanner.chars = scanner.input.chars().collect();
 
@@ -161,6 +168,23 @@ impl Scanner {
         let chars = input.chars().collect();
         Scanner {
             source: Source::Module { name, path },
+            input,
+            chars,
+            index: 0,
+            line: 1,
+            column: 1,
+            offset: 0,
+        }
+    }
+
+    pub fn from_internal_module(name: &str, input: &str) -> Self {
+        // TODO: DRY all of these up some
+        let name = name.to_string();
+        let source = Source::Internal { name };
+        let input = input.to_string();
+        let chars = input.chars().collect();
+        Scanner {
+            source,
             input,
             chars,
             index: 0,

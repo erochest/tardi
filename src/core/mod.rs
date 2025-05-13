@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::compiler::module::{KERNEL, SANDBOX};
 use crate::compiler::Compiler;
 use crate::config::Config;
 use crate::env::{Environment, Module};
@@ -69,9 +70,9 @@ impl Tardi {
                 self.execute_str(&input)?;
             }
         } else {
-            self.execute_str(include_str!("../bootstrap/00-core-macros.tardi"))?;
-            self.execute_str(include_str!("../bootstrap/01-stack-ops.tardi"))?;
-            self.execute_str(include_str!("../bootstrap/02-core-ops.tardi"))?;
+            self.execute_module_str(KERNEL, include_str!("../bootstrap/00-core-macros.tardi"))?;
+            self.execute_module_str(KERNEL, include_str!("../bootstrap/01-stack-ops.tardi"))?;
+            self.execute_module_str(KERNEL, include_str!("../bootstrap/02-core-ops.tardi"))?;
         }
 
         Ok(())
@@ -102,7 +103,13 @@ impl Tardi {
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
         self.reset();
-        self.compile_str("internal://sandbox", input)?;
+        self.compile_str(SANDBOX, input)?;
+        self.execute()
+    }
+
+    pub fn execute_module_str(&mut self, module: &str, input: &str) -> Result<()> {
+        self.reset();
+        self.compile_str(module, input)?;
         self.execute()
     }
 
@@ -213,7 +220,7 @@ pub fn create_kernel_module() -> Module {
     Module {
         imported: HashMap::new(),
         path: None,
-        name: "kernel".to_string(),
+        name: KERNEL.to_string(),
         defined,
     }
 }
