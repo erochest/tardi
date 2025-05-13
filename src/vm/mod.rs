@@ -470,7 +470,7 @@ impl VM {
         let env = self.environment.clone().unwrap();
 
         // Define a predeclared word
-        if let Some(index) = env.borrow().get_op_ip(&module_name, &name_str) {
+        if let Some(index) = env.borrow().get_op_index(&module_name, &name_str) {
             log::trace!("VM::function defining predeclared function {}", name_str);
             let predeclared = &env.borrow_mut().op_table[index];
             let ip = (*lambda)

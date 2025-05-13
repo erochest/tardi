@@ -200,7 +200,7 @@ fn test_compile_macro_basic() {
 
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
-    let ip = tardi.environment.borrow().get_op_ip("sandbox", "&");
+    let ip = tardi.environment.borrow().get_op_index("sandbox", "&");
     assert!(ip.is_some(), "ip {:?}", ip);
     let ip = ip.unwrap();
     let lambda = tardi.environment.borrow().get_op(ip);
@@ -391,20 +391,19 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
 
 #[test]
 fn test_compile_define_use_function() {
-    // env_logger::init();
+    env_logger::init();
     let mut tardi = Tardi::default();
 
-    tardi
-        .execute_str(
-            r#"
+    let result = tardi.execute_str(
+        r#"
         MACRO: {
                 dup
                 } scan-object-list compile
                 swap append ;
         over { >r dup r> swap } <function>
         "#,
-        )
-        .unwrap();
+    );
+    assert!(result.is_ok(), "ERROR defining macro {{ : {:?}", result);
 
     let result = tardi.execute_str("42 7 over");
     assert!(result.is_ok(), "ERROR executing over: {:?}", result);

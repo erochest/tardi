@@ -205,6 +205,11 @@ impl Environment {
         module_key: &str,
         lambda: Shared<Lambda>,
     ) -> CompilerResult<()> {
+        log::trace!(
+            "Environment::add_to_op_table {} {:?}",
+            module_key,
+            lambda.borrow().name
+        );
         let index = self.op_table.len();
         self.op_table.push(lambda.clone());
 
@@ -213,10 +218,9 @@ impl Environment {
                 .get_module_mut(module_key)
                 .ok_or_else(|| CompilerError::ModuleNotFound(module_key.to_string()))?;
             log::trace!(
-                "Environment::add_to_op_table '{}' '{}' L {:?} => {}",
+                "Environment::add_to_op_table '{}::{}' => {}",
                 module_key,
                 name,
-                lambda.borrow().name,
                 index
             );
             module.defined.insert(name.clone(), index);
@@ -252,7 +256,7 @@ impl Environment {
         None
     }
 
-    pub fn get_op_ip(&self, module: &str, word: &str) -> Option<usize> {
+    pub fn get_op_index(&self, module: &str, word: &str) -> Option<usize> {
         self.modules.get(module).and_then(|m| m.get(word))
     }
 
@@ -307,6 +311,11 @@ impl Environment {
     }
 
     pub fn add_macro(&mut self, module_name: &str, macro_lambda: Lambda) -> Result<()> {
+        log::trace!(
+            "Environment::add_macro {}::{:?}",
+            module_name,
+            macro_lambda.name
+        );
         let macro_lambda = shared(macro_lambda);
         self.add_to_op_table(module_name, macro_lambda.clone())?;
         Ok(())

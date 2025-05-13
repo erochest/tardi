@@ -137,6 +137,8 @@ impl From<&Config> for Compiler {
 }
 
 impl Compiler {
+    // XXX: just get rid of the module stack. return the correct module from
+    // the environment
     pub fn current_module(&self) -> Option<&ModuleCompiler> {
         self.module_stack.last()
     }
@@ -482,7 +484,7 @@ impl Compiler {
         let op_table_index = self
             .environment
             .as_ref()
-            .and_then(|e| e.borrow().get_op_ip(module, word));
+            .and_then(|e| e.borrow().get_op_index(module, word));
         if let Some(op_table_index) = op_table_index {
             self.compile_instruction(op_table_index);
             Ok(())
@@ -692,33 +694,16 @@ impl Compiler {
     }
 
     fn get_macro(&self, env: Shared<Environment>, trigger: &ValueData) -> Option<Shared<Lambda>> {
-        // if log::log_enabled!(Level::Trace) {
-        //     log::trace!("Compiler::get_macro {}", trigger);
-        //     if let Some(word) = trigger.get_word() {
-        //         log::trace!("Compiler::get_macro word {}", word);
-        //         if let Some(module) = self.current_module() {
-        //             log::trace!("Compiler::get_macro module {:?}", module.name);
-        //             if let Some(index) = module.get(word) {
-        //                 log::trace!("Compiler::get_macro index {}", index);
-        //                 if let Some(lambda) = env.borrow().op_table.get(index).cloned() {
-        //                     log::trace!("Compiler::get_macro lambda {}", lambda.borrow());
-        //                     if lambda.borrow().immediate {
-        //                         log::trace!("Compiler::get_macro found macro {}", lambda.borrow());
-        //                         return Some(lambda);
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     log::trace!("Compiler::get_macro None");
-        //     None
-        // } else {
-        trigger
-            .get_word()
-            .and_then(|word| self.current_module().and_then(|m| m.get(word)))
-            .and_then(|index| env.borrow().op_table.get(index).cloned())
-            .filter(|lambda| lambda.borrow().immediate)
-        // }
+        if let Some(word) = trigger.get_word() {
+            if let Some(module_name) = self.current_module().as_ref().map(|m| &m.name) {
+                return env
+                    .borrow()
+                    .get_op_index(&module_name, word)
+                    .and_then(|index| env.borrow().get_op(index))
+                    .filter(|lambda| lambda.borrow().immediate);
+            }
+        }
+        None
     }
 
     pub fn compile_repl(
