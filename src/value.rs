@@ -376,6 +376,7 @@ impl fmt::Display for ValueData {
             ValueData::Function(lambda) => write!(f, "{}", lambda),
             ValueData::Address(addr) => write!(f, "<@{}>", addr),
             ValueData::Word(word) => write!(f, "{}", word),
+            // TODO: escape word if it starts with punctuation (`module::\:` or something)
             ValueData::Symbol { module, word } => write!(f, "{}::{}", module, word),
             ValueData::Macro => write!(f, "MACRO:"),
             ValueData::Literal(value) => write!(f, "\\ {}", value),

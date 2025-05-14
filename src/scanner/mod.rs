@@ -539,6 +539,8 @@ impl Scanner {
 
     fn parse_word(&self, lexeme: &str) -> ValueData {
         // Try parsing in order of specificity
+        // TODO: have it look in imported/defined names for one and use that module here?
+        // TODO: parse `module/word` pairs into symbols
         self.parse_boolean(lexeme)
             .or_else(|| self.parse_number(lexeme))
             .unwrap_or_else(|| ValueData::Symbol {

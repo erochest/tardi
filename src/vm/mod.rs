@@ -446,7 +446,12 @@ impl VM {
         (*func)
             .borrow()
             .get_function()
-            .ok_or_else(|| Error::from(VMError::TypeMismatch("function call".to_string())))
+            .ok_or_else(|| {
+                Error::from(VMError::TypeMismatch(format!(
+                    "not a word: {}",
+                    func.borrow()
+                )))
+            })
             .and_then(|c| c.call(vm, compiler))?;
 
         Ok(())
@@ -470,15 +475,19 @@ impl VM {
         let env = self.environment.clone().unwrap();
 
         // Define a predeclared word
-        if let Some(index) = env.borrow().get_op_index(&module_name, &name_str) {
+        let get_op_index = env.borrow().get_op_index(&module_name, &name_str);
+        if let Some(index) = get_op_index {
             log::trace!("VM::function defining predeclared function {}", name_str);
-            let predeclared = &env.borrow_mut().op_table[index];
             let ip = (*lambda)
                 .borrow()
                 .get_function()
                 .and_then(|f| f.get_ip())
                 .unwrap(); // TODO: be more defensive here
-            (*predeclared).borrow_mut().define_function(ip)?;
+            let function = &env
+                .borrow_mut()
+                .get_op(index)
+                .ok_or_else(|| VMError::InvalidOpIndex(index))?;
+            (*function).borrow_mut().define_function(ip)?;
             return Ok(());
         }
 
@@ -506,25 +515,19 @@ impl VM {
     pub fn predeclare_function(&mut self) -> Result<()> {
         let name = self.pop()?;
 
-        let name_str = match name.borrow().data {
-            ValueData::String(ref s) => s.to_string(),
-            ValueData::Word(ref w) => w.to_string(),
-            _ => return Err(VMError::TypeMismatch("function name".to_string()).into()),
-        };
-        log::trace!("VM::predefine_function {}", name_str);
-        if log::log_enabled!(Level::Trace) {
-            let module_names = self.module_stack.join(" :: ");
-            log::trace!("module stack '{}'", module_names);
-        }
+        let name = name.borrow();
+        let (module_name, name_str) = name
+            .get_symbol()
+            .ok_or_else(|| VMError::TypeMismatch("function name".to_string()))?;
+        log::trace!("VM::predefine_function {}::{}", module_name, name_str);
 
         let lambda = Lambda::new_undefined(&name_str);
-        let module = self.module_stack.last().ok_or(VMError::MissingModule)?;
         // Add the function to the op_table
         if let Some(env) = self.environment.as_ref() {
             let env = env.clone();
             (*env)
                 .borrow_mut()
-                .add_to_op_table(module, shared(lambda))?;
+                .add_to_op_table(module_name, shared(lambda))?;
         }
 
         Ok(())
@@ -550,6 +553,9 @@ impl VM {
 
     /// Return from a macro
     pub fn exit(&self) -> Result<()> {
+        // TODO: does this need to pop from the return stack here?
+        // I'm doing that in execute_macro and other places, but
+        // should that happen here?
         log::trace!("exit");
         Err(VMError::Exit.into())
     }
@@ -721,7 +727,7 @@ impl Execute for VM {
 
         // Get the token list off the stack and return it to the compiler form.
         if log::log_enabled!(Level::Trace) {
-            log::trace!("VM::execute_macro cleaning up");
+            log::trace!("VM::execute_macro {} cleaning up", trigger);
             self.debug_stacks();
         }
         if let Some(top) = self.stack.pop() {

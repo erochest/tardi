@@ -53,6 +53,7 @@ impl Tardi {
 
     pub fn bootstrap(&mut self, bootstrap_dir: Option<PathBuf>) -> Result<()> {
         if let Some(bootstrap_dir) = bootstrap_dir {
+            log::trace!("Tardi::bootstrap {:?}", bootstrap_dir);
             if !bootstrap_dir.exists() {
                 return Ok(());
             }
@@ -70,6 +71,7 @@ impl Tardi {
                 self.execute_str(&input)?;
             }
         } else {
+            log::trace!("Tardi::bootstrap internal modules");
             self.execute_module_str(KERNEL, include_str!("../bootstrap/00-core-macros.tardi"))?;
             self.execute_module_str(KERNEL, include_str!("../bootstrap/01-stack-ops.tardi"))?;
             self.execute_module_str(KERNEL, include_str!("../bootstrap/02-core-ops.tardi"))?;
@@ -82,10 +84,14 @@ impl Tardi {
         self.input = None;
     }
 
-    pub fn compile_str(&mut self, module_key: &str, input: &str) -> Result<Shared<Environment>> {
+    pub fn compile_str(&mut self, module_name: &str, input: &str) -> Result<Shared<Environment>> {
         log::debug!("input : {}", input);
-        self.compiler
-            .compile_repl(&mut self.executor, self.environment.clone(), input)?;
+        self.compiler.compile_internal(
+            &mut self.executor,
+            self.environment.clone(),
+            module_name,
+            input,
+        )?;
         Ok(self.environment.clone())
     }
 
@@ -102,18 +108,21 @@ impl Tardi {
     }
 
     pub fn execute_str(&mut self, input: &str) -> Result<()> {
+        log::trace!("Tardi::execute_str");
         self.reset();
         self.compile_str(SANDBOX, input)?;
         self.execute()
     }
 
     pub fn execute_module_str(&mut self, module: &str, input: &str) -> Result<()> {
+        log::trace!("Tardi::execute_module_str");
         self.reset();
         self.compile_str(module, input)?;
         self.execute()
     }
 
     pub fn execute_file(&mut self, path: &Path) -> Result<()> {
+        log::trace!("Tardi::execute_file");
         self.reset();
         self.compile_script(path)?;
         self.execute()
@@ -198,8 +207,10 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "exit", exit);
     push_op(&mut op_table, "jump", jump);
     push_op(&mut op_table, "jump-stack", jump_stack);
+    // TODO: move some of these into a std/internals module (& compile)
     push_op(&mut op_table, "<function>", function);
     push_op(&mut op_table, "<predefine-function>", predeclare_function);
+    // TODO: std/scanning
     push_op(&mut op_table, "scan-value", scan_value);
     push_op(&mut op_table, "scan-value-list", scan_value_list);
     push_op(&mut op_table, "scan-object-list", scan_object_list);

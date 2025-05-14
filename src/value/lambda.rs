@@ -185,7 +185,7 @@ impl fmt::Display for Callable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Callable::BuiltIn { .. } => write!(f, "fn"),
-            Callable::Compiled { words, ip } => write!(f, "{{ {} }} @ {}", words.join(" "), ip),
+            Callable::Compiled { words, ip } => write!(f, "{{ {} }}@{}", words.join(" "), ip),
         }
     }
 }

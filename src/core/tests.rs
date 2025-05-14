@@ -154,6 +154,7 @@ fn test_3dup() {
 
 #[test]
 fn test_2over() {
+    env_logger::init();
     test_word("1 2 3 2over", &[1i64, 2, 3, 1, 2]);
 }
 
