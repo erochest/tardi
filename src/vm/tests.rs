@@ -748,7 +748,7 @@ fn test_predeclare_function_adds_undefined_function_to_op_table() {
 
     assert_is_ok(input, &result);
     let env = tardi.environment.clone();
-    let index = tardi.compiler.current_module().and_then(|m| m.get(&word));
+    let index = env.borrow().get_op_index("std/sandbox", "even?");
     assert!(index.is_some(), "export {} = {:?}", word, index);
     let index = index.unwrap();
     assert_eq!(index, next_index);
@@ -780,10 +780,10 @@ fn test_function_defines_predeclared_function() {
         "#;
     // let mut tardi = Tardi::with_bootstrap(None).unwrap();
     let mut tardi = Tardi::default();
-    let next_index = (*tardi.environment).borrow().op_table.len();
 
     let result = tardi.execute_str(setup);
     assert_is_ok(setup, &result);
+    let next_index = (*tardi.environment).borrow().op_table.len();
     let result = tardi.execute_str(input);
 
     assert_is_ok(input, &result);
