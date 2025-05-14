@@ -158,11 +158,7 @@ impl Environment {
         env.set_op_table(op_table);
 
         let kernel = create_kernel_module();
-        // TODO: use consts for the string literals.
         env.modules.insert(KERNEL.to_string(), kernel);
-
-        let sandbox = env.create_module(SANDBOX);
-        env.modules.insert(SANDBOX.to_string(), sandbox);
 
         env
     }
@@ -476,7 +472,7 @@ impl Environment {
     }
 
     fn write_call(&self, f: &mut fmt::Formatter<'_>, index: usize, name: &str) -> fmt::Result {
-        write!(f, "{:0>4}. {: <10} | ", index, name)
+        write!(f, "{:0>4}. {: <14} | ", index, name)
     }
 
     fn write_function_names(&self, f: &mut fmt::Formatter<'_>, ip: usize) -> fmt::Result {

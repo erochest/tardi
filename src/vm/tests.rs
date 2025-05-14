@@ -788,7 +788,7 @@ fn test_function_defines_predeclared_function() {
 
     assert_is_ok(input, &result);
     let env = tardi.environment.clone();
-    let index = tardi.compiler.current_module().and_then(|m| m.get(&word));
+    let index = env.borrow().get_op_index("std/sandbox", "even?");
     assert!(index.is_some(), "export {} = {:?}", word, index);
     let index = index.unwrap();
     assert_eq!(index, next_index);
