@@ -699,10 +699,10 @@ impl Execute for VM {
 
         match lambda.call(self, compiler) {
             Ok(()) => {
-                log::trace!("received success from macro call. continuing.")
+                log::trace!("VM::execute_macro: received success from macro call. continuing.")
             }
             Err(Error::VMError(VMError::Exit)) => {
-                log::trace!("received exit from macro call. continuing.")
+                log::trace!("VM::execute_macro: received exit from macro call. continuing.")
             }
             Err(err) => return Err(err),
         }
@@ -711,15 +711,18 @@ impl Execute for VM {
         // move the IP.
         if lambda.is_compiled() {
             // TODO: DRY these up some
-            log::trace!("{:?} is compiled. executing ip", lambda.name);
+            log::trace!(
+                "VM::execute_macro: {:?} is compiled. executing ip",
+                lambda.name
+            );
             match self.run(env.clone(), compiler) {
                 Ok(()) => {
                     self.return_op()?;
-                    log::trace!("received success from macro run. continuing.")
+                    log::trace!("VM::execute_macro: received success from macro run. continuing.")
                 }
                 Err(Error::VMError(VMError::Exit)) => {
                     self.return_op()?;
-                    log::trace!("received exit from macro run. continuing.")
+                    log::trace!("VM::execute_macro: received exit from macro run. continuing.")
                 }
                 Err(err) => return Err(err),
             }

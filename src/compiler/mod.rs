@@ -219,6 +219,11 @@ impl Compiler {
                     accumulator.clone(),
                 )?;
                 buffer = unshare_clone(accumulator).try_into()?;
+                log::trace!(
+                    "Compiler::pass1 executing macro {:?}: returned {:#?}",
+                    lambda.borrow().name,
+                    buffer
+                );
             } else {
                 buffer.push(value);
             }
@@ -362,6 +367,11 @@ impl Compiler {
                     accumulator.clone(),
                 )?;
                 buffer = unshare_clone(accumulator).try_into()?;
+                log::trace!(
+                    "Compiler::compile_list macro {:?} returned {:#?}",
+                    &word.data,
+                    buffer
+                );
             } else {
                 log::trace!("Compiler::compile_list -- pushing {}", word);
                 buffer.push(word.clone());
@@ -622,8 +632,9 @@ impl Compiler {
                 return Ok(());
             } else if let Some(lambda) = self.get_macro(env.clone(), &value.data) {
                 log::trace!(
-                    "Compiler::scan_object_list ({}) executing macro {}",
+                    "Compiler::scan_object_list ({}) executing macro {}: {:?}",
                     delimiter,
+                    lambda.borrow(),
                     lambda.borrow()
                 );
                 executor.execute_macro(
@@ -633,6 +644,11 @@ impl Compiler {
                     &lambda.borrow().clone(),
                     accumulator.clone(),
                 )?;
+                log::trace!(
+                    "Compiler::scan_object_list (macro {}) returned {:#?}",
+                    delimiter,
+                    accumulator
+                );
             } else {
                 accumulator
                     .borrow_mut()

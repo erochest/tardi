@@ -250,7 +250,8 @@ impl Environment {
             for (word, index) in module.defined.iter() {
                 let lambda_ip = self.op_table.get(*index).and_then(|l| l.borrow().get_ip());
                 if lambda_ip == Some(ip) {
-                    return Some(format!("{}.{}", name, word));
+                    // TODO: any way to use the Display implementation defined for Value or ValueData?
+                    return Some(format!("{}::{}", name, word));
                 }
             }
         }
@@ -409,7 +410,7 @@ impl Environment {
         ip += 1;
         let index = self.instructions[ip];
         let value = &self.constants[index];
-        write!(f, " {:0>4}. {: <16}", index, value)?;
+        write!(f, " {:0>4}. {: <20} |", index, value)?;
 
         Ok(ip)
     }
@@ -471,7 +472,7 @@ impl Environment {
 
     fn write_op_code(&self, f: &mut fmt::Formatter<'_>, op_code: &OpCode) -> fmt::Result {
         let debugged = format!("{:?}", op_code);
-        write!(f, "{: <16} | ", debugged)
+        write!(f, "{: <20} | ", debugged)
     }
 
     fn write_call(&self, f: &mut fmt::Formatter<'_>, index: usize, name: &str) -> fmt::Result {
@@ -483,7 +484,7 @@ impl Environment {
 
         // TODO: sometimes the column before this is omitted. Make them line up.
         if let Some(name) = name {
-            write!(f, " {: <16} | ", name)?;
+            write!(f, " {: <20} | ", name)?;
         }
 
         Ok(())
