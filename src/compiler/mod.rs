@@ -607,6 +607,11 @@ impl Compiler {
             .ok_or_else(|| CompilerError::ModuleNotFound(module_spec.to_string()))?;
         log::trace!("Compiler::use_module {} => {:?}", module_name, module_file);
 
+        if self.is_being_imported(&module_file) {
+            log::trace!("Compiler::use_module {}: import cycle error", module_word);
+            return Err(CompilerError::ImportCycleError(module_name).into());
+        }
+
         let env = vm.environment.as_ref().unwrap().clone();
         if env.borrow().get_module(&module_name).is_some() {
             log::trace!("Compiler::use_module {} already loaded", module_name);
@@ -614,7 +619,6 @@ impl Compiler {
             return Ok(());
         }
 
-        // XXX: make sure there aren't loops.
         let input = fs::read_to_string(&module_file)?;
         let scanner = Scanner::from_module(&module_name, &module_file, &input);
 
@@ -746,6 +750,20 @@ impl Compiler {
         self.finish_module_compiler()?;
 
         Ok(())
+    }
+
+    fn is_being_imported(&self, module_path: &Path) -> bool {
+        log::trace!("Compiler::is_being_imported {:?}", module_path);
+        for module_scanner in self.module_stack.iter() {
+            if module_scanner.scanner.source.get_path().is_some_and(|p| {
+                let p = p.canonicalize().unwrap();
+                log::trace!("Compiler::is_being_imported checking against {:?}", p);
+                p == module_path
+            }) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

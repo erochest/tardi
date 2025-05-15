@@ -699,12 +699,24 @@ impl Execute for VM {
 
         match lambda.call(self, compiler) {
             Ok(()) => {
-                log::trace!("VM::execute_macro: received success from macro call. continuing.")
+                log::trace!(
+                    "VM::execute_macro {}: received success from macro call. continuing.",
+                    trigger
+                )
             }
             Err(Error::VMError(VMError::Exit)) => {
-                log::trace!("VM::execute_macro: received exit from macro call. continuing.")
+                log::trace!(
+                    "VM::execute_macro {}: received exit from macro call. continuing.",
+                    trigger
+                )
             }
-            Err(err) => return Err(err),
+            Err(err) => {
+                log::trace!(
+                    "VM::execute_macro {}: received error from macro call. bailing.",
+                    trigger
+                );
+                return Err(err);
+            }
         }
         // It's not currently in an execution loop. Builtins are run
         // immediately, but compiled lambdas have to run in an execution loop to
@@ -718,13 +730,25 @@ impl Execute for VM {
             match self.run(env.clone(), compiler) {
                 Ok(()) => {
                     self.return_op()?;
-                    log::trace!("VM::execute_macro: received success from macro run. continuing.")
+                    log::trace!(
+                        "VM::execute_macro {}: received success from macro run. continuing.",
+                        trigger
+                    )
                 }
                 Err(Error::VMError(VMError::Exit)) => {
                     self.return_op()?;
-                    log::trace!("VM::execute_macro: received exit from macro run. continuing.")
+                    log::trace!(
+                        "VM::execute_macro {}: received exit from macro run. continuing.",
+                        trigger
+                    )
                 }
-                Err(err) => return Err(err),
+                Err(err) => {
+                    log::trace!(
+                        "VM::execute_macro {}: received error from macro run. bailing.",
+                        trigger
+                    );
+                    return Err(err);
+                }
             }
         }
 
