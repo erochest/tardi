@@ -9,6 +9,8 @@ fn test_tardi_file(tardi_file: &Path) -> datatest_stable::Result<()> {
     let output = Command::cargo_bin(env!["CARGO_PKG_NAME"])
         .unwrap()
         .arg("--print-stack")
+        // TODO: some way to make the next line optional
+        // .arg("-vvvv")
         .arg(tardi_file)
         .output()
         .unwrap();

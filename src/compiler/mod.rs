@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fmt::Debug;
 use std::path::Path;
@@ -16,7 +15,7 @@ use crate::core::Execute;
 use crate::env::{Environment, Module};
 use crate::error::{Error, Result};
 use crate::scanner::error::ScannerError;
-use crate::scanner::Source;
+use crate::scanner::{self, Source};
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Callable, Lambda};
 use crate::value::{Value, ValueData, ValueVec};
@@ -37,34 +36,6 @@ pub struct ModuleCompiler {
 
     /// The name of the module.
     name: String,
-
-    /// This maps a word name to its index in the environment's `op_table`. Macros
-    /// have the `immediate` flag set.
-    defined: HashMap<String, usize>,
-
-    /// This maps the imported word names to their indexes in the environment's `op_table`.
-    /// Macros have the `immediate` flag set.
-    imported: HashMap<String, usize>,
-}
-
-impl From<ModuleCompiler> for Module {
-    fn from(module_compiler: ModuleCompiler) -> Self {
-        let (name, path) = match module_compiler.scanner.source {
-            Source::InputString => (SANDBOX.to_string(), None),
-            Source::ScriptFile { path } => (
-                path.file_stem().unwrap().to_string_lossy().to_string(),
-                Some(path),
-            ),
-            Source::Module { name, path } => (name, Some(path)),
-            Source::Internal { name } => (name, None),
-        };
-        Module {
-            path,
-            name,
-            defined: module_compiler.defined,
-            imported: module_compiler.imported,
-        }
-    }
 }
 
 impl TryFrom<&Module> for ModuleCompiler {
@@ -82,38 +53,7 @@ impl TryFrom<&Module> for ModuleCompiler {
         Ok(ModuleCompiler {
             scanner,
             name: module.get_key(),
-            defined: module.defined.clone(),
-            imported: module.imported.clone(),
         })
-    }
-}
-
-impl ModuleCompiler {
-    pub fn import_module(&mut self, module: &Module) {
-        for (name, index) in module.defined.iter() {
-            self.imported.insert(name.clone(), *index);
-        }
-    }
-
-    pub fn get(&self, word: &str) -> Option<usize> {
-        self.defined
-            .get(word)
-            .or_else(|| self.imported.get(word))
-            .copied()
-    }
-
-    /// This assumes that the ModuleCompiler also already has everything
-    /// defined in the Module, so everything in there can can be
-    /// clobbered.
-    pub fn merge_into(self, module: &mut Module) {
-        log::trace!("ModuleCompiler::merge_into defined {:#?}", self.defined);
-        log::trace!(
-            "ModuleCompiler::merge_into {} => {}",
-            self.name,
-            module.name
-        );
-        module.defined = self.defined;
-        module.imported = self.imported;
     }
 }
 
@@ -138,52 +78,37 @@ impl From<&Config> for Compiler {
 }
 
 impl Compiler {
-    // XXX: just get rid of the module stack. return the correct module from
-    // the environment
-    pub fn current_module(&self) -> Option<&ModuleCompiler> {
+    pub fn current_module_compiler(&self) -> Option<&ModuleCompiler> {
         self.module_stack.last()
     }
 
-    pub fn current_module_mut(&mut self) -> Option<&mut ModuleCompiler> {
+    pub fn current_module_compiler_mut(&mut self) -> Option<&mut ModuleCompiler> {
         self.module_stack.last_mut()
     }
 
     pub fn current_scanner(&self) -> Option<&Scanner> {
-        self.current_module().map(|m| &m.scanner)
+        self.current_module_compiler().map(|m| &m.scanner)
     }
 
     pub fn current_scanner_mut(&mut self) -> Option<&mut Scanner> {
-        self.current_module_mut().map(|m| &mut m.scanner)
+        self.current_module_compiler_mut().map(|m| &mut m.scanner)
     }
 
-    fn start_module_compiler(&mut self, module: &Module, scanner: Scanner) {
-        // XXX: need to load the kernel words into `imported`
-        // XXX: need to be able to handle if it's scanning more
-        // for an existing, "finished" source, like repl input.
-        let mc = ModuleCompiler {
-            scanner,
-            name: module.get_key(),
-            defined: module.defined.clone(),
-            imported: module.imported.clone(),
-        };
+    pub fn get_current_module_mut(&mut self, env: Shared<Environment>) -> Option<&mut Module> {
+        todo!("Compiler::get_current_module_mut")
+    }
+
+    fn start_module_compiler(&mut self, name: &str, scanner: Scanner) {
+        let name = name.to_string();
+        let mc = ModuleCompiler { scanner, name };
         self.module_stack.push(mc);
     }
 
-    fn finish_module_compiler(&mut self, module_stub: &mut Module) -> Result<()> {
-        let mc = self.module_stack.pop().ok_or_else(|| {
+    fn finish_module_compiler(&mut self) -> Result<()> {
+        self.module_stack.pop().ok_or_else(|| {
             CompilerError::InvalidState("no current module being compiled".to_string())
         })?;
-        // TODO: things are getting defined directly in the module in the enviroment. can i just
-        // not do module compilers?
-        // mc.merge_into(module_stub);
         Ok(())
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn get_current_module_def(&self, word: &str) -> Option<usize> {
-        self.current_module()
-            .and_then(|m| m.defined.get(word))
-            .copied()
     }
 
     fn pass1<E: Execute>(
@@ -193,7 +118,7 @@ impl Compiler {
     ) -> Result<Vec<Value>> {
         let mut buffer = Vec::new();
         let module_name = self
-            .current_module()
+            .current_module_compiler()
             .map(|m| m.name.clone())
             .ok_or_else(|| CompilerError::InvalidState("no current module".to_string()))?;
 
@@ -662,6 +587,7 @@ impl Compiler {
     }
 
     pub fn use_module(&mut self, vm: &mut VM) -> Result<()> {
+        log::trace!("Compiler::use_module");
         // TODO: pull this pattern out into `scan_word`
         let module_word = self
             .scan_value()
@@ -679,45 +605,68 @@ impl Compiler {
             .loader
             .find(module_spec, context)?
             .ok_or_else(|| CompilerError::ModuleNotFound(module_spec.to_string()))?;
+        log::trace!("Compiler::use_module {} => {:?}", module_name, module_file);
 
         let env = vm.environment.as_ref().unwrap().clone();
-        if let Some(module) = env.borrow().get_module(&module_name) {
-            let current_module = self.module_stack.last_mut().ok_or_else(|| {
-                CompilerError::InvalidState("no current module being compiled".to_string())
-            })?;
-            current_module.import_module(module);
+        if env.borrow().get_module(&module_name).is_some() {
+            log::trace!("Compiler::use_module {} already loaded", module_name);
+            self.use_into_current_module(&env, &module_name)?;
             return Ok(());
         }
 
         // XXX: make sure there aren't loops.
         let input = fs::read_to_string(&module_file)?;
         let scanner = Scanner::from_module(&module_name, &module_file, &input);
-        let mut stub = env.borrow().create_module(&module_name);
 
-        self.start_module_compiler(&stub, scanner);
+        {
+            let stub = env.borrow().create_module(&module_name);
+            env.borrow_mut().add_module(stub);
+        }
+        self.start_module_compiler(&module_name, scanner);
 
         let intermediate = self.pass1(vm, env.clone())?;
         self.pass2(intermediate)?;
 
-        self.finish_module_compiler(&mut stub)?;
+        self.finish_module_compiler()?;
 
-        let current_module = self.module_stack.last_mut().ok_or_else(|| {
-            CompilerError::InvalidState("no current module being compiled".to_string())
-        })?;
-        current_module.import_module(&stub);
-        env.borrow_mut().add_module(stub);
+        self.use_into_current_module(&env, &module_name)?;
 
         Ok(())
     }
 
+    fn use_into_current_module(
+        &mut self,
+        env: &Shared<Environment>,
+        source_name: &str,
+    ) -> Result<()> {
+        if let Some(Scanner { source, .. }) = self.current_scanner_mut() {
+            let key = source.get_key();
+            let env = env.clone();
+            env.borrow_mut().use_module(source_name, &key)?;
+            Ok(())
+        } else {
+            Err(CompilerError::InvalidState("no scanner".to_string()).into())
+        }
+    }
+
     fn get_macro(&self, env: Shared<Environment>, trigger: &ValueData) -> Option<Shared<Lambda>> {
+        log::trace!("Compiler::get_macro {}", trigger);
         if let Some(word) = trigger.get_word() {
-            if let Some(module_name) = self.current_module().as_ref().map(|m| &m.name) {
+            log::trace!("Compiler::get_macro word {}", word);
+            if let Some(module_name) = self.current_module_compiler().as_ref().map(|m| &m.name) {
+                log::trace!("Compiler::get_macro module {}", module_name);
                 return env
                     .borrow()
                     .get_op_index(&module_name, word)
-                    .and_then(|index| env.borrow().get_op(index))
-                    .filter(|lambda| lambda.borrow().immediate);
+                    .and_then(|index| {
+                        log::trace!("Compiler::get_macro index {}", index);
+                        env.borrow().get_op(index)
+                    })
+                    .filter(|lambda| {
+                        let immediate = lambda.borrow().immediate;
+                        log::trace!("Compiler::get_macro immediate {}", immediate);
+                        immediate
+                    });
             }
         }
         None
@@ -763,8 +712,6 @@ impl Compiler {
         self.compile_scanner(vm, env, Scanner::from_internal_module(name, input))
     }
 
-    // XXX: make this either take a Source or add a specific method for each
-    // type of input.
     pub fn compile_scanner(
         &mut self,
         vm: &mut VM,
@@ -790,17 +737,13 @@ impl Compiler {
                 module.name
             );
             log::trace!("Compiler::compile_scanner module\n{:?}", module);
-            self.start_module_compiler(module, scanner);
+            self.start_module_compiler(&module.name, scanner);
         }
 
         let intermediate = self.pass1(vm, env.clone())?;
         self.pass2(intermediate)?;
 
-        {
-            let mut env_borrow = env.borrow_mut();
-            let module = env_borrow.get_module_mut(&module_name).unwrap();
-            self.finish_module_compiler(module)?;
-        }
+        self.finish_module_compiler()?;
 
         Ok(())
     }

@@ -6,12 +6,14 @@ use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
 use crate::value::Value;
 use crate::vm::OpCode;
+use crate::Scanner;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::result;
 
+// TODO: move this to module/mod.rs
 #[derive(Default, Clone)]
 pub struct Module {
     pub path: Option<PathBuf>,
@@ -35,11 +37,11 @@ impl fmt::Debug for Module {
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_default()
         )?;
-        for (name, ip) in self.defined.iter() {
-            writeln!(f, "\tDEFINED : {:20} => {}", name, ip)?;
+        for (name, index) in self.defined.iter() {
+            writeln!(f, "\tDEFINED : {:20} => {}", name, index)?;
         }
-        for (name, ip) in self.imported.iter() {
-            writeln!(f, "\tIMPORTED: {:20} => {}", name, ip)?;
+        for (name, index) in self.imported.iter() {
+            writeln!(f, "\tIMPORTED: {:20} => {}", name, index)?;
         }
         writeln!(f)?;
         Ok(())
@@ -88,6 +90,12 @@ impl Module {
             .get(name)
             .or_else(|| self.imported.get(name))
             .copied()
+    }
+
+    pub fn use_module(&mut self, other: &Module) {
+        for (key, index) in other.defined.iter() {
+            self.imported.insert(key.clone(), *index);
+        }
     }
 }
 
@@ -255,7 +263,11 @@ impl Environment {
     }
 
     pub fn get_op_index(&self, module: &str, word: &str) -> Option<usize> {
-        self.modules.get(module).and_then(|m| m.get(word))
+        log::trace!("Environment::get_op_index {}::{}", module, word);
+        self.modules.get(module).and_then(|m| {
+            log::trace!("Environment::get_op_index module {}", m.name);
+            m.get(word)
+        })
     }
 
     pub fn get_instruction(&self, ip: usize) -> Option<usize> {
@@ -270,7 +282,6 @@ impl Environment {
         self.instructions.len()
     }
 
-    // TODO: change these to accept &str
     pub fn get_module(&self, key: &str) -> Option<&Module> {
         self.modules.get(key)
     }
@@ -278,6 +289,14 @@ impl Environment {
     pub fn get_module_mut(&mut self, key: &str) -> Option<&mut Module> {
         log::trace!("Environment::get_module_mut {:?}", key);
         self.modules.get_mut(key)
+    }
+
+    pub fn get_module_for(&self, scanner: &Scanner) -> Option<&Module> {
+        self.modules.get(&scanner.source.get_key())
+    }
+
+    pub fn get_module_for_mut(&mut self, scanner: &Scanner) -> Option<&mut Module> {
+        self.modules.get_mut(&scanner.source.get_key())
     }
 
     pub fn add_module(&mut self, module: Module) {
@@ -302,6 +321,23 @@ impl Environment {
             self.add_module(module);
             self.modules.get_mut(name).unwrap()
         }
+    }
+
+    pub fn use_module(&mut self, source: &str, dest: &str) -> Result<()> {
+        let source = self
+            .modules
+            .get(source)
+            .ok_or_else(|| CompilerError::ModuleNotFound(source.to_string()))?
+            .defined
+            .clone();
+        let dest = self
+            .modules
+            .get_mut(dest)
+            .ok_or_else(|| CompilerError::ModuleNotFound(dest.to_string()))?;
+        for (key, index) in source {
+            dest.imported.insert(key, index);
+        }
+        Ok(())
     }
 
     pub fn get_callable(&self, op_table_index: usize) -> Option<Shared<Lambda>> {

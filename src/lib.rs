@@ -75,7 +75,6 @@ pub fn repl(config: Config) -> Result<()> {
                 readline.add_history_entry(&input)?;
                 // TODO: reset the stack and items on it on errors
                 // how? memory snapshots? clones? yech!
-                // XXX: trace out how this works with modules
                 match tardi.execute_str(&input) {
                     Ok(()) => println!("ok"),
                     Err(err) => eprintln!("error: {}", err),

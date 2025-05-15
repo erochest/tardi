@@ -467,8 +467,6 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     );
     assert!(result.is_ok(), "ERROR MACRO : definition: {:?}", result);
 
-    // XXX: `double` during the `:` macro is a word, not a symbol.
-    // how to add the module name here? is it available?
     let result = tardi.execute_str(
         r#"
         : double 2 * ;
