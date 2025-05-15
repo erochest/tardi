@@ -239,7 +239,6 @@ fn test_compile_macro_scan_value() {
     assert_eq!(stack.len(), 3);
     assert_eq!(stack[0], 40.into());
     assert_eq!(stack[1], 42.into());
-    eprintln!("{:#?}", stack[2]);
     assert_eq!(
         stack[2],
         Value {

@@ -29,13 +29,10 @@ pub use vm::VM;
 
 /// Run a Tardi source file
 pub fn run_file(path: &PathBuf, _config: Config, print_stack: bool) -> Result<()> {
-    let source = std::fs::read_to_string(path)?;
-
     let mut tardi = Tardi::default();
     // TODO: add an option for the bootstrap dir
     tardi.bootstrap(None)?;
-    // XXX: trace out how this works with modules
-    tardi.execute_str(&source)?;
+    tardi.execute_file(path)?;
     let tardi = tardi;
 
     if print_stack {

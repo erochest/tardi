@@ -88,6 +88,8 @@ impl Loader {
 impl Default for Loader {
     fn default() -> Self {
         let current_dir = env::current_dir().unwrap();
+        let current_dir = current_dir.canonicalize().unwrap();
+
         let paths = vec![current_dir];
         Loader { paths }
     }
