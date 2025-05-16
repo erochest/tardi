@@ -112,16 +112,12 @@ impl Scanner {
     ///
     /// A new Scanner instance initialized with the input string
     pub fn from_input_string(input: &str) -> Self {
-        let input = input.to_string();
-        let chars = input.chars().collect();
+        let (input, chars) = input_chars(input);
         Scanner {
             source: Source::InputString,
             input,
             chars,
-            index: 0,
-            line: 1,
-            column: 1,
-            offset: 0,
+            ..Scanner::default()
         }
     }
 
@@ -137,16 +133,12 @@ impl Scanner {
     /// A new Scanner instance initialized with the script file content
     pub fn from_script(path: &Path, input: &str) -> Self {
         let path = path.to_path_buf();
-        let input = input.to_string();
-        let chars = input.chars().collect();
+        let (input, chars) = input_chars(input);
         Scanner {
             source: Source::ScriptFile { path },
             input,
             chars,
-            index: 0,
-            line: 1,
-            column: 1,
-            offset: 0,
+            ..Scanner::default()
         }
     }
 
@@ -164,33 +156,24 @@ impl Scanner {
     pub fn from_module(name: &str, path: &Path, input: &str) -> Self {
         let name = name.to_string();
         let path = path.to_path_buf();
-        let input = input.to_string();
-        let chars = input.chars().collect();
+        let (input, chars) = input_chars(input);
         Scanner {
             source: Source::Module { name, path },
             input,
             chars,
-            index: 0,
-            line: 1,
-            column: 1,
-            offset: 0,
+            ..Scanner::default()
         }
     }
 
     pub fn from_internal_module(name: &str, input: &str) -> Self {
-        // TODO: DRY all of these up some
         let name = name.to_string();
         let source = Source::Internal { name };
-        let input = input.to_string();
-        let chars = input.chars().collect();
+        let (input, chars) = input_chars(input);
         Scanner {
             source,
             input,
             chars,
-            index: 0,
-            line: 1,
-            column: 1,
-            offset: 0,
+            ..Scanner::default()
         }
     }
 
@@ -604,6 +587,12 @@ impl Scanner {
 
         word
     }
+}
+
+fn input_chars(input: &str) -> (String, Vec<char>) {
+    let input = input.to_string();
+    let chars = input.chars().collect();
+    (input, chars)
 }
 
 #[cfg(test)]
