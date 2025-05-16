@@ -18,6 +18,10 @@ pub struct VM {
     /// The environment being executed
     pub environment: Option<Shared<Environment>>,
 
+    // TODO: make this smaller and more optimized?
+    // TODO: there are also limits that usize places on things that i can't
+    // enforce well because i don't know exactly what it is. maybe use u64 or
+    // something definite?
     /// Instruction pointer tracking the current position in the instruction stream
     pub ip: usize,
 
@@ -28,8 +32,6 @@ pub struct VM {
     pub return_stack: Vec<SharedValue>,
 
     /// A stack of the module we're currently executing.
-    // TODO: I'm not sure that this is necessary or the best solution,
-    // but I do need a way to track the currently executing module.
     pub module_stack: Vec<String>,
 }
 
@@ -118,7 +120,6 @@ impl VM {
 
     /// Executes the lit operation - loads a constant onto the stack
     pub fn lit(&mut self) -> Result<()> {
-        // TODO: Seems like could combine the const_index and constant/value pipelines here
         let const_index = self
             .environment
             .as_ref()

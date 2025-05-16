@@ -51,6 +51,9 @@ impl Tardi {
         Ok(tardi)
     }
 
+    // TODO: internal modules that are defined on demand
+    // TODO: std/strings
+    // TODO: std/vectors
     pub fn bootstrap(&mut self, bootstrap_dir: Option<PathBuf>) -> Result<()> {
         if let Some(bootstrap_dir) = bootstrap_dir {
             log::trace!("Tardi::bootstrap {:?}", bootstrap_dir);
