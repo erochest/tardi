@@ -664,7 +664,7 @@ impl Compiler {
                     .get_op_index(module_name, word)
                     .and_then(|index| {
                         log::trace!("Compiler::get_macro index {}", index);
-                        env.borrow().get_op(index)
+                        env.borrow().get_op(&0, index).ok()
                     })
                     .filter(|lambda| {
                         let immediate = lambda.borrow().immediate;

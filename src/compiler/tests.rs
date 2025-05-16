@@ -204,8 +204,8 @@ fn test_compile_macro_basic() {
     let ip = tardi.environment.borrow().get_op_index(SANDBOX, "&");
     assert!(ip.is_some(), "ip {:?}", ip);
     let ip = ip.unwrap();
-    let lambda = tardi.environment.borrow().get_op(ip);
-    assert!(lambda.is_some(), "lambda {:?}", lambda);
+    let lambda = tardi.environment.borrow().get_op(&0, ip);
+    assert!(lambda.is_ok(), "lambda {:?}", lambda);
     let lambda = lambda.unwrap();
     assert!(lambda.borrow().immediate, "is not immediate");
 

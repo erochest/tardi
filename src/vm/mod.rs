@@ -123,21 +123,21 @@ impl VM {
         let const_index = self
             .environment
             .as_ref()
-            .and_then(|e| e.borrow().get_instruction(self.ip))
-            .ok_or(Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
+            .ok_or(VMError::MissingEnvironment)
+            .and_then(|e| e.borrow().get_instruction(self.ip))?;
         self.ip += 1;
 
-        let value = {
-            let constant = self
-                .environment
-                .as_ref()
-                .and_then(|e| e.borrow().get_constant(const_index).cloned());
-            if let Some(value) = constant {
-                shared(value.clone())
-            } else {
-                return Err(Error::VMError(VMError::InvalidConstantIndex(const_index)));
-            }
-        };
+        let value = self
+            .environment
+            .as_ref()
+            .ok_or(VMError::MissingEnvironment)
+            .and_then(|e| {
+                e.borrow()
+                    .get_constant(const_index)
+                    .cloned()
+                    .ok_or_else(|| VMError::InvalidConstantIndex(const_index).into())
+            })
+            .map(shared)?;
         self.push(value)?;
 
         Ok(())
@@ -423,11 +423,11 @@ impl VM {
     /// Calls a function by its index in the op_table
     pub fn call(&mut self, compiler: &mut Compiler) -> Result<()> {
         // TODO: probably need to be more defensive about this.
-        let env = self.environment.as_ref().unwrap();
-        let op_table_index = env
-            .borrow()
-            .get_instruction(self.ip)
-            .ok_or(VMError::InvalidAddress(self.ip))?;
+        let env = self
+            .environment
+            .as_ref()
+            .ok_or(VMError::MissingEnvironment)?;
+        let op_table_index = env.borrow().get_instruction(self.ip)?;
         self.ip += 1;
 
         let lambda = env
@@ -473,7 +473,10 @@ impl VM {
             log::trace!("module stack '{}'", module_names);
         }
 
-        let env = self.environment.clone().unwrap();
+        let env = self
+            .environment
+            .as_ref()
+            .ok_or(VMError::MissingEnvironment)?;
 
         // Define a predeclared word
         let get_op_index = env.borrow().get_op_index(module_name, name_str);
@@ -484,10 +487,7 @@ impl VM {
                 .get_function()
                 .and_then(|f| f.get_ip())
                 .unwrap(); // TODO: be more defensive here
-            let function = &env
-                .borrow_mut()
-                .get_op(index)
-                .ok_or(VMError::InvalidOpIndex(index))?;
+            let function = &env.borrow_mut().get_op(&ip, index)?;
             (*function).borrow_mut().define_function(ip)?;
             return Ok(());
         }
@@ -503,12 +503,8 @@ impl VM {
             })?;
         log::trace!("function: {}", callable);
 
-        if let Some(env) = self.environment.as_ref() {
-            let env = env.clone();
-            (*env)
-                .borrow_mut()
-                .add_to_op_table(module_name, shared(callable))?;
-        }
+        env.borrow_mut()
+            .add_to_op_table(module_name, shared(callable))?;
 
         Ok(())
     }
@@ -524,12 +520,11 @@ impl VM {
 
         let lambda = Lambda::new_undefined(name_str);
         // Add the function to the op_table
-        if let Some(env) = self.environment.as_ref() {
-            let env = env.clone();
-            (*env)
-                .borrow_mut()
-                .add_to_op_table(module_name, shared(lambda))?;
-        }
+        self.environment
+            .as_ref()
+            .ok_or(VMError::MissingEnvironment)?
+            .borrow_mut()
+            .add_to_op_table(module_name, shared(lambda))?;
 
         Ok(())
     }
@@ -566,8 +561,8 @@ impl VM {
         let target = self
             .environment
             .as_ref()
-            .and_then(|env| env.borrow().get_instruction(self.ip))
-            .ok_or(VMError::InvalidAddress(self.ip))?;
+            .ok_or(VMError::MissingEnvironment)
+            .and_then(|env| env.borrow().get_instruction(self.ip))?;
         self.ip = target;
         Ok(())
     }
@@ -590,7 +585,13 @@ impl VM {
         let value = unshare_clone(value);
         if let ValueData::List(words) = value.data {
             let words = words.into_iter().map(unshare_clone).collect::<Vec<_>>();
-            let lambda = compiler.compile_list(self, self.environment.clone().unwrap(), &words)?;
+            let lambda = compiler.compile_list(
+                self,
+                self.environment
+                    .clone()
+                    .ok_or(VMError::MissingEnvironment)?,
+                &words,
+            )?;
             let value = Value::new(ValueData::Function(lambda));
             self.push(shared(value))?;
         }
@@ -636,15 +637,16 @@ impl Execute for VM {
         let max_ip = self
             .environment
             .as_ref()
-            .map(|e| e.borrow().instructions_len())
-            .unwrap_or_default();
+            .unwrap()
+            .borrow()
+            .instructions_len();
         while self.ip < max_ip {
             // Get the next instruction (OpCode)
             let op_code = self
                 .environment
                 .as_ref()
-                .and_then(|e| e.borrow().get_instruction(self.ip))
-                .ok_or(Error::VMError(VMError::InvalidInstructionPointer(self.ip)))?;
+                .ok_or(VMError::MissingEnvironment)
+                .and_then(|e| e.borrow().get_instruction(self.ip))?;
 
             if log_enabled!(Level::Trace) {
                 self.debug_stacks();
@@ -653,14 +655,14 @@ impl Execute for VM {
                 self.debug_op();
             }
 
-            self.ip += 1;
-
             // Get the operation from the op_table
             let operation = self
                 .environment
                 .as_ref()
-                .and_then(|e| e.borrow().get_op(op_code))
-                .ok_or_else(|| Error::VMError(VMError::InvalidOpCode(self.ip - 1, op_code)))?;
+                .ok_or(VMError::MissingEnvironment)
+                .and_then(|e| e.borrow().get_op(&self.ip, op_code))?;
+
+            self.ip += 1;
 
             // Execute the operation
             let operation = operation.borrow();

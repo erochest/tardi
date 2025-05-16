@@ -1,7 +1,7 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::compiler::module::KERNEL;
 use crate::core::{create_kernel_module, create_op_table};
-use crate::error::Result;
+use crate::error::{Result, VMError, VMResult};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
 use crate::value::Value;
@@ -270,12 +270,18 @@ impl Environment {
         })
     }
 
-    pub fn get_instruction(&self, ip: usize) -> Option<usize> {
-        self.instructions.get(ip).copied()
+    pub fn get_instruction(&self, ip: usize) -> VMResult<usize> {
+        self.instructions
+            .get(ip)
+            .copied()
+            .ok_or_else(|| VMError::InvalidInstructionPointer(ip))
     }
 
-    pub fn get_op(&self, index: usize) -> Option<Shared<Lambda>> {
-        self.op_table.get(index).cloned()
+    pub fn get_op(&self, ip: &usize, index: usize) -> VMResult<Shared<Lambda>> {
+        self.op_table
+            .get(index)
+            .cloned()
+            .ok_or_else(|| VMError::InvalidOpCode(*ip, index))
     }
 
     pub fn instructions_len(&self) -> usize {

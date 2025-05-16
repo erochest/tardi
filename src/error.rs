@@ -11,6 +11,7 @@ use crate::compiler::error::CompilerError;
 use crate::scanner::error::ScannerError;
 
 pub type Result<R> = result::Result<R, Error>;
+pub type VMResult<R> = result::Result<R, VMError>;
 
 #[derive(Debug)]
 pub enum Error {
@@ -40,6 +41,7 @@ pub enum VMError {
     EmptyList,
     InvalidAddress(usize),
     InvalidWordCall(String),
+    MissingEnvironment,
     MissingModule,
     Exit,
 }
@@ -79,6 +81,7 @@ impl fmt::Display for VMError {
             VMError::InvalidAddress(addr) => write!(f, "Invalid address: {}", addr),
             VMError::InvalidWordCall(word) => write!(f, "Invalid word call: {}", word),
             VMError::MissingModule => write!(f, "No module"),
+            VMError::MissingEnvironment => write!(f, "No environment"),
             VMError::Exit => todo!(),
         }
     }
