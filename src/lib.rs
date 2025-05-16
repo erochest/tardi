@@ -16,16 +16,12 @@ use rustyline::error::ReadlineError;
 use rustyline::history::{FileHistory, History};
 use rustyline::{self, DefaultEditor};
 
-// Re-exports
-// TODO: clean these up
 use crate::config::Config;
 use crate::core::Tardi;
-pub use compiler::Compiler;
-pub use env::Environment;
-pub use error::Result;
-pub use scanner::Scanner;
-pub use value::Value;
-pub use vm::VM;
+use crate::compiler::Compiler;
+use crate::error::Result;
+use crate::scanner::Scanner;
+use crate::vm::VM;
 
 /// Run a Tardi source file
 pub fn run_file(path: &Path, _config: Config, print_stack: bool) -> Result<()> {

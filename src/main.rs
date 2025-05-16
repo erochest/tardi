@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use tardi::config::read_config_sources;
 
-use tardi::Result;
+use tardi::error::Result;
 
 fn main() -> Result<()> {
     setup_panic!();
