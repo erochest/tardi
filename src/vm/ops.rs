@@ -38,8 +38,8 @@ pub enum OpCode {
     // Function-related operations
     Apply,  // Call a function object on the stack
     Return, // Return from a function
-    Exit,   // Shortcut execution at the end of macros
-    // TODO: add Bye that exits everything
+    Stop,   // Shortcut execution at the end of macros
+    Bye,    // Exit everything
     // TODO: do i need versions of this able to index larger numbers in the op table?
     Jump, // Jump to a specific instruction
     // TODO: There's nothing using this. Add a word for it
@@ -94,16 +94,17 @@ impl TryFrom<usize> for OpCode {
             27 => Ok(OpCode::StringConcat),
             28 => Ok(OpCode::Apply),
             29 => Ok(OpCode::Return),
-            30 => Ok(OpCode::Exit),
-            31 => Ok(OpCode::Jump),
-            32 => Ok(OpCode::JumpStack),
-            33 => Ok(OpCode::Function),
-            34 => Ok(OpCode::PredeclareFunction),
-            35 => Ok(OpCode::ScanValue),
-            36 => Ok(OpCode::ScanValueList),
-            37 => Ok(OpCode::ScanObjectList),
-            38 => Ok(OpCode::LitStack),
-            39 => Ok(OpCode::Compile),
+            30 => Ok(OpCode::Stop),
+            31 => Ok(OpCode::Bye),
+            32 => Ok(OpCode::Jump),
+            33 => Ok(OpCode::JumpStack),
+            34 => Ok(OpCode::Function),
+            35 => Ok(OpCode::PredeclareFunction),
+            36 => Ok(OpCode::ScanValue),
+            37 => Ok(OpCode::ScanValueList),
+            38 => Ok(OpCode::ScanObjectList),
+            39 => Ok(OpCode::LitStack),
+            40 => Ok(OpCode::Compile),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

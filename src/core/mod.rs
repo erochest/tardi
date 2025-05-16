@@ -207,7 +207,8 @@ pub fn create_op_table() -> Vec<Shared<Lambda>> {
     push_op(&mut op_table, "string-concat", string_concat);
     push_op(&mut op_table, "apply", apply);
     push_op(&mut op_table, "return", return_op);
-    push_op(&mut op_table, "exit", exit);
+    push_op(&mut op_table, "stop", stop);
+    push_op(&mut op_table, "bye", bye);
     push_op(&mut op_table, "jump", jump);
     push_op(&mut op_table, "jump-stack", jump_stack);
     // TODO: move some of these into a std/internals module (& compile)
@@ -385,8 +386,12 @@ pub fn return_op(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.return_op()
 }
 
-pub fn exit(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.exit()
+pub fn stop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    vm.stop()
+}
+
+pub fn bye(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    vm.bye()
 }
 
 pub fn jump(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {

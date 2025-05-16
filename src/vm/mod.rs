@@ -533,8 +533,8 @@ impl VM {
     pub fn return_op(&mut self) -> Result<()> {
         log::trace!("VM::return_op");
         if self.return_stack.is_empty() {
-            // TODO: not wild about using `VMError::Exit` for flow control here.
-            return Err(VMError::Exit.into());
+            // TODO: not wild about using `VMError::Stop` for flow control here.
+            return Err(VMError::Stop.into());
         }
 
         let return_addr = self.pop_return()?;
@@ -548,12 +548,18 @@ impl VM {
     }
 
     /// Return from a macro
-    pub fn exit(&self) -> Result<()> {
+    pub fn stop(&self) -> Result<()> {
         // TODO: does this need to pop from the return stack here?
         // I'm doing that in execute_macro and other places, but
         // should that happen here?
-        log::trace!("exit");
-        Err(VMError::Exit.into())
+        log::trace!("stop");
+        Err(VMError::Stop.into())
+    }
+
+    /// Exit the VM
+    pub fn bye(&self) -> Result<()> {
+        log::trace!("bye");
+        Err(VMError::Bye.into())
     }
 
     /// Jumps to a specific instruction
@@ -669,8 +675,8 @@ impl Execute for VM {
             let result = operation.call(self, compiler);
             match result {
                 Ok(()) => {}
-                Err(Error::VMError(VMError::Exit)) => {
-                    log::trace!("exiting");
+                Err(Error::VMError(VMError::Stop)) => {
+                    log::trace!("stopping");
                     return Ok(());
                 }
                 err => {
@@ -707,9 +713,9 @@ impl Execute for VM {
                     trigger
                 )
             }
-            Err(Error::VMError(VMError::Exit)) => {
+            Err(Error::VMError(VMError::Stop)) => {
                 log::trace!(
-                    "VM::execute_macro {}: received exit from macro call. continuing.",
+                    "VM::execute_macro {}: received stop from macro call. continuing.",
                     trigger
                 )
             }
@@ -738,10 +744,10 @@ impl Execute for VM {
                         trigger
                     )
                 }
-                Err(Error::VMError(VMError::Exit)) => {
+                Err(Error::VMError(VMError::Stop)) => {
                     self.return_op()?;
                     log::trace!(
-                        "VM::execute_macro {}: received exit from macro run. continuing.",
+                        "VM::execute_macro {}: received stop from macro run. continuing.",
                         trigger
                     )
                 }

@@ -12,13 +12,14 @@ pub mod vm;
 
 use std::path::Path;
 
+use error::VMError;
 use rustyline::error::ReadlineError;
 use rustyline::history::{FileHistory, History};
 use rustyline::{self, DefaultEditor};
 
+use crate::compiler::Compiler;
 use crate::config::Config;
 use crate::core::Tardi;
-use crate::compiler::Compiler;
 use crate::error::Result;
 use crate::scanner::Scanner;
 use crate::vm::VM;
@@ -63,16 +64,16 @@ pub fn repl(config: Config) -> Result<()> {
         let input = readline.readline(">>> ");
         match input {
             Ok(input) => {
-                if is_quit(&input) {
-                    println!("bye");
-                    break;
-                }
-
                 readline.add_history_entry(&input)?;
+
                 // TODO: reset the stack and items on it on errors
                 // how? memory snapshots? clones? yech!
                 match tardi.execute_str(&input) {
                     Ok(()) => println!("ok"),
+                    Err(error::Error::VMError(VMError::Bye)) => {
+                        println!("bye now");
+                        break;
+                    }
                     Err(err) => eprintln!("error: {}", err),
                 }
 
@@ -95,12 +96,6 @@ pub fn repl(config: Config) -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Returns true if the command indicates the user wants to stop.
-fn is_quit(input: &str) -> bool {
-    let input = input.trim();
-    input == "/quit" || input == "/exit" || input == "/q" || input == "/xt"
 }
 
 #[cfg(test)]

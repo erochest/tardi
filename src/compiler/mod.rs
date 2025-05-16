@@ -253,7 +253,8 @@ impl Compiler {
             "scan-value-list" => self.compile_op(OpCode::ScanValueList),
             "scan-object-list" => self.compile_op(OpCode::ScanObjectList),
             "compile" => self.compile_op(OpCode::Compile),
-            "exit" => self.compile_op(OpCode::Exit),
+            "stop" => self.compile_op(OpCode::Stop),
+            "bye" => self.compile_op(OpCode::Bye),
             _ => self.compile_symbol_call(&value),
         }
     }
@@ -495,7 +496,7 @@ impl Compiler {
 
         let body = unshare_clone(body).try_into()?;
         self.pass2(body)?;
-        self.compile_op(OpCode::Exit)?;
+        self.compile_op(OpCode::Stop)?;
 
         let mut lambda = self.end_function()?;
         lambda.name = trigger.lexeme.clone();

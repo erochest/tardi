@@ -417,7 +417,8 @@ impl Environment {
             | OpCode::StringConcat
             | OpCode::Apply
             | OpCode::Return
-            | OpCode::Exit
+            | OpCode::Stop
+            | OpCode::Bye
             | OpCode::JumpStack
             | OpCode::Function
             | OpCode::PredeclareFunction

@@ -1,6 +1,6 @@
 [package]
 name = "tardi"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Eric Rochester <eric.rochester@willowtreeapps.com>"]
 edition = "2018"
 

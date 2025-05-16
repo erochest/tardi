@@ -43,7 +43,8 @@ pub enum VMError {
     InvalidWordCall(String),
     MissingEnvironment,
     MissingModule,
-    Exit,
+    Stop,
+    Bye,
 }
 
 use Error::*;
@@ -82,7 +83,8 @@ impl fmt::Display for VMError {
             VMError::InvalidWordCall(word) => write!(f, "Invalid word call: {}", word),
             VMError::MissingModule => write!(f, "No module"),
             VMError::MissingEnvironment => write!(f, "No environment"),
-            VMError::Exit => todo!(),
+            VMError::Stop => todo!(),
+            VMError::Bye => write!(f, "bye now"),
         }
     }
 }
