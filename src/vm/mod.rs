@@ -549,9 +549,9 @@ impl VM {
 
     /// Return from a macro
     pub fn stop(&self) -> Result<()> {
-        // TODO: does this need to pop from the return stack here?
-        // I'm doing that in execute_macro and other places, but
-        // should that happen here?
+        // I tried calling `return_op` here, but it seemed to break
+        // things in weird ways. Maybe I'll try again and run it
+        // down someday.
         log::trace!("stop");
         Err(VMError::Stop.into())
     }
