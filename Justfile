@@ -32,3 +32,6 @@ lint:
     cargo clippy --fix
     cargo fmt
     jj commit -m "cargo clippy fmt"
+
+tasks:
+    rg --ignore-case "\\bxxx\\b|\\btodo\\b" src tests
