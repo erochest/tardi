@@ -10,7 +10,7 @@ pub mod shared;
 pub mod value;
 pub mod vm;
 
-use std::path::PathBuf;
+use std::path::Path;
 
 use rustyline::error::ReadlineError;
 use rustyline::history::{FileHistory, History};
@@ -28,7 +28,7 @@ pub use value::Value;
 pub use vm::VM;
 
 /// Run a Tardi source file
-pub fn run_file(path: &PathBuf, _config: Config, print_stack: bool) -> Result<()> {
+pub fn run_file(path: &Path, _config: Config, print_stack: bool) -> Result<()> {
     let mut tardi = Tardi::default();
     // TODO: add an option for the bootstrap dir
     tardi.bootstrap(None)?;

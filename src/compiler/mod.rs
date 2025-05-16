@@ -4,7 +4,7 @@ use std::path::Path;
 use std::{fs, mem, result};
 
 use log::Level;
-use module::{Loader, SANDBOX};
+use module::Loader;
 
 pub mod error;
 pub mod module;
@@ -15,7 +15,7 @@ use crate::core::Execute;
 use crate::env::{Environment, Module};
 use crate::error::{Error, Result};
 use crate::scanner::error::ScannerError;
-use crate::scanner::{self, Source};
+use crate::scanner::Source;
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Callable, Lambda};
 use crate::value::{Value, ValueData, ValueVec};
@@ -94,7 +94,7 @@ impl Compiler {
         self.current_module_compiler_mut().map(|m| &mut m.scanner)
     }
 
-    pub fn get_current_module_mut(&mut self, env: Shared<Environment>) -> Option<&mut Module> {
+    pub fn get_current_module_mut(&mut self, _env: Shared<Environment>) -> Option<&mut Module> {
         todo!("Compiler::get_current_module_mut")
     }
 
@@ -661,7 +661,7 @@ impl Compiler {
                 log::trace!("Compiler::get_macro module {}", module_name);
                 return env
                     .borrow()
-                    .get_op_index(&module_name, word)
+                    .get_op_index(module_name, word)
                     .and_then(|index| {
                         log::trace!("Compiler::get_macro index {}", index);
                         env.borrow().get_op(index)
@@ -763,7 +763,7 @@ impl Compiler {
                 return true;
             }
         }
-        return false;
+        false
     }
 }
 

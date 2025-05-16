@@ -291,7 +291,7 @@ impl Scanner {
             }
         }
 
-        Err(ScannerError::UnexpectedEndOfInput.into())
+        Err(ScannerError::UnexpectedEndOfInput)
     }
 
     /// Reads a string until a specific delimiter is encountered.
@@ -325,7 +325,7 @@ impl Scanner {
             buffer.push(self.next_char().unwrap());
         }
 
-        Err(ScannerError::UnexpectedEndOfInput.into())
+        Err(ScannerError::UnexpectedEndOfInput)
     }
 
     fn create_value(
@@ -369,8 +369,7 @@ impl Scanner {
         if count == 0 {
             return Err(ScannerError::InvalidEscapeSequence(
                 "Expected hexadecimal digits".to_string(),
-            )
-            .into());
+            ));
         }
 
         Ok(value)
@@ -397,13 +396,11 @@ impl Scanner {
                                 None => Err(ScannerError::InvalidEscapeSequence(format!(
                                     "Invalid Unicode codepoint: {}",
                                     value
-                                ))
-                                .into()),
+                                ))),
                             },
                             _ => Err(ScannerError::InvalidEscapeSequence(
                                 "Expected closing '}'".to_string(),
-                            )
-                            .into()),
+                            )),
                         }
                     }
                     _ => {
@@ -413,15 +410,14 @@ impl Scanner {
                             return Err(ScannerError::InvalidEscapeSequence(format!(
                                 "ASCII value out of range: {}",
                                 value
-                            ))
-                            .into());
+                            )));
                         }
                         Ok(char::from_u32(value).unwrap())
                     }
                 }
             }
-            Some(c) => Err(ScannerError::InvalidEscapeSequence(format!("\\{}", c)).into()),
-            None => Err(ScannerError::UnterminatedChar.into()),
+            Some(c) => Err(ScannerError::InvalidEscapeSequence(format!("\\{}", c))),
+            None => Err(ScannerError::UnterminatedChar),
         }
     }
 
@@ -429,15 +425,15 @@ impl Scanner {
     fn scan_char(&mut self) -> ScannerResult<ValueData> {
         let char = match self.next_char() {
             Some('\\') => self.process_escape_sequence().map(ValueData::Char),
-            Some('\'') => {
-                Err(ScannerError::InvalidLiteral("Empty character literal".to_string()).into())
-            }
+            Some('\'') => Err(ScannerError::InvalidLiteral(
+                "Empty character literal".to_string(),
+            )),
             Some(c) => Ok(ValueData::Char(c)),
-            None => Err(ScannerError::UnterminatedChar.into()),
+            None => Err(ScannerError::UnterminatedChar),
         };
 
         if self.next_char() != Some('\'') {
-            return Err(ScannerError::UnterminatedChar.into());
+            return Err(ScannerError::UnterminatedChar);
         }
 
         char
@@ -455,9 +451,9 @@ impl Scanner {
             is_triple = true;
             // Consume the remaining two quotes
             if self.next_char() != Some('"') || self.next_char() != Some('"') {
-                return Err(
-                    ScannerError::InvalidLiteral("Expected triple quote".to_string()).into(),
-                );
+                return Err(ScannerError::InvalidLiteral(
+                    "Expected triple quote".to_string(),
+                ));
             }
         }
 
@@ -490,7 +486,7 @@ impl Scanner {
             }
         }
 
-        Err(ScannerError::UnterminatedString.into())
+        Err(ScannerError::UnterminatedString)
     }
 
     /// Peeks at the next character without consuming it

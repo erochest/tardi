@@ -1,7 +1,7 @@
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::Lambda;
 use crate::Compiler;
-use log::{log_enabled, Level, Log};
+use log::{log_enabled, Level};
 
 use crate::env::{EnvLoc, Environment};
 use crate::error::{Error, Result, VMError};
@@ -475,7 +475,7 @@ impl VM {
         let env = self.environment.clone().unwrap();
 
         // Define a predeclared word
-        let get_op_index = env.borrow().get_op_index(&module_name, &name_str);
+        let get_op_index = env.borrow().get_op_index(module_name, name_str);
         if let Some(index) = get_op_index {
             log::trace!("VM::function defining predeclared function {}", name_str);
             let ip = (*lambda)
@@ -486,7 +486,7 @@ impl VM {
             let function = &env
                 .borrow_mut()
                 .get_op(index)
-                .ok_or_else(|| VMError::InvalidOpIndex(index))?;
+                .ok_or(VMError::InvalidOpIndex(index))?;
             (*function).borrow_mut().define_function(ip)?;
             return Ok(());
         }
@@ -521,7 +521,7 @@ impl VM {
             .ok_or_else(|| VMError::TypeMismatch("function name".to_string()))?;
         log::trace!("VM::predefine_function {}::{}", module_name, name_str);
 
-        let lambda = Lambda::new_undefined(&name_str);
+        let lambda = Lambda::new_undefined(name_str);
         // Add the function to the op_table
         if let Some(env) = self.environment.as_ref() {
             let env = env.clone();

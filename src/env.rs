@@ -1,5 +1,5 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
-use crate::compiler::module::{KERNEL, SANDBOX};
+use crate::compiler::module::KERNEL;
 use crate::core::{create_kernel_module, create_op_table};
 use crate::error::Result;
 use crate::shared::{shared, Shared};

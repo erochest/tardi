@@ -199,9 +199,9 @@ impl Value {
 
     pub fn get_word(&self) -> Option<&str> {
         if let ValueData::Word(ref w) = self.data {
-            Some(&w)
+            Some(w)
         } else if let ValueData::Symbol { word: ref w, .. } = self.data {
-            Some(&w)
+            Some(w)
         } else {
             None
         }
@@ -213,7 +213,7 @@ impl Value {
             ref word,
         } = self.data
         {
-            Some((&module, &word))
+            Some((module, word))
         } else {
             None
         }
