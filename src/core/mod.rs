@@ -148,7 +148,7 @@ impl Tardi {
 // but the bootstrap dir will be more often configured
 impl Default for Tardi {
     fn default() -> Tardi {
-        let environment = Environment::with_builtins();
+        let environment = Environment::with_builtins(None);
         let compiler = Compiler::default();
         let executor = VM::new();
         Tardi::assemble(environment, compiler, executor)
@@ -157,9 +157,8 @@ impl Default for Tardi {
 
 impl From<&Config> for Tardi {
     fn from(config: &Config) -> Self {
-        // TODO: get bootstrapping from config as well
-        let environment = Environment::with_builtins();
-        let compiler = Compiler::from(config);
+        let environment = Environment::with_builtins(Some(config));
+        let compiler = Compiler::default();
         let executor = VM::new();
         Tardi::assemble(environment, compiler, executor)
     }

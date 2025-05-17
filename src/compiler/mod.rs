@@ -4,13 +4,12 @@ use std::path::Path;
 use std::{fs, mem, result};
 
 use log::Level;
-use module::{Module, ModuleManager};
+use module::Module;
 
 pub mod error;
 pub mod module;
 
 use crate::compiler::error::{CompilerError, CompilerResult};
-use crate::config::Config;
 use crate::core::Execute;
 use crate::env::Environment;
 use crate::error::{Error, Result};
@@ -60,21 +59,8 @@ impl TryFrom<&Module> for ModuleCompiler {
 #[derive(Default)]
 pub struct Compiler {
     environment: Option<Shared<Environment>>,
-    loader: ModuleManager,
     module_stack: Vec<ModuleCompiler>,
     lambda_stack: Vec<LambdaCompiler>,
-}
-
-impl From<&Config> for Compiler {
-    fn from(config: &Config) -> Self {
-        let loader = ModuleManager::from(config);
-        Compiler {
-            environment: None,
-            loader,
-            module_stack: Vec::new(),
-            lambda_stack: Vec::new(),
-        }
-    }
 }
 
 impl Compiler {
@@ -597,9 +583,10 @@ impl Compiler {
             .ok_or_else(|| CompilerError::InvalidState("missing scanner".to_string()))?
             .source
             .get_path();
-        let (module_name, module_file) = self
-            .loader
-            .find(module_spec, context)?
+        let env = vm.environment.as_ref().unwrap().clone();
+        let (module_name, module_file) = env
+            .borrow()
+            .find_module(module_spec, context)?
             .ok_or_else(|| CompilerError::ModuleNotFound(module_spec.to_string()))?;
         log::trace!("Compiler::use_module {} => {:?}", module_name, module_file);
 
@@ -608,7 +595,6 @@ impl Compiler {
             return Err(CompilerError::ImportCycleError(module_name).into());
         }
 
-        let env = vm.environment.as_ref().unwrap().clone();
         if env.borrow().get_module(&module_name).is_some() {
             log::trace!("Compiler::use_module {} already loaded", module_name);
             self.use_into_current_module(&env, &module_name)?;

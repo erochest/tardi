@@ -1,6 +1,6 @@
 
 check:
-    cargo check
+    cargo check --tests
 
 test *FILTERS:
     cargo nextest run {{FILTERS}}

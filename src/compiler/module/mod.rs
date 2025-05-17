@@ -94,12 +94,6 @@ impl Module {
     }
 }
 
-#[derive(Debug)]
-pub struct ModuleManager {
-    pub paths: Vec<PathBuf>,
-}
-
-// TODO: have Environment own this
 // TODO: move modules out of Environment
 // TODO: have this keep and return modules
 // TODO: special handling for known internal modules
@@ -107,6 +101,11 @@ pub struct ModuleManager {
 // TODO: std/scanning
 // TODO: std/strings
 // TODO: std/vectors
+#[derive(Debug, Clone)]
+pub struct ModuleManager {
+    pub paths: Vec<PathBuf>,
+}
+
 impl ModuleManager {
     pub fn new<P: AsRef<Path>>(paths: &[P]) -> ModuleManager {
         let paths = Vec::from_iter(

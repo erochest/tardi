@@ -1,5 +1,6 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
-use crate::compiler::module::{Module, KERNEL};
+use crate::compiler::module::{Module, ModuleManager, KERNEL};
+use crate::config::Config;
 use crate::core::{create_kernel_module, create_op_table};
 use crate::error::{Result, VMError, VMResult};
 use crate::shared::{shared, Shared};
@@ -10,6 +11,7 @@ use crate::Scanner;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
+use std::path::{Path, PathBuf};
 use std::result;
 
 /// This holds the running environment.
@@ -28,6 +30,8 @@ pub struct Environment {
 
     /// This holds the modules that have been loaded.
     pub modules: HashMap<String, Module>,
+
+    pub module_manager: ModuleManager,
 }
 
 pub struct EnvLoc {
@@ -48,32 +52,35 @@ impl EnvLoc {
     }
 }
 
-impl Environment {
-    pub fn new() -> Self {
+impl From<&Config> for Environment {
+    fn from(config: &Config) -> Self {
+        let module_manager = ModuleManager::from(config);
         Environment {
-            constants: Vec::new(),
-            instructions: Vec::new(),
-            op_table: Vec::new(),
-            modules: HashMap::new(),
+            module_manager,
+            ..Environment::default()
         }
     }
+}
 
+impl Environment {
     pub fn from_parameters(
         constants: Vec<Value>,
         instructions: Vec<usize>,
         op_table: Vec<Shared<Lambda>>,
         modules: HashMap<String, Module>,
+        module_manager: ModuleManager,
     ) -> Self {
         Environment {
             constants,
             instructions,
             op_table,
             modules,
+            module_manager,
         }
     }
 
-    pub fn with_builtins() -> Self {
-        let mut env = Self::new();
+    pub fn with_builtins(config: Option<&Config>) -> Self {
+        let mut env = config.map(Environment::from).unwrap_or_default();
 
         let op_table = create_op_table();
         env.set_op_table(op_table);
@@ -82,6 +89,14 @@ impl Environment {
         env.modules.insert(KERNEL.to_string(), kernel);
 
         env
+    }
+
+    pub fn find_module(
+        &self,
+        module: &str,
+        context: Option<&Path>,
+    ) -> Result<Option<(String, PathBuf)>> {
+        self.module_manager.find(module, context)
     }
 
     /// Create a new module with a given name and import words from the
