@@ -181,5 +181,8 @@ fn test_load_internal_module() {
 
     let module = module_manager.load_internal(INTERNALS, &mut op_table);
 
-    // assert_eq!(module.name)
+    assert_eq!(module.name, INTERNALS);
+    assert!(module.path.is_none());
+    assert!(module.imported.is_empty());
+    assert!(!module.defined.is_empty());
 }
