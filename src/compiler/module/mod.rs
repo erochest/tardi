@@ -3,14 +3,12 @@ use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::{env, fmt};
 
+use internal::define_module;
 use lazy_static::lazy_static;
 
 use crate::compiler::error::{CompilerError, CompilerResult};
-use crate::core::create_kernel_module;
-use crate::env::Environment;
 use crate::shared::Shared;
 use crate::value::lambda::Lambda;
-use crate::value::Value;
 use crate::{config::Config, error::Result};
 
 mod internal;
@@ -114,8 +112,6 @@ impl Module {
     }
 }
 
-// TODO: special handling for known internal modules
-// TODO: std/internals
 // TODO: std/scanning
 // TODO: std/strings
 // TODO: std/vectors
@@ -141,9 +137,10 @@ impl ModuleManager {
         }
     }
 
-    pub fn load_kernel(&mut self) {
-        let kernel = create_kernel_module();
+    pub fn load_kernel(&mut self, op_table: &mut Vec<Shared<Lambda>>) -> Result<()> {
+        let kernel = define_module(KERNEL, op_table)?;
         self.modules.insert(KERNEL.to_string(), kernel);
+        Ok(())
     }
 
     pub fn get_kernel(&self) -> &Module {
@@ -179,13 +176,14 @@ impl ModuleManager {
         self.modules.contains_key(name)
     }
 
-    pub fn load_internal(&mut self, name: &str, op_table: &mut Vec<Shared<Lambda>>) -> Module {
-        Module {
-            path: None,
-            name: name.to_string(),
-            defined: HashMap::new(),
-            imported: HashMap::new(),
-        }
+    pub fn load_internal(
+        &mut self,
+        name: &str,
+        op_table: &mut Vec<Shared<Lambda>>,
+    ) -> Result<&Module> {
+        let module = define_module(name, op_table)?;
+        self.add_module(module);
+        Ok(self.get(name).unwrap())
     }
 
     pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {

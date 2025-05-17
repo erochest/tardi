@@ -1,7 +1,6 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::compiler::module::{Module, ModuleManager};
 use crate::config::Config;
-use crate::core::create_op_table;
 use crate::error::{Result, VMError, VMResult};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
@@ -77,10 +76,8 @@ impl Environment {
     pub fn with_builtins(config: Option<&Config>) -> Self {
         let mut env = config.map(Environment::from).unwrap_or_default();
 
-        let op_table = create_op_table();
-        env.set_op_table(op_table);
-
-        env.module_manager.load_kernel();
+        let mut op_table = vec![];
+        env.module_manager.load_kernel(&mut op_table).unwrap();
 
         env
     }
@@ -232,7 +229,9 @@ impl Environment {
                 "Environment::get_or_create_module_mut get internal {:?}",
                 name
             );
-            self.module_manager.load_internal(name, &mut self.op_table);
+            self.module_manager
+                .load_internal(name, &mut self.op_table)
+                .unwrap();
         } else if self.module_manager.contains_module(name) {
             log::trace!(
                 "Environment::get_or_create_module_mut get existing {:?}",
@@ -340,8 +339,6 @@ impl Environment {
             | OpCode::Stop
             | OpCode::Bye
             | OpCode::JumpStack
-            | OpCode::Function
-            | OpCode::PredeclareFunction
             | OpCode::ScanValue
             | OpCode::ScanValueList
             | OpCode::ScanObjectList

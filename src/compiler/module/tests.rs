@@ -7,7 +7,6 @@ use pretty_assertions::assert_eq;
 use super::*;
 use crate::error::{Error, Result};
 use crate::shared::Shared;
-use crate::value::Value;
 
 fn setup() -> Result<ModuleManager> {
     let pwd = env::current_dir()?;
@@ -179,10 +178,13 @@ fn test_load_internal_module() {
     let mut module_manager = ModuleManager::new(&[cwd.join("tests/modules")]);
     let mut op_table: Vec<Shared<Lambda>> = vec![];
 
-    let module = module_manager.load_internal(INTERNALS, &mut op_table);
+    let result = module_manager.load_internal(INTERNALS, &mut op_table);
+    assert!(result.is_ok(), "result {:?}", result);
+    let module = result.unwrap();
 
     assert_eq!(module.name, INTERNALS);
     assert!(module.path.is_none());
     assert!(module.imported.is_empty());
     assert!(!module.defined.is_empty());
+    assert_eq!(module.defined.len(), op_table.len());
 }
