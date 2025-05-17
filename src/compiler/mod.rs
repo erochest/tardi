@@ -131,24 +131,7 @@ impl Compiler {
                 let lambda = self.compile_macro(executor, env.clone())?;
                 env.borrow_mut().add_macro(&module_name, lambda)?;
             } else if let Some(lambda) = self.get_macro(env.clone(), &value.data) {
-                log::trace!("Compiler::pass1 executing macro {:?}", lambda.borrow().name);
-                // TODO: once we get more code to test on, benchmark whether it's better to
-                // create `buffer` as a `Value<ValueData::List>` convert it back and forth.
-                // It'll depend on how much macros get used.
-                let accumulator = shared(buffer.into());
-                executor.execute_macro(
-                    env.clone(),
-                    self,
-                    &value.data,
-                    &lambda.borrow().clone(),
-                    accumulator.clone(),
-                )?;
-                buffer = unshare_clone(accumulator).try_into()?;
-                log::trace!(
-                    "Compiler::pass1 executing macro {:?}: returned {:#?}",
-                    lambda.borrow().name,
-                    buffer
-                );
+                buffer = self.execute_macro(executor, &env, buffer, &value.data, lambda)?;
             } else {
                 buffer.push(value);
             }
@@ -278,26 +261,7 @@ impl Compiler {
         for word in words {
             // TODO: some of this seems duplicated from `pass1`. DRY it up
             if let Some(lambda) = self.get_macro(env.clone(), &word.data) {
-                log::trace!(
-                    "Compiler::compile_list executing macro {:?}",
-                    lambda.borrow().name
-                );
-                // TODO: see todo in `pass1` about benchmarking going back and forth
-                // between Shared<Value> and Vec<Value>.
-                let accumulator = shared(buffer.into());
-                executor.execute_macro(
-                    env.clone(),
-                    self,
-                    &word.data,
-                    &lambda.borrow().clone(),
-                    accumulator.clone(),
-                )?;
-                buffer = unshare_clone(accumulator).try_into()?;
-                log::trace!(
-                    "Compiler::compile_list macro {:?} returned {:#?}",
-                    &word.data,
-                    buffer
-                );
+                buffer = self.execute_macro(executor, &env, buffer, &word.data, lambda)?;
             } else {
                 log::trace!("Compiler::compile_list -- pushing {}", word);
                 buffer.push(word.clone());
@@ -307,6 +271,37 @@ impl Compiler {
         self.pass2(buffer)?;
         self.compile_op(OpCode::Return)?;
         self.end_function().map_err(Error::from)
+    }
+
+    fn execute_macro<E: Execute>(
+        &mut self,
+        executor: &mut E,
+        env: &Shared<Environment>,
+        buffer: Vec<Value>,
+        word: &ValueData,
+        lambda: Shared<Lambda>,
+    ) -> Result<Vec<Value>> {
+        // TODO: once we get more code to test on, benchmark whether it's better to
+        // create `buffer` as a `Value<ValueData::List>` convert it back and forth.
+        // It'll depend on how much macros get used.
+        log::trace!(
+            "Compiler::compile_list executing macro {:?}",
+            lambda.borrow().name
+        );
+        let accumulator = shared(buffer.into());
+        executor.execute_macro(
+            env.clone(),
+            self,
+            word,
+            &lambda.borrow().clone(),
+            accumulator.clone(),
+        )?;
+        log::trace!(
+            "Compiler::compile_list macro {:?} returned {:#?}",
+            word,
+            accumulator
+        );
+        unshare_clone(accumulator).try_into()
     }
 
     /// Adds an opcode to the current function being defined,

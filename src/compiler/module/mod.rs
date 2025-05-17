@@ -17,6 +17,8 @@ pub struct Loader {
 // TODO: move modules out of Environment
 // TODO: have this keep and return modules
 // TODO: special handling for known internal modules
+// TODO: std/internals
+// TODO: std/scanning
 // TODO: std/strings
 // TODO: std/vectors
 impl Loader {

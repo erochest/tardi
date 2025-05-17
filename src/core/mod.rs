@@ -7,7 +7,6 @@ use crate::compiler::Compiler;
 use crate::config::Config;
 use crate::env::{Environment, Module};
 use crate::error::Result;
-use crate::scanner::error::ScannerError;
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
@@ -51,9 +50,6 @@ impl Tardi {
         Ok(tardi)
     }
 
-    // TODO: internal modules that are defined on demand
-    // TODO: std/strings
-    // TODO: std/vectors
     pub fn bootstrap(&mut self, bootstrap_dir: Option<PathBuf>) -> Result<()> {
         if let Some(bootstrap_dir) = bootstrap_dir {
             log::trace!("Tardi::bootstrap {:?}", bootstrap_dir);
@@ -170,7 +166,7 @@ impl From<&Config> for Tardi {
 }
 
 // TODO: this needs to pay attention to modules and set up all
-// internal modules.
+// internal modules (lazy internal modules?)
 /// Create the default operation table
 pub fn create_op_table() -> Vec<Shared<Lambda>> {
     let size = OpCode::StringConcat as usize + 1;

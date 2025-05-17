@@ -274,14 +274,14 @@ impl Environment {
         self.instructions
             .get(ip)
             .copied()
-            .ok_or_else(|| VMError::InvalidInstructionPointer(ip))
+            .ok_or(VMError::InvalidInstructionPointer(ip))
     }
 
     pub fn get_op(&self, ip: &usize, index: usize) -> VMResult<Shared<Lambda>> {
         self.op_table
             .get(index)
             .cloned()
-            .ok_or_else(|| VMError::InvalidOpCode(*ip, index))
+            .ok_or(VMError::InvalidOpCode(*ip, index))
     }
 
     pub fn instructions_len(&self) -> usize {

@@ -347,7 +347,6 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
 
-    // TODO: the outer macro call isn't finishing up (`swap append`).
     let result = tardi.execute_str(r#"[ 40 41 42 [ 43 44 45 ] ]"#);
     assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
     let stack = tardi.stack();

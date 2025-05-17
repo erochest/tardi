@@ -135,7 +135,7 @@ impl VM {
                 e.borrow()
                     .get_constant(const_index)
                     .cloned()
-                    .ok_or_else(|| VMError::InvalidConstantIndex(const_index).into())
+                    .ok_or(VMError::InvalidConstantIndex(const_index))
             })
             .map(shared)?;
         self.push(value)?;
