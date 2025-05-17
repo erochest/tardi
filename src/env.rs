@@ -1,5 +1,5 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
-use crate::compiler::module::KERNEL;
+use crate::compiler::module::{Module, KERNEL};
 use crate::core::{create_kernel_module, create_op_table};
 use crate::error::{Result, VMError, VMResult};
 use crate::shared::{shared, Shared};
@@ -10,94 +10,7 @@ use crate::Scanner;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
-use std::path::{Path, PathBuf};
 use std::result;
-
-// TODO: move this to module/mod.rs
-#[derive(Default, Clone)]
-pub struct Module {
-    pub path: Option<PathBuf>,
-    pub name: String,
-
-    /// This maps a word name to its index in the environment's `op_table`.
-    pub defined: HashMap<String, usize>,
-
-    /// This maps the imported word names to their indexes in the environment's `op_table`.
-    pub imported: HashMap<String, usize>,
-}
-
-impl fmt::Debug for Module {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "MODULE  : {} / {}",
-            self.name,
-            self.path
-                .as_ref()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_default()
-        )?;
-        for (name, index) in self.defined.iter() {
-            writeln!(f, "\tDEFINED : {:20} => {}", name, index)?;
-        }
-        for (name, index) in self.imported.iter() {
-            writeln!(f, "\tIMPORTED: {:20} => {}", name, index)?;
-        }
-        writeln!(f)?;
-        Ok(())
-    }
-}
-
-impl Module {
-    pub fn new(name: &str) -> Module {
-        let name = name.to_string();
-        Module {
-            path: None,
-            name,
-            defined: HashMap::new(),
-            imported: HashMap::new(),
-        }
-    }
-
-    pub fn with_path(path: &Path, name: &str) -> Module {
-        let path = Some(path.to_path_buf());
-        let name = name.to_string();
-        Module {
-            path,
-            name,
-            defined: HashMap::new(),
-            imported: HashMap::new(),
-        }
-    }
-
-    pub fn with_imports(name: &str, module: &Module) -> Module {
-        let name = name.to_string();
-        let imported = module.defined.clone();
-        Module {
-            path: None,
-            name,
-            defined: HashMap::new(),
-            imported,
-        }
-    }
-
-    pub fn get_key(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn get(&self, name: &str) -> Option<usize> {
-        self.defined
-            .get(name)
-            .or_else(|| self.imported.get(name))
-            .copied()
-    }
-
-    pub fn use_module(&mut self, other: &Module) {
-        for (key, index) in other.defined.iter() {
-            self.imported.insert(key.clone(), *index);
-        }
-    }
-}
 
 /// This holds the running environment.
 #[derive(Default, Clone)]

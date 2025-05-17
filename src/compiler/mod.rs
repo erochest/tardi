@@ -4,7 +4,7 @@ use std::path::Path;
 use std::{fs, mem, result};
 
 use log::Level;
-use module::Loader;
+use module::{Loader, Module};
 
 pub mod error;
 pub mod module;
@@ -12,7 +12,7 @@ pub mod module;
 use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::config::Config;
 use crate::core::Execute;
-use crate::env::{Environment, Module};
+use crate::env::Environment;
 use crate::error::{Error, Result};
 use crate::scanner::error::ScannerError;
 use crate::scanner::Source;

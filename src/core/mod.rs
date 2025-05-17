@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::compiler::module::{KERNEL, SANDBOX};
+use crate::compiler::module::{Module, KERNEL, SANDBOX};
 use crate::compiler::Compiler;
 use crate::config::Config;
-use crate::env::{Environment, Module};
+use crate::env::Environment;
 use crate::error::Result;
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Lambda, OpFn};
