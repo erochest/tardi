@@ -1,7 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::{env, fmt};
+
+use lazy_static::lazy_static;
 
 use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::core::create_kernel_module;
@@ -9,6 +11,16 @@ use crate::{config::Config, error::Result};
 
 pub const KERNEL: &str = "std/kernel";
 pub const SANDBOX: &str = "std/sandbox";
+
+lazy_static! {
+    static ref INTERNAL_MODULES: HashSet<String> = vec![
+        KERNEL.to_string(),
+        SANDBOX.to_string(),
+        "std/internals".to_string(),
+    ]
+    .into_iter()
+    .collect();
+}
 
 #[derive(Default, Clone)]
 pub struct Module {
@@ -218,6 +230,11 @@ impl ModuleManager {
         }
 
         Err(CompilerError::InvalidModulePath(target))
+    }
+
+    /// Is this module defined through rust functions?
+    pub fn is_internal(&self, name: &str) -> bool {
+        INTERNAL_MODULES.contains(name)
     }
 }
 

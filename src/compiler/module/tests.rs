@@ -162,3 +162,11 @@ fn test_find_abs_module_finds_relative_uses() {
     assert_eq!(name, "basic-test".to_string());
     assert_eq!(target_path, expected);
 }
+
+#[test]
+fn test_is_internal_on_standard_modules() {
+    let cwd = env::current_dir().unwrap();
+    let loader = ModuleManager::new(&[cwd.join("tests/modules")]);
+
+    assert!(loader.is_internal("std/internals"));
+}
