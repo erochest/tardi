@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt};
 
 use crate::compiler::error::{CompilerError, CompilerResult};
+use crate::core::create_kernel_module;
 use crate::{config::Config, error::Result};
 
 pub const KERNEL: &str = "std/kernel";
@@ -94,8 +95,6 @@ impl Module {
     }
 }
 
-// TODO: move modules out of Environment
-// TODO: have this keep and return modules
 // TODO: special handling for known internal modules
 // TODO: std/internals
 // TODO: std/scanning
@@ -103,7 +102,11 @@ impl Module {
 // TODO: std/vectors
 #[derive(Debug, Clone)]
 pub struct ModuleManager {
+    /// This holds the search paths for loading new modules.
     pub paths: Vec<PathBuf>,
+
+    /// This holds the modules that have been loaded.
+    pub modules: HashMap<String, Module>,
 }
 
 impl ModuleManager {
@@ -113,7 +116,48 @@ impl ModuleManager {
                 .iter()
                 .filter_map(|p| p.as_ref().to_path_buf().canonicalize().ok()),
         );
-        ModuleManager { paths }
+        ModuleManager {
+            paths,
+            modules: HashMap::new(),
+        }
+    }
+
+    pub fn load_builtins(&mut self) {
+        let kernel = create_kernel_module();
+        self.modules.insert(KERNEL.to_string(), kernel);
+    }
+
+    pub fn get_kernel(&self) -> &Module {
+        &self.modules[KERNEL]
+    }
+
+    pub fn get_module_mut(&mut self, name: &str) -> Option<&mut Module> {
+        self.modules.get_mut(name)
+    }
+
+    pub fn iter_modules(&self) -> impl Iterator<Item = &Module> {
+        self.modules.values()
+    }
+
+    pub fn get_op_index(&self, module: &str, word: &str) -> Option<usize> {
+        self.modules.get(module).and_then(|m| m.get(word))
+    }
+
+    pub fn get(&self, module_name: &str) -> Option<&Module> {
+        self.modules.get(module_name)
+    }
+
+    pub fn get_mut(&mut self, module_name: &str) -> Option<&mut Module> {
+        self.modules.get_mut(module_name)
+    }
+
+    pub fn add_module(&mut self, module: Module) {
+        let name = module.name.clone();
+        self.modules.insert(name, module);
+    }
+
+    pub fn contains_module(&self, name: &str) -> bool {
+        self.modules.contains_key(name)
     }
 
     pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {
@@ -183,7 +227,10 @@ impl Default for ModuleManager {
         let current_dir = current_dir.canonicalize().unwrap();
 
         let paths = vec![current_dir];
-        ModuleManager { paths }
+        ModuleManager {
+            paths,
+            modules: HashMap::default(),
+        }
     }
 }
 

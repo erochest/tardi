@@ -1,7 +1,7 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
-use crate::compiler::module::{Module, ModuleManager, KERNEL};
+use crate::compiler::module::{Module, ModuleManager};
 use crate::config::Config;
-use crate::core::{create_kernel_module, create_op_table};
+use crate::core::create_op_table;
 use crate::error::{Result, VMError, VMResult};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
@@ -27,9 +27,6 @@ pub struct Environment {
     /// Operations that have been loaded into the environment. This is all of
     /// built-ins, rust-defined functions, and user-defined.
     pub op_table: Vec<Shared<Lambda>>,
-
-    /// This holds the modules that have been loaded.
-    pub modules: HashMap<String, Module>,
 
     pub module_manager: ModuleManager,
 }
@@ -67,14 +64,12 @@ impl Environment {
         constants: Vec<Value>,
         instructions: Vec<usize>,
         op_table: Vec<Shared<Lambda>>,
-        modules: HashMap<String, Module>,
         module_manager: ModuleManager,
     ) -> Self {
         Environment {
             constants,
             instructions,
             op_table,
-            modules,
             module_manager,
         }
     }
@@ -85,8 +80,7 @@ impl Environment {
         let op_table = create_op_table();
         env.set_op_table(op_table);
 
-        let kernel = create_kernel_module();
-        env.modules.insert(KERNEL.to_string(), kernel);
+        env.module_manager.load_builtins();
 
         env
     }
@@ -102,7 +96,7 @@ impl Environment {
     /// Create a new module with a given name and import words from the
     /// kernel.
     pub fn create_module(&self, name: &str) -> Module {
-        let kernel = &self.modules[KERNEL];
+        let kernel = self.module_manager.get_kernel();
         Module::with_imports(name, kernel)
     }
 
@@ -162,8 +156,8 @@ impl Environment {
         Ok(())
     }
 
-    pub fn set_imported(&mut self, module_path: &str, imported: HashMap<String, usize>) {
-        if let Some(module) = self.modules.get_mut(module_path) {
+    pub fn set_imported(&mut self, module_name: &str, imported: HashMap<String, usize>) {
+        if let Some(module) = self.module_manager.get_module_mut(module_name) {
             module.imported = imported;
         }
     }
@@ -177,12 +171,12 @@ impl Environment {
     }
 
     pub fn get_op_name(&self, ip: usize) -> Option<String> {
-        for (name, module) in self.modules.iter() {
+        for module in self.module_manager.iter_modules() {
             for (word, index) in module.defined.iter() {
                 let lambda_ip = self.op_table.get(*index).and_then(|l| l.borrow().get_ip());
                 if lambda_ip == Some(ip) {
                     // TODO: any way to use the Display implementation defined for Value or ValueData?
-                    return Some(format!("{}::{}", name, word));
+                    return Some(format!("{}::{}", module.name, word));
                 }
             }
         }
@@ -190,11 +184,7 @@ impl Environment {
     }
 
     pub fn get_op_index(&self, module: &str, word: &str) -> Option<usize> {
-        log::trace!("Environment::get_op_index {}::{}", module, word);
-        self.modules.get(module).and_then(|m| {
-            log::trace!("Environment::get_op_index module {}", m.name);
-            m.get(word)
-        })
+        self.module_manager.get_op_index(module, word)
     }
 
     pub fn get_instruction(&self, ip: usize) -> VMResult<usize> {
@@ -216,55 +206,53 @@ impl Environment {
     }
 
     pub fn get_module(&self, key: &str) -> Option<&Module> {
-        self.modules.get(key)
+        self.module_manager.get(key)
     }
 
     pub fn get_module_mut(&mut self, key: &str) -> Option<&mut Module> {
-        log::trace!("Environment::get_module_mut {:?}", key);
-        self.modules.get_mut(key)
+        self.module_manager.get_mut(key)
     }
 
-    pub fn get_module_for(&self, scanner: &Scanner) -> Option<&Module> {
-        self.modules.get(&scanner.source.get_key())
+    pub fn get_scanner_module(&self, scanner: &Scanner) -> Option<&Module> {
+        self.module_manager.get(&scanner.source.get_key())
     }
 
-    pub fn get_module_for_mut(&mut self, scanner: &Scanner) -> Option<&mut Module> {
-        self.modules.get_mut(&scanner.source.get_key())
+    pub fn get_scanner_module_mut(&mut self, scanner: &Scanner) -> Option<&mut Module> {
+        self.module_manager.get_mut(&scanner.source.get_key())
     }
 
     pub fn add_module(&mut self, module: Module) {
-        let name = module.name.clone();
-        self.modules.insert(name, module);
+        self.module_manager.add_module(module);
     }
 
     pub fn get_or_create_module_mut<'a>(&'a mut self, name: &str) -> &'a mut Module {
         log::trace!("Environment::get_or_create_module_mut {:?}", name);
-        if self.modules.contains_key(name) {
+        if self.module_manager.contains_module(name) {
             log::trace!(
                 "Environment::get_or_create_module_mut get existing {:?}",
                 name
             );
-            self.modules.get_mut(name).unwrap()
+            self.module_manager.get_mut(name).unwrap()
         } else {
             log::trace!(
                 "Environment::get_or_create_module_mut create new {:?}",
                 name
             );
             let module = self.create_module(name);
-            self.add_module(module);
-            self.modules.get_mut(name).unwrap()
+            self.module_manager.add_module(module);
+            self.module_manager.get_mut(name).unwrap()
         }
     }
 
     pub fn use_module(&mut self, source: &str, dest: &str) -> Result<()> {
         let source = self
-            .modules
+            .module_manager
             .get(source)
             .ok_or_else(|| CompilerError::ModuleNotFound(source.to_string()))?
             .defined
             .clone();
         let dest = self
-            .modules
+            .module_manager
             .get_mut(dest)
             .ok_or_else(|| CompilerError::ModuleNotFound(dest.to_string()))?;
         for (key, index) in source {
