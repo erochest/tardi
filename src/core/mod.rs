@@ -411,9 +411,7 @@ pub fn predeclare_function(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> 
 }
 
 pub fn scan_value(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
-    let value = compiler
-        .scan_value()
-        .ok_or(ScannerError::UnexpectedEndOfInput)??;
+    let value = compiler.scan_word()?;
     let value = shared(value);
     vm.push(value)?;
     Ok(())

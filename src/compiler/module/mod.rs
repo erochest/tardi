@@ -13,6 +13,12 @@ pub struct Loader {
     pub paths: Vec<PathBuf>,
 }
 
+// TODO: have Environment own this
+// TODO: move modules out of Environment
+// TODO: have this keep and return modules
+// TODO: special handling for known internal modules
+// TODO: std/strings
+// TODO: std/vectors
 impl Loader {
     pub fn new<P: AsRef<Path>>(paths: &[P]) -> Loader {
         let paths = Vec::from_iter(
@@ -23,7 +29,6 @@ impl Loader {
         Loader { paths }
     }
 
-    // TODO: special handling for known internal modules
     pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {
         log::debug!("finding module '{}' in context {:?}", module, context);
         if module.starts_with("./") || module.starts_with("../") {

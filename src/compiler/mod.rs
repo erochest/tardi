@@ -477,10 +477,7 @@ impl Compiler {
         env: Shared<Environment>,
     ) -> Result<Lambda> {
         log::trace!("Compiler::compile_macro");
-        let trigger = self
-            .scan_value()
-            .ok_or(ScannerError::UnexpectedEndOfInput)?;
-        let trigger = trigger?;
+        let trigger = self.scan_word()?;
         log::trace!("Compiler::compile_macro trigger {}", trigger);
 
         let body = shared(Value::new(ValueData::List(vec![])));
@@ -508,6 +505,14 @@ impl Compiler {
     pub fn scan_value(&mut self) -> Option<CompilerResult<Value>> {
         self.current_scanner_mut()
             .and_then(|s| s.scan_value().map(|r| r.map_err(CompilerError::from)))
+    }
+
+    pub fn scan_word(&mut self) -> Result<Value> {
+        let word = self
+            .scan_value()
+            .ok_or(ScannerError::UnexpectedEndOfInput)?;
+        let word = word?;
+        Ok(word)
     }
 
     pub fn scan_value_list(&mut self, delimiter: &ValueData) -> CompilerResult<Vec<Value>> {
@@ -589,11 +594,7 @@ impl Compiler {
 
     pub fn use_module(&mut self, vm: &mut VM) -> Result<()> {
         log::trace!("Compiler::use_module");
-        // TODO: pull this pattern out into `scan_word`
-        let module_word = self
-            .scan_value()
-            .ok_or(ScannerError::UnexpectedEndOfInput)?;
-        let module_word = module_word?;
+        let module_word = self.scan_word()?;
         let module_spec = module_word
             .get_word()
             .ok_or_else(|| CompilerError::UnsupportedToken(format!("{}", module_word)))?;
