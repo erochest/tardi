@@ -591,13 +591,7 @@ impl VM {
         let value = unshare_clone(value);
         if let ValueData::List(words) = value.data {
             let words = words.into_iter().map(unshare_clone).collect::<Vec<_>>();
-            let lambda = compiler.compile_list(
-                self,
-                self.environment
-                    .clone()
-                    .ok_or(VMError::MissingEnvironment)?,
-                &words,
-            )?;
+            let lambda = compiler.compile_list(self, &words)?;
             let value = Value::new(ValueData::Function(lambda));
             self.push(shared(value))?;
         }

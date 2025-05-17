@@ -25,6 +25,7 @@ pub trait Execute {
 }
 
 // TODO: make the VM the orchestrator and get rid of this?
+// XXX: rationalize how the environment gets passed around
 pub struct Tardi {
     pub input: Option<String>,
     pub environment: Shared<Environment>,
@@ -83,7 +84,7 @@ impl Tardi {
     }
 
     pub fn compile_str(&mut self, module_name: &str, input: &str) -> Result<Shared<Environment>> {
-        log::debug!("input : {}", input);
+        log::debug!("Tardi::compile_str -- {} : {}", module_name, input);
         self.compiler.compile_internal(
             &mut self.executor,
             self.environment.clone(),

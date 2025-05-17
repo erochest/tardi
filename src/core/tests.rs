@@ -34,6 +34,7 @@ fn test_2drop() {
 
 #[test]
 fn test_3drop() {
+    // env_logger::init();
     test_word("1 2 3 4 3drop", &[1i64]);
 }
 

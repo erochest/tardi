@@ -390,19 +390,28 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
 
 #[test]
 fn test_compile_define_use_function() {
-    env_logger::init();
     let mut tardi = Tardi::default();
 
     let result = tardi.execute_str(
         r#"
+        use: std/internals
+
         MACRO: {
                 dup
                 } scan-object-list compile
                 swap append ;
+
         over { >r dup r> swap } <function>
         "#,
     );
     assert!(result.is_ok(), "ERROR defining macro {{ : {:?}", result);
+
+    // {
+    //     let env = tardi.environment.borrow();
+    //     let sandbox = env.get_module(SANDBOX).unwrap();
+    //     log::trace!("SANDBOX");
+    //     log::trace!("{:?}", sandbox);
+    // }
 
     let result = tardi.execute_str("42 7 over");
     assert!(result.is_ok(), "ERROR executing over: {:?}", result);
@@ -427,6 +436,8 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     tardi
         .execute_str(
             r#"
+            use: std/internals
+
         MACRO: {
                 dup
                 } scan-object-list compile

@@ -4,7 +4,7 @@ use std::path::Path;
 use std::{fs, mem, result};
 
 use log::Level;
-use module::Module;
+use module::{Module, SANDBOX};
 
 pub mod error;
 pub mod module;
@@ -63,6 +63,7 @@ pub struct Compiler {
     lambda_stack: Vec<LambdaCompiler>,
 }
 
+// XXX: what's getting used publicly so that it needs to set the env first?
 impl Compiler {
     pub fn current_module_compiler(&self) -> Option<&ModuleCompiler> {
         self.module_stack.last()
@@ -97,11 +98,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn pass1<E: Execute>(
-        &mut self,
-        executor: &mut E,
-        env: Shared<Environment>,
-    ) -> Result<Vec<Value>> {
+    fn pass1<E: Execute>(&mut self, executor: &mut E) -> Result<Vec<Value>> {
         let mut buffer = Vec::new();
         let module_name = self
             .current_module_compiler()
@@ -114,10 +111,14 @@ impl Compiler {
             log::trace!("Compiler::pass1 buffer {}", ValueVec(&buffer));
             // TODO: also compile functions here? there'd be fewer constants hanging around.
             if value.data == ValueData::Macro {
-                let lambda = self.compile_macro(executor, env.clone())?;
-                env.borrow_mut().add_macro(&module_name, lambda)?;
-            } else if let Some(lambda) = self.get_macro(env.clone(), &value.data) {
-                buffer = self.execute_macro(executor, &env, buffer, &value.data, lambda)?;
+                let lambda = self.compile_macro(executor)?;
+                self.environment
+                    .as_ref()
+                    .unwrap()
+                    .borrow_mut()
+                    .add_macro(&module_name, lambda)?;
+            } else if let Some(lambda) = self.get_macro(&value.data) {
+                buffer = self.execute_macro(executor, buffer, &value.data, lambda)?;
             } else {
                 buffer.push(value);
             }
@@ -168,7 +169,7 @@ impl Compiler {
     }
 
     fn compile_symbol(&mut self, value: Value) -> CompilerResult<()> {
-        log::trace!("Compiler::compile_word {:?}", value.lexeme);
+        log::trace!("Compiler::compile_symbol {:?}", value.lexeme);
         let word = value
             .data
             .get_word()
@@ -230,7 +231,6 @@ impl Compiler {
     pub fn compile_list<E: Execute>(
         &mut self,
         executor: &mut E,
-        env: Shared<Environment>,
         words: &[Value],
     ) -> Result<Lambda> {
         // TODO: can I reuse this function for anything else?
@@ -243,8 +243,8 @@ impl Compiler {
         let mut buffer = Vec::new();
 
         for word in words {
-            if let Some(lambda) = self.get_macro(env.clone(), &word.data) {
-                buffer = self.execute_macro(executor, &env, buffer, &word.data, lambda)?;
+            if let Some(lambda) = self.get_macro(&word.data) {
+                buffer = self.execute_macro(executor, buffer, &word.data, lambda)?;
             } else {
                 log::trace!("Compiler::compile_list -- pushing {}", word);
                 buffer.push(word.clone());
@@ -259,7 +259,6 @@ impl Compiler {
     fn execute_macro<E: Execute>(
         &mut self,
         executor: &mut E,
-        env: &Shared<Environment>,
         buffer: Vec<Value>,
         word: &ValueData,
         lambda: Shared<Lambda>,
@@ -273,7 +272,7 @@ impl Compiler {
         );
         let accumulator = shared(buffer.into());
         executor.execute_macro(
-            env.clone(),
+            self.environment.as_ref().unwrap().clone(),
             self,
             word,
             &lambda.borrow().clone(),
@@ -400,6 +399,12 @@ impl Compiler {
             .environment
             .as_ref()
             .and_then(|e| e.borrow().get_op_index(module, word));
+        log::trace!(
+            "Compiler::compile_symbol_call {}::{} => {:?}",
+            module,
+            word,
+            op_table_index
+        );
         if let Some(op_table_index) = op_table_index {
             self.compile_instruction(op_table_index);
             Ok(())
@@ -449,22 +454,13 @@ impl Compiler {
         }
     }
 
-    fn compile_macro<E: Execute>(
-        &mut self,
-        executor: &mut E,
-        env: Shared<Environment>,
-    ) -> Result<Lambda> {
+    fn compile_macro<E: Execute>(&mut self, executor: &mut E) -> Result<Lambda> {
         log::trace!("Compiler::compile_macro");
         let trigger = self.scan_word()?;
         log::trace!("Compiler::compile_macro trigger {}", trigger);
 
         let body = shared(Value::new(ValueData::List(vec![])));
-        self.scan_object_list(
-            executor,
-            env,
-            ValueData::Word(";".to_string()),
-            body.clone(),
-        )?;
+        self.scan_object_list(executor, ValueData::Word(";".to_string()), body.clone())?;
 
         log::trace!("Compiler::compile_macro {} => {}", trigger, body.borrow());
         self.start_function();
@@ -509,7 +505,6 @@ impl Compiler {
     pub fn scan_object_list<E: Execute>(
         &mut self,
         executor: &mut E,
-        env: Shared<Environment>,
         delimiter: ValueData,
         accumulator: Shared<Value>,
     ) -> Result<()> {
@@ -539,7 +534,7 @@ impl Compiler {
                     accumulator.borrow()
                 );
                 return Ok(());
-            } else if let Some(lambda) = self.get_macro(env.clone(), &value.data) {
+            } else if let Some(lambda) = self.get_macro(&value.data) {
                 log::trace!(
                     "Compiler::scan_object_list ({}) executing macro {}: {:?}",
                     delimiter,
@@ -547,7 +542,7 @@ impl Compiler {
                     lambda.borrow()
                 );
                 executor.execute_macro(
-                    env.clone(),
+                    self.environment.as_ref().unwrap().clone(),
                     self,
                     &value.data,
                     &lambda.borrow().clone(),
@@ -570,8 +565,12 @@ impl Compiler {
         Err(ScannerError::UnexpectedEndOfInput.into())
     }
 
+    // XXX: refactor to make the phases more obvious:
+    // - find
+    // - load/compile
+    // - use/import
     pub fn use_module(&mut self, vm: &mut VM) -> Result<()> {
-        log::trace!("Compiler::use_module");
+        let env = self.environment.as_ref().unwrap().clone();
         let module_word = self.scan_word()?;
         let module_spec = module_word
             .get_word()
@@ -581,7 +580,13 @@ impl Compiler {
             .ok_or_else(|| CompilerError::InvalidState("missing scanner".to_string()))?
             .source
             .get_path();
-        let env = vm.environment.as_ref().unwrap().clone();
+        log::trace!("Compiler::use_module {} {:?}", module_spec, context);
+
+        if env.borrow_mut().handle_internal_module(module_spec)? {
+            self.use_into_current_module(&env, module_spec)?;
+            return Ok(());
+        }
+
         let (module_name, module_file) = env
             .borrow()
             .find_module(module_spec, context)?
@@ -604,7 +609,7 @@ impl Compiler {
 
         env.borrow_mut().get_or_create_module_mut(&module_name);
 
-        self.compile_module_passes(vm, &module_name, &env, scanner)?;
+        self.compile_module_passes(vm, &module_name, scanner)?;
         self.use_into_current_module(&env, &module_name)?;
 
         Ok(())
@@ -614,11 +619,10 @@ impl Compiler {
         &mut self,
         vm: &mut VM,
         module_name: &str,
-        env: &Shared<Environment>,
         scanner: Scanner,
     ) -> Result<()> {
         self.start_module_compiler(module_name, scanner);
-        let intermediate = self.pass1(vm, env.clone())?;
+        let intermediate = self.pass1(vm)?;
         self.pass2(intermediate)?;
         self.finish_module_compiler()?;
         Ok(())
@@ -629,6 +633,7 @@ impl Compiler {
         env: &Shared<Environment>,
         source_name: &str,
     ) -> Result<()> {
+        log::trace!("Compiler::use_into_current_module {}", source_name);
         if let Some(Scanner { source, .. }) = self.current_scanner_mut() {
             let key = source.get_key();
             let env = env.clone();
@@ -639,22 +644,31 @@ impl Compiler {
         }
     }
 
-    fn get_macro(&self, env: Shared<Environment>, trigger: &ValueData) -> Option<Shared<Lambda>> {
+    fn get_macro(&self, trigger: &ValueData) -> Option<Shared<Lambda>> {
         log::trace!("Compiler::get_macro {}", trigger);
         if let Some(word) = trigger.get_word() {
-            log::trace!("Compiler::get_macro word {}", word);
+            // log::trace!("Compiler::get_macro word {}", word);
             if let Some(module_name) = self.current_module_compiler().as_ref().map(|m| &m.name) {
-                log::trace!("Compiler::get_macro module {}", module_name);
-                return env
+                // log::trace!("Compiler::get_macro module {}", module_name);
+                return self
+                    .environment
+                    .as_ref()
+                    .unwrap()
                     .borrow()
                     .get_op_index(module_name, word)
                     .and_then(|index| {
-                        log::trace!("Compiler::get_macro index {}", index);
-                        env.borrow().get_op(&0, index).ok()
+                        // log::trace!("Compiler::get_macro index {}", index);
+                        self.environment
+                            .as_ref()
+                            .unwrap()
+                            .clone()
+                            .borrow()
+                            .get_op(&0, index)
+                            .ok()
                     })
                     .filter(|lambda| {
                         let immediate = lambda.borrow().immediate;
-                        log::trace!("Compiler::get_macro immediate {}", immediate);
+                        // log::trace!("Compiler::get_macro immediate {}", immediate);
                         immediate
                     });
             }
@@ -708,11 +722,19 @@ impl Compiler {
         env: Shared<Environment>,
         scanner: Scanner,
     ) -> Result<()> {
+        log::trace!("Compiler::compile_scanner {:?}", scanner.source);
         self.environment = Some(env.clone());
+        log::trace!(
+            "Compiler::compile_scanner -- env set {}",
+            self.environment.is_some()
+        );
+        if let Some(e) = self.environment.as_ref() {
+            e.borrow().module_manager.debug_module(SANDBOX);
+        }
 
         let module_name = scanner.source.get_key();
         env.borrow_mut().get_or_create_module_mut(&module_name);
-        self.compile_module_passes(vm, &module_name, &env, scanner)?;
+        self.compile_module_passes(vm, &module_name, scanner)?;
 
         Ok(())
     }

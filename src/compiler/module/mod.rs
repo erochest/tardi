@@ -109,6 +109,12 @@ impl Module {
         for (key, index) in other.defined.iter() {
             self.imported.insert(key.clone(), *index);
         }
+        log::trace!("Module::use_module {} {}", self.name, other.name);
+        log::trace!(
+            "{} imported {:?}",
+            self.name,
+            self.imported.keys().collect::<Vec<_>>()
+        );
     }
 }
 
@@ -138,7 +144,7 @@ impl ModuleManager {
     }
 
     pub fn load_kernel(&mut self, op_table: &mut Vec<Shared<Lambda>>) -> Result<()> {
-        let kernel = define_module(KERNEL, op_table)?;
+        let kernel = define_module(self, KERNEL, op_table)?;
         self.modules.insert(KERNEL.to_string(), kernel);
         Ok(())
     }
@@ -155,7 +161,30 @@ impl ModuleManager {
         self.modules.values()
     }
 
+    pub fn debug_module(&self, name: &str) {
+        log::trace!(
+            "modules loaded {:?}",
+            self.modules.keys().collect::<Vec<_>>()
+        );
+        log::trace!(
+            "words imported in {}: {:?}",
+            name,
+            self.modules
+                .get(name)
+                .map_or_else(Default::default, |m| m.imported.keys().collect::<Vec<_>>())
+        );
+        log::trace!(
+            "words defined  in {}: {:?}",
+            name,
+            self.modules
+                .get(name)
+                .map_or_else(Default::default, |m| m.defined.keys().collect::<Vec<_>>())
+        );
+    }
+
     pub fn get_op_index(&self, module: &str, word: &str) -> Option<usize> {
+        log::trace!("ModuleManager::get_op_index {}@{}", module, word);
+        self.debug_module(module);
         self.modules.get(module).and_then(|m| m.get(word))
     }
 
@@ -181,7 +210,9 @@ impl ModuleManager {
         name: &str,
         op_table: &mut Vec<Shared<Lambda>>,
     ) -> Result<&Module> {
-        let module = define_module(name, op_table)?;
+        let module = define_module(self, name, op_table)?;
+        log::trace!("ModuleManager::load_internal {}", name);
+        log::trace!("{:?}", module);
         self.add_module(module);
         Ok(self.get(name).unwrap())
     }

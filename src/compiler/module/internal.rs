@@ -8,32 +8,64 @@ use crate::value::{Value, ValueData};
 use crate::vm::VM;
 use crate::{compiler::error::CompilerError, shared::shared};
 
-use super::{Module, INTERNALS, KERNEL};
+use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX};
 
-pub fn define_module(name: &str, op_table: &mut Vec<Shared<Lambda>>) -> Result<Module> {
+pub fn define_module(
+    manager: &ModuleManager,
+    name: &str,
+    op_table: &mut Vec<Shared<Lambda>>,
+) -> Result<Module> {
     let builder: Box<dyn InternalBuilder> = match name {
         KERNEL => Box::new(KernelModule),
         INTERNALS => Box::new(InternalsModule),
+        SANDBOX => Box::new(SandboxBuilder),
         _ => return Err(CompilerError::ModuleNotFound(name.to_string()).into()),
     };
 
-    Ok(builder.define_module(op_table))
+    Ok(builder.define_module(manager, op_table))
 }
 
 pub trait InternalBuilder {
-    fn define_module(&self, op_table: &mut Vec<Shared<Lambda>>) -> Module;
+    fn define_module(
+        &self,
+        module_manager: &ModuleManager,
+        op_table: &mut Vec<Shared<Lambda>>,
+    ) -> Module;
+}
+
+struct SandboxBuilder;
+impl InternalBuilder for SandboxBuilder {
+    fn define_module(
+        &self,
+        manager: &ModuleManager,
+        _op_table: &mut Vec<Shared<Lambda>>,
+    ) -> Module {
+        let imported = manager.get_kernel().defined.clone();
+        let defined = HashMap::new();
+
+        Module {
+            imported,
+            path: None,
+            name: SANDBOX.to_string(),
+            defined,
+        }
+    }
 }
 
 struct InternalsModule;
 impl InternalBuilder for InternalsModule {
-    fn define_module(&self, op_table: &mut Vec<Shared<Lambda>>) -> Module {
+    fn define_module(
+        &self,
+        _manager: &ModuleManager,
+        op_table: &mut Vec<Shared<Lambda>>,
+    ) -> Module {
         let mut index = HashMap::new();
 
         push_op(op_table, &mut index, "<function>", function);
         push_op(
             op_table,
             &mut index,
-            "<predefine-function>",
+            "<predeclare-function>",
             predeclare_function,
         );
 
@@ -48,7 +80,11 @@ impl InternalBuilder for InternalsModule {
 
 struct KernelModule;
 impl InternalBuilder for KernelModule {
-    fn define_module(&self, op_table: &mut Vec<Shared<Lambda>>) -> Module {
+    fn define_module(
+        &self,
+        _manager: &ModuleManager,
+        op_table: &mut Vec<Shared<Lambda>>,
+    ) -> Module {
         let mut index = HashMap::new();
 
         push_op(op_table, &mut index, "<lit>", lit);
@@ -250,6 +286,7 @@ pub fn string_concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 }
 
 // Function operations
+#[allow(dead_code)]
 pub fn call(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     vm.call(compiler)
 }
@@ -314,9 +351,8 @@ pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     let delimiter = delimiter.data;
 
     // call Compiler::scan_value_list
-    let env = vm.environment.clone().unwrap();
     let value = shared(Value::new(ValueData::List(vec![])));
-    compiler.scan_object_list(vm, env, delimiter, value.clone())?;
+    compiler.scan_object_list(vm, delimiter, value.clone())?;
 
     vm.push(value)?;
 

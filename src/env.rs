@@ -13,6 +13,9 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::result;
 
+// TODO: umm. no tests for this module?
+// TODO: tests to make sure typical programs can decompile without errors
+
 /// This holds the running environment.
 #[derive(Default, Clone)]
 pub struct Environment {
@@ -78,6 +81,7 @@ impl Environment {
 
         let mut op_table = vec![];
         env.module_manager.load_kernel(&mut op_table).unwrap();
+        env.set_op_table(op_table);
 
         env
     }
@@ -229,9 +233,11 @@ impl Environment {
                 "Environment::get_or_create_module_mut get internal {:?}",
                 name
             );
-            self.module_manager
-                .load_internal(name, &mut self.op_table)
-                .unwrap();
+            if !self.module_manager.contains_module(name) {
+                self.module_manager
+                    .load_internal(name, &mut self.op_table)
+                    .unwrap();
+            }
         } else if self.module_manager.contains_module(name) {
             log::trace!(
                 "Environment::get_or_create_module_mut get existing {:?}",
@@ -248,11 +254,12 @@ impl Environment {
         self.module_manager.get_mut(name).unwrap()
     }
 
-    pub fn use_module(&mut self, source: &str, dest: &str) -> Result<()> {
+    pub fn use_module(&mut self, source_name: &str, dest: &str) -> Result<()> {
+        log::trace!("Environment::use_module {} {}", source_name, dest);
         let source = self
             .module_manager
-            .get(source)
-            .ok_or_else(|| CompilerError::ModuleNotFound(source.to_string()))?
+            .get(source_name)
+            .ok_or_else(|| CompilerError::ModuleNotFound(source_name.to_string()))?
             .defined
             .clone();
         let dest = self
@@ -262,7 +269,25 @@ impl Environment {
         for (key, index) in source {
             dest.imported.insert(key, index);
         }
+        log::trace!(
+            "{} imported {:?}",
+            dest.name,
+            dest.imported.keys().collect::<Vec<_>>()
+        );
         Ok(())
+    }
+
+    pub fn handle_internal_module(&mut self, name: &str) -> Result<bool> {
+        if self.module_manager.is_internal(name) {
+            if !self.module_manager.contains_module(name) {
+                self.module_manager
+                    .load_internal(name, &mut self.op_table)?;
+            }
+
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     pub fn get_callable(&self, op_table_index: usize) -> Option<Shared<Lambda>> {
@@ -417,7 +442,11 @@ impl Environment {
         self.write_call(f, index, &name)?;
 
         // should be safe to unwrap because these should only be compiled
-        write!(f, " {:0>4}", op.borrow().get_ip().unwrap())?;
+        if let Some(ip) = op.borrow().get_ip() {
+            write!(f, " {:0>4}", ip)?;
+        } else {
+            write!(f, " comp")?;
+        }
 
         Ok(ip)
     }

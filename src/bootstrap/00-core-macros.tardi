@@ -1,4 +1,6 @@
 
+use: std/internals
+
 /// Escape the next token
 /// \ nuke
 MACRO: \ dup scan-value swap append ;
