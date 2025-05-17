@@ -249,7 +249,6 @@ impl Environment {
     }
 
     pub fn get_op_name(&self, ip: usize) -> Option<String> {
-        // TODO: name here is actually the path, which isn't ideal
         for (name, module) in self.modules.iter() {
             for (word, index) in module.defined.iter() {
                 let lambda_ip = self.op_table.get(*index).and_then(|l| l.borrow().get_ip());

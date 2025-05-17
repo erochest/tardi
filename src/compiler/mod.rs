@@ -259,7 +259,6 @@ impl Compiler {
         let mut buffer = Vec::new();
 
         for word in words {
-            // TODO: some of this seems duplicated from `pass1`. DRY it up
             if let Some(lambda) = self.get_macro(env.clone(), &word.data) {
                 buffer = self.execute_macro(executor, &env, buffer, &word.data, lambda)?;
             } else {
@@ -619,19 +618,25 @@ impl Compiler {
         let input = fs::read_to_string(&module_file)?;
         let scanner = Scanner::from_module(&module_name, &module_file, &input);
 
-        {
-            let stub = env.borrow().create_module(&module_name);
-            env.borrow_mut().add_module(stub);
-        }
-        self.start_module_compiler(&module_name, scanner);
+        env.borrow_mut().get_or_create_module_mut(&module_name);
 
-        let intermediate = self.pass1(vm, env.clone())?;
-        self.pass2(intermediate)?;
-
-        self.finish_module_compiler()?;
-
+        self.compile_module_passes(vm, &module_name, &env, scanner)?;
         self.use_into_current_module(&env, &module_name)?;
 
+        Ok(())
+    }
+
+    fn compile_module_passes(
+        &mut self,
+        vm: &mut VM,
+        module_name: &str,
+        env: &Shared<Environment>,
+        scanner: Scanner,
+    ) -> Result<()> {
+        self.start_module_compiler(module_name, scanner);
+        let intermediate = self.pass1(vm, env.clone())?;
+        self.pass2(intermediate)?;
+        self.finish_module_compiler()?;
         Ok(())
     }
 
@@ -720,31 +725,10 @@ impl Compiler {
         scanner: Scanner,
     ) -> Result<()> {
         self.environment = Some(env.clone());
-        // TODO: this pattern (also in use_module) can be factored out:
-        // - make scanner
-        // - push_module
-        // - pass1
-        // - pass2
-        // - pop_module
-        // - make module
-        // - module to env
+
         let module_name = scanner.source.get_key();
-        // TODO: make these methods
-        {
-            let mut env_borrow = env.borrow_mut();
-            let module = env_borrow.get_or_create_module_mut(&module_name);
-            log::trace!(
-                "Compiler::compile_scanner executing module {:?}",
-                module.name
-            );
-            log::trace!("Compiler::compile_scanner module\n{:?}", module);
-            self.start_module_compiler(&module.name, scanner);
-        }
-
-        let intermediate = self.pass1(vm, env.clone())?;
-        self.pass2(intermediate)?;
-
-        self.finish_module_compiler()?;
+        env.borrow_mut().get_or_create_module_mut(&module_name);
+        self.compile_module_passes(vm, &module_name, &env, scanner)?;
 
         Ok(())
     }
