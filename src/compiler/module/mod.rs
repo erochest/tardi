@@ -7,16 +7,23 @@ use lazy_static::lazy_static;
 
 use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::core::create_kernel_module;
+use crate::env::Environment;
+use crate::shared::Shared;
+use crate::value::lambda::Lambda;
+use crate::value::Value;
 use crate::{config::Config, error::Result};
+
+mod internal;
 
 pub const KERNEL: &str = "std/kernel";
 pub const SANDBOX: &str = "std/sandbox";
+pub const INTERNALS: &str = "std/internals";
 
 lazy_static! {
     static ref INTERNAL_MODULES: HashSet<String> = vec![
         KERNEL.to_string(),
         SANDBOX.to_string(),
-        "std/internals".to_string(),
+        INTERNALS.to_string(),
     ]
     .into_iter()
     .collect();
@@ -134,7 +141,7 @@ impl ModuleManager {
         }
     }
 
-    pub fn load_builtins(&mut self) {
+    pub fn load_kernel(&mut self) {
         let kernel = create_kernel_module();
         self.modules.insert(KERNEL.to_string(), kernel);
     }
@@ -170,6 +177,15 @@ impl ModuleManager {
 
     pub fn contains_module(&self, name: &str) -> bool {
         self.modules.contains_key(name)
+    }
+
+    pub fn load_internal(&mut self, name: &str, op_table: &mut Vec<Shared<Lambda>>) -> Module {
+        Module {
+            path: None,
+            name: name.to_string(),
+            defined: HashMap::new(),
+            imported: HashMap::new(),
+        }
     }
 
     pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {

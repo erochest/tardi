@@ -80,7 +80,7 @@ impl Environment {
         let op_table = create_op_table();
         env.set_op_table(op_table);
 
-        env.module_manager.load_builtins();
+        env.module_manager.load_kernel();
 
         env
     }
@@ -227,12 +227,17 @@ impl Environment {
 
     pub fn get_or_create_module_mut<'a>(&'a mut self, name: &str) -> &'a mut Module {
         log::trace!("Environment::get_or_create_module_mut {:?}", name);
-        if self.module_manager.contains_module(name) {
+        if self.module_manager.is_internal(name) {
+            log::trace!(
+                "Environment::get_or_create_module_mut get internal {:?}",
+                name
+            );
+            self.module_manager.load_internal(name, &mut self.op_table);
+        } else if self.module_manager.contains_module(name) {
             log::trace!(
                 "Environment::get_or_create_module_mut get existing {:?}",
                 name
             );
-            self.module_manager.get_mut(name).unwrap()
         } else {
             log::trace!(
                 "Environment::get_or_create_module_mut create new {:?}",
@@ -240,8 +245,8 @@ impl Environment {
             );
             let module = self.create_module(name);
             self.module_manager.add_module(module);
-            self.module_manager.get_mut(name).unwrap()
         }
+        self.module_manager.get_mut(name).unwrap()
     }
 
     pub fn use_module(&mut self, source: &str, dest: &str) -> Result<()> {

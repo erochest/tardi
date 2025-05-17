@@ -6,6 +6,8 @@ use pretty_assertions::assert_eq;
 
 use super::*;
 use crate::error::{Error, Result};
+use crate::shared::Shared;
+use crate::value::Value;
 
 fn setup() -> Result<ModuleManager> {
     let pwd = env::current_dir()?;
@@ -169,4 +171,15 @@ fn test_is_internal_on_standard_modules() {
     let loader = ModuleManager::new(&[cwd.join("tests/modules")]);
 
     assert!(loader.is_internal("std/internals"));
+}
+
+#[test]
+fn test_load_internal_module() {
+    let cwd = env::current_dir().unwrap();
+    let mut module_manager = ModuleManager::new(&[cwd.join("tests/modules")]);
+    let mut op_table: Vec<Shared<Lambda>> = vec![];
+
+    let module = module_manager.load_internal(INTERNALS, &mut op_table);
+
+    // assert_eq!(module.name)
 }
