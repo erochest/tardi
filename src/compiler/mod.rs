@@ -4,7 +4,7 @@ use std::path::Path;
 use std::{fs, mem, result};
 
 use log::Level;
-use module::{Loader, Module};
+use module::{Module, ModuleManager};
 
 pub mod error;
 pub mod module;
@@ -60,14 +60,14 @@ impl TryFrom<&Module> for ModuleCompiler {
 #[derive(Default)]
 pub struct Compiler {
     environment: Option<Shared<Environment>>,
-    loader: Loader,
+    loader: ModuleManager,
     module_stack: Vec<ModuleCompiler>,
     lambda_stack: Vec<LambdaCompiler>,
 }
 
 impl From<&Config> for Compiler {
     fn from(config: &Config) -> Self {
-        let loader = Loader::from(config);
+        let loader = ModuleManager::from(config);
         Compiler {
             environment: None,
             loader,

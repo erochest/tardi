@@ -7,11 +7,11 @@ use pretty_assertions::assert_eq;
 use super::*;
 use crate::error::{Error, Result};
 
-fn setup() -> Result<Loader> {
+fn setup() -> Result<ModuleManager> {
     let pwd = env::current_dir()?;
     let paths = vec![&pwd, Path::new("./tests/modules")];
 
-    let loader = Loader::new(&paths);
+    let loader = ModuleManager::new(&paths);
 
     Ok(loader)
 }
@@ -104,7 +104,7 @@ fn test_module_loader_does_not_find_relative_files_that_dont_exist() {
 
 #[test]
 fn test_find_abs_module_when_file_missing() {
-    let loader = Loader::new(&[env::current_dir().unwrap().join("tests/modules")]);
+    let loader = ModuleManager::new(&[env::current_dir().unwrap().join("tests/modules")]);
 
     let result = loader.find_abs_module(
         Path::new("tests/fixtures/test-fixture.tardi"),
@@ -123,7 +123,7 @@ fn test_find_abs_module_when_outside_search_path() {
         .unwrap()
         .canonicalize()
         .unwrap();
-    let loader = Loader::new(&[cwd.join("tests/modules")]);
+    let loader = ModuleManager::new(&[cwd.join("tests/modules")]);
 
     let result = loader.find_abs_module(
         &cwd.join("tests/fixtures/test-fixture.tardi"),
@@ -146,7 +146,7 @@ fn test_find_abs_module_finds_relative_uses() {
         .unwrap()
         .canonicalize()
         .unwrap();
-    let loader = Loader::new(&[cwd.join("tests/modules")]);
+    let loader = ModuleManager::new(&[cwd.join("tests/modules")]);
 
     let result = loader.find_abs_module(
         &cwd.join("tests/fixtures/test-fixture.tardi"),

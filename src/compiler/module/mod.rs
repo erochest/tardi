@@ -95,7 +95,7 @@ impl Module {
 }
 
 #[derive(Debug)]
-pub struct Loader {
+pub struct ModuleManager {
     pub paths: Vec<PathBuf>,
 }
 
@@ -107,14 +107,14 @@ pub struct Loader {
 // TODO: std/scanning
 // TODO: std/strings
 // TODO: std/vectors
-impl Loader {
-    pub fn new<P: AsRef<Path>>(paths: &[P]) -> Loader {
+impl ModuleManager {
+    pub fn new<P: AsRef<Path>>(paths: &[P]) -> ModuleManager {
         let paths = Vec::from_iter(
             paths
                 .iter()
                 .filter_map(|p| p.as_ref().to_path_buf().canonicalize().ok()),
         );
-        Loader { paths }
+        ModuleManager { paths }
     }
 
     pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {
@@ -178,23 +178,23 @@ impl Loader {
     }
 }
 
-impl Default for Loader {
+impl Default for ModuleManager {
     fn default() -> Self {
         let current_dir = env::current_dir().unwrap();
         let current_dir = current_dir.canonicalize().unwrap();
 
         let paths = vec![current_dir];
-        Loader { paths }
+        ModuleManager { paths }
     }
 }
 
-impl From<Config> for Loader {
+impl From<Config> for ModuleManager {
     fn from(config: Config) -> Self {
-        Loader::from(&config)
+        ModuleManager::from(&config)
     }
 }
 
-impl From<&Config> for Loader {
+impl From<&Config> for ModuleManager {
     fn from(_config: &Config) -> Self {
         todo!("Loader::from<&Config>")
     }
