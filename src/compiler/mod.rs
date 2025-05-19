@@ -1,7 +1,9 @@
 use std::convert::{TryFrom, TryInto};
 use std::fmt::Debug;
+use std::fs;
+use std::mem;
 use std::path::Path;
-use std::{fs, mem, result};
+use std::result;
 
 use log::Level;
 use module::{Module, SANDBOX};
@@ -63,7 +65,6 @@ pub struct Compiler {
     lambda_stack: Vec<LambdaCompiler>,
 }
 
-// XXX: what's getting used publicly so that it needs to set the env first?
 impl Compiler {
     pub fn current_module_compiler(&self) -> Option<&ModuleCompiler> {
         self.module_stack.last()
@@ -565,12 +566,52 @@ impl Compiler {
         Err(ScannerError::UnexpectedEndOfInput.into())
     }
 
-    // XXX: refactor to make the phases more obvious:
-    // - find
-    // - load/compile
-    // - use/import
     pub fn use_module(&mut self, vm: &mut VM) -> Result<()> {
         let env = self.environment.as_ref().unwrap().clone();
+        let (module_spec, context) = self.find_module_info()?;
+        log::trace!("Compiler::use_module {} {:?}", module_spec, context);
+        let mut module_spec = module_spec;
+
+        if !env.borrow_mut().handle_internal_module(&module_spec)? {
+            let (module_name, module_file) = env
+                .borrow()
+                .find_module(&module_spec, context)?
+                .ok_or_else(|| CompilerError::ModuleNotFound(module_spec.clone()))?;
+            log::trace!("Compiler::use_module {} => {:?}", module_name, module_file);
+            module_spec = module_name.clone();
+
+            if self.is_being_imported(&module_file) {
+                log::trace!("Compiler::use_module {}: import cycle error", module_spec);
+                return Err(CompilerError::ImportCycleError(module_name).into());
+            }
+
+            if env.borrow().get_module(&module_name).is_some() {
+                log::trace!("Compiler::use_module {} already loaded", module_name);
+            } else {
+                self.create_and_compile_module(vm, &module_name, &module_file)?;
+            }
+        }
+
+        self.use_into_current_module(&env, &module_spec)?;
+
+        Ok(())
+    }
+
+    fn create_and_compile_module(
+        &mut self,
+        vm: &mut VM,
+        module_name: &str,
+        module_file: &Path,
+    ) -> Result<()> {
+        let env = self.environment.as_ref().unwrap().clone();
+        let input = fs::read_to_string(module_file)?;
+        let scanner = Scanner::from_module(module_name, module_file, &input);
+        env.borrow_mut().get_or_create_module_mut(module_name);
+        self.compile_module_passes(vm, module_name, scanner)?;
+        Ok(())
+    }
+
+    fn find_module_info(&mut self) -> Result<(String, Option<&Path>)> {
         let module_word = self.scan_word()?;
         let module_spec = module_word
             .get_word()
@@ -580,39 +621,7 @@ impl Compiler {
             .ok_or_else(|| CompilerError::InvalidState("missing scanner".to_string()))?
             .source
             .get_path();
-        log::trace!("Compiler::use_module {} {:?}", module_spec, context);
-
-        if env.borrow_mut().handle_internal_module(module_spec)? {
-            self.use_into_current_module(&env, module_spec)?;
-            return Ok(());
-        }
-
-        let (module_name, module_file) = env
-            .borrow()
-            .find_module(module_spec, context)?
-            .ok_or_else(|| CompilerError::ModuleNotFound(module_spec.to_string()))?;
-        log::trace!("Compiler::use_module {} => {:?}", module_name, module_file);
-
-        if self.is_being_imported(&module_file) {
-            log::trace!("Compiler::use_module {}: import cycle error", module_word);
-            return Err(CompilerError::ImportCycleError(module_name).into());
-        }
-
-        if env.borrow().get_module(&module_name).is_some() {
-            log::trace!("Compiler::use_module {} already loaded", module_name);
-            self.use_into_current_module(&env, &module_name)?;
-            return Ok(());
-        }
-
-        let input = fs::read_to_string(&module_file)?;
-        let scanner = Scanner::from_module(&module_name, &module_file, &input);
-
-        env.borrow_mut().get_or_create_module_mut(&module_name);
-
-        self.compile_module_passes(vm, &module_name, scanner)?;
-        self.use_into_current_module(&env, &module_name)?;
-
-        Ok(())
+        Ok((module_spec.to_string(), context))
     }
 
     fn compile_module_passes(
