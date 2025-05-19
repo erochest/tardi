@@ -1,5 +1,6 @@
 
 use: std/internals
+use: std/scanning
 
 /// Escape the next token
 /// \ nuke

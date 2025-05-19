@@ -364,9 +364,6 @@ impl Environment {
             | OpCode::Stop
             | OpCode::Bye
             | OpCode::JumpStack
-            | OpCode::ScanValue
-            | OpCode::ScanValueList
-            | OpCode::ScanObjectList
             | OpCode::LitStack
             | OpCode::Compile => self.debug_simple(op, f, ip),
             OpCode::Jump => self.debug_jump(op, f, ip),

@@ -44,9 +44,6 @@ pub enum OpCode {
     Jump, // Jump to a specific instruction
     // TODO: There's nothing using this. Add a word for it
     JumpStack, // Jump to an instruction from the stack
-    ScanValue,
-    ScanValueList,
-    ScanObjectList,
     LitStack,
     Compile,
 }
@@ -96,11 +93,8 @@ impl TryFrom<usize> for OpCode {
             31 => Ok(OpCode::Bye),
             32 => Ok(OpCode::Jump),
             33 => Ok(OpCode::JumpStack),
-            34 => Ok(OpCode::ScanValue),
-            35 => Ok(OpCode::ScanValueList),
-            36 => Ok(OpCode::ScanObjectList),
-            37 => Ok(OpCode::LitStack),
-            38 => Ok(OpCode::Compile),
+            34 => Ok(OpCode::LitStack),
+            35 => Ok(OpCode::Compile),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

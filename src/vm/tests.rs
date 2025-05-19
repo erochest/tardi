@@ -156,6 +156,7 @@ fn test_function_and_lambda_operations() {
         .execute_str(
             r#"
         use: std/internals
+        use: std/scanning
         MACRO: {
                 dup
                 } scan-object-list compile
@@ -765,6 +766,7 @@ fn test_function_defines_predeclared_function() {
     // TODO: does predeclaring _have_ to happen in pass1?
     let setup = r#"
         use: std/internals
+        use: std/scanning
         MACRO: \ dup scan-value swap append ;
         MACRO: :
                 scan-value
@@ -821,6 +823,7 @@ fn test_call_will_execute_defined_predeclared_function() {
     // TODO: does predeclaring _have_ to happen in pass1?
     let setup = r#"
         use: std/internals
+        use: std/scanning
         MACRO: \ dup scan-value swap append ;
         MACRO: :
                 scan-value

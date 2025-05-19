@@ -225,6 +225,7 @@ fn test_compile_macro_scan_value() {
 
     let result = tardi.execute_str(
         r#"
+        use: std/scanning
         MACRO: \
             dup >r
             scan-value lit
@@ -265,6 +266,7 @@ fn test_compile_macro_scan_value_list() {
 
     let result = tardi.execute_str(
         r#"
+            use: std/scanning
             MACRO: [
                 dup >r
                 ] scan-value-list
@@ -301,6 +303,7 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
 
     let result = tardi.execute_str(
         r#"
+            use: std/scanning
             MACRO: [
                 dup >r
                 ] scan-object-list
@@ -339,6 +342,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
 
     let result = tardi.execute_str(
         r#"
+            use: std/scanning
             MACRO: [
                 dup
                 ] scan-object-list
@@ -390,11 +394,13 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
 
 #[test]
 fn test_compile_define_use_function() {
+    // env_logger::init();
     let mut tardi = Tardi::default();
 
     let result = tardi.execute_str(
         r#"
         use: std/internals
+        use: std/scanning
 
         MACRO: {
                 dup
@@ -429,7 +435,7 @@ fn test_compile_define_use_function() {
 // like a hashmap or set. Maybe I need a new test to build this out.
 #[test]
 fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures() {
-    env_logger::init();
+    // env_logger::init();
     let mut tardi = Tardi::default();
 
     // TODO: can I embed a list in a `{ ... }` lambda?
@@ -437,6 +443,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
         .execute_str(
             r#"
             use: std/internals
+            use: std/scanning
 
         MACRO: {
                 dup

@@ -8,7 +8,7 @@ use crate::value::{Value, ValueData};
 use crate::vm::VM;
 use crate::{compiler::error::CompilerError, shared::shared};
 
-use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX};
+use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING};
 
 pub fn define_module(
     manager: &ModuleManager,
@@ -19,6 +19,7 @@ pub fn define_module(
         KERNEL => Box::new(KernelModule),
         INTERNALS => Box::new(InternalsModule),
         SANDBOX => Box::new(SandboxBuilder),
+        SCANNING => Box::new(ScanningBuilder),
         _ => return Err(CompilerError::ModuleNotFound(name.to_string()).into()),
     };
 
@@ -48,6 +49,26 @@ impl InternalBuilder for SandboxBuilder {
             path: None,
             name: SANDBOX.to_string(),
             defined,
+        }
+    }
+}
+
+struct ScanningBuilder;
+impl InternalBuilder for ScanningBuilder {
+    fn define_module(
+        &self,
+        _module_manager: &ModuleManager,
+        op_table: &mut Vec<Shared<Lambda>>,
+    ) -> Module {
+        let mut index = HashMap::new();
+        push_op(op_table, &mut index, "scan-value", scan_value);
+        push_op(op_table, &mut index, "scan-value-list", scan_value_list);
+        push_op(op_table, &mut index, "scan-object-list", scan_object_list);
+        Module {
+            imported: HashMap::new(),
+            path: None,
+            name: SCANNING.to_string(),
+            defined: index,
         }
     }
 }
@@ -121,14 +142,9 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, "bye", bye);
         push_op(op_table, &mut index, "jump", jump);
         push_op(op_table, &mut index, "jump-stack", jump_stack);
-        // TODO: std/scanning
-        push_op(op_table, &mut index, "scan-value", scan_value);
-        push_op(op_table, &mut index, "scan-value-list", scan_value_list);
-        push_op(op_table, &mut index, "scan-object-list", scan_object_list);
         push_op(op_table, &mut index, "lit", lit_stack);
         push_op(op_table, &mut index, "compile", compile);
         push_macro(op_table, &mut index, "use:", use_module);
-
         Module {
             imported: HashMap::new(),
             path: None,
