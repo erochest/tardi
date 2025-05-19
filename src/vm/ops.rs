@@ -31,10 +31,6 @@ pub enum OpCode {
     Prepend,
     Concat,
     SplitHead,
-    CreateString,
-    ToString,
-    Utf8ToString,
-    StringConcat,
     // Function-related operations
     Apply,  // Call a function object on the stack
     Return, // Return from a function
@@ -83,18 +79,14 @@ impl TryFrom<usize> for OpCode {
             21 => Ok(OpCode::Prepend),
             22 => Ok(OpCode::Concat),
             23 => Ok(OpCode::SplitHead),
-            24 => Ok(OpCode::CreateString),
-            25 => Ok(OpCode::ToString),
-            26 => Ok(OpCode::Utf8ToString),
-            27 => Ok(OpCode::StringConcat),
-            28 => Ok(OpCode::Apply),
-            29 => Ok(OpCode::Return),
-            30 => Ok(OpCode::Stop),
-            31 => Ok(OpCode::Bye),
-            32 => Ok(OpCode::Jump),
-            33 => Ok(OpCode::JumpStack),
-            34 => Ok(OpCode::LitStack),
-            35 => Ok(OpCode::Compile),
+            24 => Ok(OpCode::Apply),
+            25 => Ok(OpCode::Return),
+            26 => Ok(OpCode::Stop),
+            27 => Ok(OpCode::Bye),
+            28 => Ok(OpCode::Jump),
+            29 => Ok(OpCode::JumpStack),
+            30 => Ok(OpCode::LitStack),
+            31 => Ok(OpCode::Compile),
             _ => Err(Error::InvalidOpCode(value)),
         }
     }

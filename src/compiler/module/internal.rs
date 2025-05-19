@@ -8,7 +8,7 @@ use crate::value::{Value, ValueData};
 use crate::vm::VM;
 use crate::{compiler::error::CompilerError, shared::shared};
 
-use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING};
+use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING, STRINGS};
 
 pub fn define_module(
     manager: &ModuleManager,
@@ -20,6 +20,7 @@ pub fn define_module(
         INTERNALS => Box::new(InternalsModule),
         SANDBOX => Box::new(SandboxBuilder),
         SCANNING => Box::new(ScanningBuilder),
+        STRINGS => Box::new(StringsBuilder),
         _ => return Err(CompilerError::ModuleNotFound(name.to_string()).into()),
     };
 
@@ -49,6 +50,29 @@ impl InternalBuilder for SandboxBuilder {
             path: None,
             name: SANDBOX.to_string(),
             defined,
+        }
+    }
+}
+
+struct StringsBuilder;
+impl InternalBuilder for StringsBuilder {
+    fn define_module(
+        &self,
+        _module_manager: &ModuleManager,
+        op_table: &mut Vec<Shared<Lambda>>,
+    ) -> Module {
+        let mut index = HashMap::new();
+
+        push_op(op_table, &mut index, "<string>", create_string);
+        push_op(op_table, &mut index, ">string", to_string);
+        push_op(op_table, &mut index, "utf8>string", utf8_to_string);
+        push_op(op_table, &mut index, "concat", string_concat);
+
+        Module {
+            imported: HashMap::new(),
+            path: None,
+            name: STRINGS.to_string(),
+            defined: index,
         }
     }
 }
@@ -130,12 +154,8 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, "create-list", create_list);
         push_op(op_table, &mut index, "append", append);
         push_op(op_table, &mut index, "prepend", prepend);
-        push_op(op_table, &mut index, "concat", concat);
+        push_op(op_table, &mut index, "vector-concat", concat);
         push_op(op_table, &mut index, "split-head", split_head);
-        push_op(op_table, &mut index, "<string>", create_string);
-        push_op(op_table, &mut index, ">string", to_string);
-        push_op(op_table, &mut index, "utf8>string", utf8_to_string);
-        push_op(op_table, &mut index, "string-concat", string_concat);
         push_op(op_table, &mut index, "apply", apply);
         push_op(op_table, &mut index, "return", return_op);
         push_op(op_table, &mut index, "stop", stop);

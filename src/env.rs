@@ -355,10 +355,6 @@ impl Environment {
             | OpCode::Prepend
             | OpCode::Concat
             | OpCode::SplitHead
-            | OpCode::CreateString
-            | OpCode::ToString
-            | OpCode::Utf8ToString
-            | OpCode::StringConcat
             | OpCode::Apply
             | OpCode::Return
             | OpCode::Stop

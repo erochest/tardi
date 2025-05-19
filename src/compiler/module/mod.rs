@@ -17,6 +17,7 @@ pub const KERNEL: &str = "std/kernel";
 pub const SANDBOX: &str = "std/sandbox";
 pub const INTERNALS: &str = "std/internals";
 pub const SCANNING: &str = "std/scanning";
+pub const STRINGS: &str = "std/strings";
 
 lazy_static! {
     static ref INTERNAL_MODULES: HashSet<String> = vec![
@@ -24,6 +25,7 @@ lazy_static! {
         SANDBOX.to_string(),
         INTERNALS.to_string(),
         SCANNING.to_string(),
+        STRINGS.to_string(),
     ]
     .into_iter()
     .collect();
@@ -120,7 +122,6 @@ impl Module {
     }
 }
 
-// TODO: std/strings
 // TODO: std/vectors
 #[derive(Debug, Clone)]
 pub struct ModuleManager {

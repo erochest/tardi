@@ -1,3 +1,5 @@
+use: std/strings
+
 // Test creating an empty string
 <string> >string
 // Expected: "\"\""
@@ -16,26 +18,20 @@
 // Expected: "A"
 
 // Test UTF-8 to string conversion
-<list>
-dup 72 swap append
-dup 101 swap append
-dup 108 swap append
-dup 108 swap append
-dup 111 swap append
-utf8>string
+{ 72 101 108 108 111 } utf8>string
 // Expected: "Hello"
 
 // Test string concatenation
-"Hello, " "world!" string-concat
+"Hello, " "world!" concat
 // Expected: "Hello, world!"
 
 // Test empty string concatenation
-"" "test" string-concat
+"" "test" concat
 // Expected: "test"
 
-"prefix" "" string-concat
+"prefix" "" concat
 // Expected: "prefix"
 
 // Test multiple concatenations
-"a" "b" string-concat "c" string-concat "d" string-concat
+"a" "b" concat "c" concat "d" concat
 // Expected: "abcd"
