@@ -40,6 +40,7 @@ impl PartialEq for Value {
 
 // -- they're more closely tied to `Environment` and they're part of what
 // bridges across layers
+// TODO: cache common values like small numbers, booleans, and empty collections.
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
 pub enum ValueData {
@@ -146,6 +147,14 @@ impl Value {
     pub fn get_string(&self) -> Option<&str> {
         if let ValueData::String(ref s) = self.data {
             Some(s)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_char(&self) -> Option<char> {
+        if let ValueData::Char(c) = self.data {
+            Some(c)
         } else {
             None
         }
@@ -282,6 +291,27 @@ impl From<String> for Value {
     }
 }
 
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        let value = value.to_string();
+        let value = ValueData::String(value);
+        let lexeme = format!("{}", value);
+        Value::with_lexeme(value, &lexeme)
+    }
+}
+
+impl From<u8> for Value {
+    fn from(byte: u8) -> Self {
+        Value::from(byte as i64)
+    }
+}
+
+impl From<i32> for Value {
+    fn from(byte: i32) -> Self {
+        Value::from(byte as i64)
+    }
+}
+
 impl From<Vec<SharedValue>> for Value {
     fn from(value: Vec<SharedValue>) -> Self {
         let repr = value
@@ -299,9 +329,19 @@ impl From<ValueData> for Value {
     }
 }
 
-impl From<Vec<Value>> for Value {
-    fn from(value: Vec<Value>) -> Self {
-        ValueData::List(value.into_iter().map(shared).collect()).into()
+impl<V> From<Vec<V>> for Value
+where
+    V: Into<Value>,
+{
+    fn from(vector: Vec<V>) -> Self
+    where
+        V: Into<Value>,
+    {
+        vector
+            .into_iter()
+            .map(|v| shared(v.into()))
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 

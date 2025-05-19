@@ -13,6 +13,7 @@ use crate::scanner::error::ScannerError;
 pub type Result<R> = result::Result<R, Error>;
 pub type VMResult<R> = result::Result<R, VMError>;
 
+// TODO: box inner data, especially `figment::Error`
 #[derive(Debug)]
 pub enum Error {
     IoError(io::Error),

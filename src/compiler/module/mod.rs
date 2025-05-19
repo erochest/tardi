@@ -31,6 +31,8 @@ lazy_static! {
     .collect();
 }
 
+// TODO: move this to src/module
+
 #[derive(Default, Clone)]
 pub struct Module {
     pub path: Option<PathBuf>,

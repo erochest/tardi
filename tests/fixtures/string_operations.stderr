@@ -8,3 +8,37 @@
 "test"
 "prefix"
 "abcd"
+'a'
+'c'
+{ 112 114 101 102 105 120 }
+#t
+#f
+#t
+#f
+#t
+#f
+#t
+#f
+#t
+#f
+1
+#f
+0
+2
+6
+"aaaaaa"
+"aaaaaa"
+"hello"
+"there world"
+{ "hello" "there" "world" }
+"hello t"
+"here world"
+{ "hello" "there" "world" }
+{ "hello" "there" "world another" }
+"hello "
+"llo"
+" hello"
+"hel"
+"ll"
+"hello"
+"HELLO"

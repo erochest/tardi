@@ -35,3 +35,55 @@ use: std/strings
 // Test multiple concatenations
 "a" "b" concat "c" concat "d" concat
 // Expected: "abcd"
+
+dup 0 nth
+over 2 nth
+
+"prefix" >utf8
+
+"" empty?
+"not empty" empty?
+
+"ababab" 'a' in?
+"ababab" 'c' in?
+
+"ababab" "bab" in?
+"ababab" "cab" in?
+
+"ababab" "ab" starts-with?
+"ababab" "abc" starts-with?
+
+"ababab" "ab" ends-with?
+"ababab" "cab" ends-with?
+
+"ababab" "bab" index-of?
+"ababab" "bac" index-of?
+
+"" length
+"ba" length
+"baabba" length
+
+"baabba" "b" "a" replace-all
+dup "b" "z" replace-all
+
+"hello there world" " " split
+
+"hello there world" " " split-all
+
+"hello there world" 7 split-at
+
+"hello there    world" split-whitespace
+
+"hello\nthere\nworld another\n" lines
+
+" hello " " " strip-start
+"hello" "he" strip-start
+
+" hello " " " strip-end
+"hello" "lo" strip-end
+
+"hello" 2 4 substring
+
+"HeLlO" >lowercase
+
+"hElLo" >uppercase

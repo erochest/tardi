@@ -1,14 +1,18 @@
 use std::collections::HashMap;
 
+use strings::StringsBuilder;
+
+use crate::compiler::error::CompilerError;
 use crate::compiler::Compiler;
 use crate::error::Result;
-use crate::shared::{unshare_clone, Shared};
+use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
 use crate::vm::VM;
-use crate::{compiler::error::CompilerError, shared::shared};
 
 use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING, STRINGS};
+
+mod strings;
 
 pub fn define_module(
     manager: &ModuleManager,
@@ -50,29 +54,6 @@ impl InternalBuilder for SandboxBuilder {
             path: None,
             name: SANDBOX.to_string(),
             defined,
-        }
-    }
-}
-
-struct StringsBuilder;
-impl InternalBuilder for StringsBuilder {
-    fn define_module(
-        &self,
-        _module_manager: &ModuleManager,
-        op_table: &mut Vec<Shared<Lambda>>,
-    ) -> Module {
-        let mut index = HashMap::new();
-
-        push_op(op_table, &mut index, "<string>", create_string);
-        push_op(op_table, &mut index, ">string", to_string);
-        push_op(op_table, &mut index, "utf8>string", utf8_to_string);
-        push_op(op_table, &mut index, "concat", string_concat);
-
-        Module {
-            imported: HashMap::new(),
-            path: None,
-            name: STRINGS.to_string(),
-            defined: index,
         }
     }
 }
@@ -302,23 +283,6 @@ pub fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
 pub fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.split_head()
-}
-
-// String operations
-pub fn create_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.create_string()
-}
-
-pub fn to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.to_string()
-}
-
-pub fn utf8_to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.utf8_to_string()
-}
-
-pub fn string_concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.string_concat()
 }
 
 // Function operations
