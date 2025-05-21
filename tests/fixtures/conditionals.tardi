@@ -3,9 +3,9 @@ use: std/vectors
 #t 1 2 ?
 #f 1 2 ?
 
-/// Appends a number to a list only if it's zero.
+/// pushs a number to a list only if it's zero.
 /// list number --
-: append-zero   dup 0 == [ swap append ] [ 2drop ] if ;
+: push-zero   dup 0 == [ swap push ] [ 2drop ] if ;
 
-<vector> dup 4 append-zero
-<vector> dup 0 append-zero
+<vector> dup 4 push-zero
+<vector> dup 0 push-zero

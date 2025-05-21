@@ -5,21 +5,21 @@ use: std/vectors
 
 /// Escape the next token
 /// \ nuke
-MACRO: \ dup scan-value swap append ;
+MACRO: \ dup scan-value swap push ;
 
 /// lambdas
 /// [ swap drop ]
 MACRO: [
         dup
         ] scan-object-list compile
-        swap append ;
+        swap push ;
 
 /// vectors
 /// { 1 2 3 }
 MACRO: {
         dup
         } scan-object-list
-        swap append ;
+        swap push ;
 
 /// functions (named lambdas)
 /// : nip   swap drop ;

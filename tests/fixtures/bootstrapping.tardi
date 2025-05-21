@@ -5,7 +5,7 @@ use: std/vectors
 
 { 7 8 9 }
 10
-over append
+over push
 
 7 4 over
 

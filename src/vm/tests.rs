@@ -161,7 +161,7 @@ fn test_function_and_lambda_operations() {
         MACRO: {
                 dup
                 } scan-object-list compile
-                swap append ;
+                swap push ;
         "#,
         )
         .unwrap();
@@ -769,7 +769,7 @@ fn test_function_defines_predeclared_function() {
         use: std/internals
         use: std/scanning
         use: std/vectors
-        MACRO: \ dup scan-value swap append ;
+        MACRO: \ dup scan-value swap push ;
         MACRO: :
                 scan-value
                 dup <predeclare-function>
@@ -778,7 +778,7 @@ fn test_function_defines_predeclared_function() {
         MACRO: [
                 dup
                 ] scan-object-list compile
-                swap append ;
+                swap push ;
         "#;
     let word = "even?".to_string();
     let input = r#"
@@ -827,7 +827,7 @@ fn test_call_will_execute_defined_predeclared_function() {
         use: std/internals
         use: std/scanning
         use: std/vectors
-        MACRO: \ dup scan-value swap append ;
+        MACRO: \ dup scan-value swap push ;
         MACRO: :
                 scan-value
                 dup <predeclare-function>
@@ -836,7 +836,7 @@ fn test_call_will_execute_defined_predeclared_function() {
         MACRO: [
                 dup
                 ] scan-object-list compile
-                swap append ;
+                swap push ;
         "#;
     let input = r#"
         : even?   dup 0 == [ drop #t ] [ 1 - even? ! ] ? apply ;

@@ -23,14 +23,12 @@ impl InternalBuilder for VectorsBuilder {
         let mut index = HashMap::new();
 
         push_op(op_table, &mut index, "<vector>", create_list);
-        push_op(op_table, &mut index, "append", append);
-        push_op(op_table, &mut index, "prepend", prepend);
+        push_op(op_table, &mut index, "push", push);
+        push_op(op_table, &mut index, "push-left", push_left);
         push_op(op_table, &mut index, "concat", concat);
         push_op(op_table, &mut index, "split-head!", split_head);
         // TODO: pop
-        // TODO: push (rename append)
         // TODO: pop_left
-        // TODO: push_left
         // TODO: nth
         // TODO: length
         // TODO: in?
@@ -51,11 +49,13 @@ impl InternalBuilder for VectorsBuilder {
 }
 
 // List operations
+/// <vector> ( -- vec )
 pub fn create_list(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(ValueData::List(Vec::new()).into()))
 }
 
-pub fn append(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+/// push ( value vector -- )
+pub fn push(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let value = vm.pop()?;
 
@@ -63,12 +63,12 @@ pub fn append(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .borrow_mut()
         .get_list_mut()
         .map(|l| l.push(value))
-        .ok_or_else(|| VMError::TypeMismatch("append to list".to_string()))?;
+        .ok_or_else(|| VMError::TypeMismatch("push to list".to_string()))?;
 
     Ok(())
 }
 
-pub fn prepend(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+pub fn push_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let value = vm.pop()?;
 
@@ -76,7 +76,7 @@ pub fn prepend(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .borrow_mut()
         .get_list_mut()
         .map(|l| l.insert(0, value))
-        .ok_or_else(|| VMError::TypeMismatch("prepend to list".to_string()))?;
+        .ok_or_else(|| VMError::TypeMismatch("push-left to list".to_string()))?;
 
     Ok(())
 }
