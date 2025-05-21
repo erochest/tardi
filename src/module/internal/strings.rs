@@ -2,13 +2,15 @@ use std::collections::HashMap;
 
 use crate::compiler::Compiler;
 use crate::error::{Result, VMError};
-use crate::module::{Module, ModuleManager, STRINGS};
+use crate::module::{Module, ModuleManager};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData};
 use crate::vm::VM;
 
 use super::{push_op, InternalBuilder};
+
+pub const STRINGS: &str = "std/strings";
 
 pub struct StringsBuilder;
 impl InternalBuilder for StringsBuilder {

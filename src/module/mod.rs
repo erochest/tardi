@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt};
 
 use internal::define_module;
+use internal::strings::STRINGS;
+use internal::vectors::VECTORS;
 use lazy_static::lazy_static;
 
 use crate::compiler::error::{CompilerError, CompilerResult};
@@ -21,7 +23,6 @@ pub const KERNEL: &str = "std/kernel";
 pub const SANDBOX: &str = "std/sandbox";
 pub const INTERNALS: &str = "std/internals";
 pub const SCANNING: &str = "std/scanning";
-pub const STRINGS: &str = "std/strings";
 
 lazy_static! {
     static ref INTERNAL_MODULES: HashSet<String> = vec![
@@ -30,6 +31,7 @@ lazy_static! {
         INTERNALS.to_string(),
         SCANNING.to_string(),
         STRINGS.to_string(),
+        VECTORS.to_string(),
     ]
     .into_iter()
     .collect();
@@ -126,7 +128,6 @@ impl Module {
     }
 }
 
-// TODO: std/vectors
 #[derive(Debug, Clone)]
 pub struct ModuleManager {
     /// This holds the search paths for loading new modules.

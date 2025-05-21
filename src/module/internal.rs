@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use strings::StringsBuilder;
+use strings::{StringsBuilder, STRINGS};
+use vectors::{VectorsBuilder, VECTORS};
 
 use crate::compiler::error::CompilerError;
 use crate::compiler::Compiler;
@@ -10,9 +11,10 @@ use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
 use crate::vm::VM;
 
-use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING, STRINGS};
+use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING};
 
-mod strings;
+pub mod strings;
+pub mod vectors;
 
 pub fn define_module(
     manager: &ModuleManager,
@@ -25,6 +27,7 @@ pub fn define_module(
         SANDBOX => Box::new(SandboxBuilder),
         SCANNING => Box::new(ScanningBuilder),
         STRINGS => Box::new(StringsBuilder),
+        VECTORS => Box::new(VectorsBuilder),
         _ => return Err(CompilerError::ModuleNotFound(name.to_string()).into()),
     };
 
