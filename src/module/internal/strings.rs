@@ -59,33 +59,64 @@ impl InternalBuilder for StringsBuilder {
 // String operations
 /// <string> ( -- string )
 fn create_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.create_string()
+    vm.push(shared(ValueData::String(String::new()).into()))
 }
 
 /// >string ( obj -- string )
 fn to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.to_string()
+    let value = vm.pop()?.borrow().clone();
+    vm.push(shared(ValueData::String(value.to_string()).into()))
 }
 
 /// utf8>string ( vec -- string )
 fn utf8_to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.utf8_to_string()
+    let list = vm.pop()?;
+    let list = list.borrow();
+    let list = list.get_list();
+
+    if let Some(items) = list {
+        let mut bytes = Vec::new();
+        for item in items {
+            if let Some(n) = item.borrow().get_integer() {
+                if (0..=255).contains(&n) {
+                    bytes.push(n as u8);
+                    continue;
+                }
+            }
+            return Err(VMError::TypeMismatch("UTF-8 byte value".to_string()).into());
+        }
+
+        match String::from_utf8(bytes) {
+            Ok(s) => vm.push(shared(ValueData::String(s).into())),
+            Err(_) => Err(VMError::TypeMismatch("invalid UTF-8 sequence".to_string()).into()),
+        }
+    } else {
+        Err(VMError::TypeMismatch("list of bytes".to_string()).into())
+    }
 }
 
 /// concat ( str1 str2 -- str1-2 )
 fn string_concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.string_concat()
-}
+    let b = vm.pop()?;
+    let a = vm.pop()?;
 
-// fn pop_str<'a>(vm: &'a mut VM, err_message: &'static str) -> Result<(&'a str, Shared<Value>)> {
-//     let value = vm.pop()?;
-//     // let borrowed = value.borrow();
-//     let s = value
-//         .borrow()
-//         .get_string()
-//         .ok_or_else(|| VMError::TypeMismatch("nth string".to_string()))?;
-//     Ok((s, value))
-// }
+    let result = {
+        let a = a.borrow();
+        let a = a.get_string();
+        let b = b.borrow();
+        let b = b.get_string();
+        match (a, b) {
+            (Some(s1), Some(s2)) => {
+                let mut new_string = s1.to_string();
+                new_string.push_str(s2);
+                Ok(new_string)
+            }
+            _ => Err(VMError::TypeMismatch("string concatenation".to_string())),
+        }
+    }?;
+
+    vm.push(shared(ValueData::String(result).into()))
+}
 
 /// nth ( s i -- c )
 fn nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {

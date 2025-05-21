@@ -283,67 +283,6 @@ impl VM {
         Ok(())
     }
 
-    /// Creates a new empty string and pushes it onto the stack
-    pub fn create_string(&mut self) -> Result<()> {
-        self.push(shared(ValueData::String(String::new()).into()))
-    }
-
-    /// Converts a value to its string representation
-    pub fn to_string(&mut self) -> Result<()> {
-        let value = self.pop()?.borrow().clone();
-        self.push(shared(ValueData::String(value.to_string()).into()))
-    }
-
-    /// Converts a list of UTF-8 byte values to a string
-    pub fn utf8_to_string(&mut self) -> Result<()> {
-        let list = self.pop()?;
-        let list = list.borrow();
-        let list = list.get_list();
-
-        if let Some(items) = list {
-            let mut bytes = Vec::new();
-            for item in items {
-                if let Some(n) = item.borrow().get_integer() {
-                    if (0..=255).contains(&n) {
-                        bytes.push(n as u8);
-                        continue;
-                    }
-                }
-                return Err(VMError::TypeMismatch("UTF-8 byte value".to_string()).into());
-            }
-
-            match String::from_utf8(bytes) {
-                Ok(s) => self.push(shared(ValueData::String(s).into())),
-                Err(_) => Err(VMError::TypeMismatch("invalid UTF-8 sequence".to_string()).into()),
-            }
-        } else {
-            Err(VMError::TypeMismatch("list of bytes".to_string()).into())
-        }
-    }
-
-    /// Concatenates two strings
-    pub fn string_concat(&mut self) -> Result<()> {
-        let b = self.pop()?;
-        let a = self.pop()?;
-
-        let result = {
-            let a = a.borrow();
-            let a = a.get_string();
-            let b = b.borrow();
-            let b = b.get_string();
-            match (a, b) {
-                (Some(s1), Some(s2)) => {
-                    let mut new_string = s1.to_string();
-                    new_string.push_str(s2);
-                    Ok(new_string)
-                }
-                _ => Err(VMError::TypeMismatch("string concatenation".to_string())),
-            }
-        }?;
-
-        self.push(shared(ValueData::String(result).into()))
-    }
-
     /// Calls a function by its index in the op_table
     pub fn call(&mut self, compiler: &mut Compiler) -> Result<()> {
         // TODO: probably need to be more defensive about this.
