@@ -49,6 +49,7 @@ pub enum ValueData {
     Boolean(bool),
     Char(char),
     String(String),
+    // TODO: rename to Vector
     List(Vec<SharedValue>),
     Function(Lambda),
     Address(usize),
