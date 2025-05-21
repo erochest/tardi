@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::compiler::module::{Module, ModuleManager, STRINGS};
 use crate::compiler::Compiler;
 use crate::error::{Result, VMError};
+use crate::module::{Module, ModuleManager, STRINGS};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData};

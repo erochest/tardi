@@ -5,11 +5,10 @@ use std::mem;
 use std::path::Path;
 use std::result;
 
+use crate::module::{Module, SANDBOX};
 use log::Level;
-use module::{Module, SANDBOX};
 
 pub mod error;
-pub mod module;
 
 use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::core::Execute;

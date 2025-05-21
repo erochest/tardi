@@ -5,6 +5,7 @@ pub mod config;
 pub mod core;
 pub mod env;
 pub mod error;
+pub mod module;
 pub mod scanner;
 pub mod shared;
 pub mod value;

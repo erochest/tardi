@@ -13,6 +13,10 @@ use crate::{config::Config, error::Result};
 
 mod internal;
 
+// TODO: break std/kernel of these into their own modules
+// TODO: break std/internals of these into their own modules
+// TODO: break std/scanning of these into their own modules
+// TODO: move consts into the module modules
 pub const KERNEL: &str = "std/kernel";
 pub const SANDBOX: &str = "std/sandbox";
 pub const INTERNALS: &str = "std/internals";
@@ -30,8 +34,6 @@ lazy_static! {
     .into_iter()
     .collect();
 }
-
-// TODO: move this to src/module
 
 #[derive(Default, Clone)]
 pub struct Module {

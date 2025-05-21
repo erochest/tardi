@@ -1,7 +1,7 @@
 use crate::compiler::error::{CompilerError, CompilerResult};
-use crate::compiler::module::{Module, ModuleManager};
 use crate::config::Config;
 use crate::error::{Result, VMError, VMResult};
+use crate::module::{Module, ModuleManager};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
 use crate::value::Value;

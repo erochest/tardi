@@ -1,7 +1,8 @@
 use std::iter::from_fn;
 
 use super::*;
-use crate::{compiler::module::SANDBOX, scanner::error::ScannerError};
+use crate::module::SANDBOX;
+use crate::scanner::error::ScannerError;
 
 // TODO: better tests for errors
 

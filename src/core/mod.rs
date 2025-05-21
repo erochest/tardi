@@ -1,11 +1,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::compiler::module::{KERNEL, SANDBOX};
 use crate::compiler::Compiler;
 use crate::config::Config;
 use crate::env::Environment;
 use crate::error::Result;
+use crate::module::{KERNEL, SANDBOX};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData};
