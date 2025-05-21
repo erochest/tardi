@@ -135,11 +135,6 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, ">r", to_r);
         push_op(op_table, &mut index, "r>", r_from);
         push_op(op_table, &mut index, "r@", r_fetch);
-        push_op(op_table, &mut index, "create-list", create_list);
-        push_op(op_table, &mut index, "append", append);
-        push_op(op_table, &mut index, "prepend", prepend);
-        push_op(op_table, &mut index, "vector-concat", concat);
-        push_op(op_table, &mut index, "split-head", split_head);
         push_op(op_table, &mut index, "apply", apply);
         push_op(op_table, &mut index, "return", return_op);
         push_op(op_table, &mut index, "stop", stop);
@@ -265,27 +260,6 @@ pub fn less(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
 pub fn greater(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.greater()
-}
-
-// List operations
-pub fn create_list(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.create_list()
-}
-
-pub fn append(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.append()
-}
-
-pub fn prepend(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.prepend()
-}
-
-pub fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.concat()
-}
-
-pub fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    vm.split_head()
 }
 
 // Function operations

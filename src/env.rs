@@ -350,11 +350,6 @@ impl Environment {
             | OpCode::ToR
             | OpCode::RFrom
             | OpCode::RFetch
-            | OpCode::CreateList
-            | OpCode::Append
-            | OpCode::Prepend
-            | OpCode::Concat
-            | OpCode::SplitHead
             | OpCode::Apply
             | OpCode::Return
             | OpCode::Stop

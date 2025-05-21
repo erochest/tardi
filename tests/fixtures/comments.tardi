@@ -1,8 +1,10 @@
+use: std/vectors
+
 // This is a comment
 42 // This is a comment after a number
 // Empty comment
 // Comment with special chars: !@#$%^&*()
-<list> // Comment after list creation
+<vector> // Comment after list creation
 dup 1 swap append // Comment after append
 // Multiple
 // Comments

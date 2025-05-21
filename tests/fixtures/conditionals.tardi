@@ -1,3 +1,5 @@
+use: std/vectors
+
 #t 1 2 ?
 #f 1 2 ?
 
@@ -5,5 +7,5 @@
 /// list number --
 : append-zero   dup 0 == [ swap append ] [ 2drop ] if ;
 
-<list> dup 4 append-zero
-<list> dup 0 append-zero
+<vector> dup 4 append-zero
+<vector> dup 0 append-zero

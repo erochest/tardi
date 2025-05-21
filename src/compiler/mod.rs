@@ -206,11 +206,6 @@ impl Compiler {
             }
             "!" => self.compile_op(OpCode::Not),
             "?" => self.compile_op(OpCode::Question),
-            "<list>" => self.compile_op(OpCode::CreateList),
-            "append" => self.compile_op(OpCode::Append),
-            "prepend" => self.compile_op(OpCode::Prepend),
-            "vector-concat" => self.compile_op(OpCode::Concat),
-            "split-head!" => self.compile_op(OpCode::SplitHead),
             "apply" => self.compile_op(OpCode::Apply),
             "lit" => self.compile_op(OpCode::LitStack),
             "compile" => self.compile_op(OpCode::Compile),

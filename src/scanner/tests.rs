@@ -223,21 +223,21 @@ fn test_scan_booleans() {
 #[test]
 fn test_scan_comments() {
     let mut tokens =
-        scan("42 // This is a comment\n<list> // Another comment\ndup // Final comment");
+        scan("42 // This is a comment\n<vector> // Another comment\ndup // Final comment");
 
     // Test "42"
     let token = top(&mut tokens);
     assert!(matches!(token.data, ValueData::Integer(42)));
     assert_eq!(token.lexeme, Some("42".to_string()));
 
-    // Test "<list>"
+    // Test "<vector>"
     let token = top(&mut tokens);
     assert!(
-        matches!(token.data, ValueData::Symbol { word: ref w, .. } if w == "<list>"),
+        matches!(token.data, ValueData::Symbol { word: ref w, .. } if w == "<vector>"),
         "not a symbol: {:?}",
         token.data
     );
-    assert_eq!(token.lexeme, Some("<list>".to_string()));
+    assert_eq!(token.lexeme, Some("<vector>".to_string()));
 
     // Test "dup"
     let token = top(&mut tokens);

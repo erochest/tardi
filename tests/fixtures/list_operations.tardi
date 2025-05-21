@@ -1,6 +1,8 @@
-<list>
-<list> dup 42 swap append
-<list> dup 1 swap prepend
-<list> dup 1 swap append dup 2 swap append dup 3 swap append
-<list> dup 1 swap append dup 2 swap append <list> dup 3 swap append dup 4 swap append vector-concat
-<list> dup 1 swap append dup 2 swap append dup split-head!
+use: std/vectors
+
+<vector>
+<vector> 42 over append
+<vector> 1 over prepend
+<vector> 1 over append 2 over append 3 over append
+<vector> 1 over append 2 over append <vector> 3 over append 4 over append concat
+<vector> 1 over append 2 over append dup split-head!

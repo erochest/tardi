@@ -226,6 +226,7 @@ fn test_compile_macro_scan_value() {
     let result = tardi.execute_str(
         r#"
         use: std/scanning
+        use: std/vectors
         MACRO: \
             dup >r
             scan-value lit
@@ -267,6 +268,7 @@ fn test_compile_macro_scan_value_list() {
     let result = tardi.execute_str(
         r#"
             use: std/scanning
+            use: std/vectors
             MACRO: [
                 dup >r
                 ] scan-value-list
@@ -304,6 +306,7 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
     let result = tardi.execute_str(
         r#"
             use: std/scanning
+            use: std/vectors
             MACRO: [
                 dup >r
                 ] scan-object-list
@@ -343,6 +346,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     let result = tardi.execute_str(
         r#"
             use: std/scanning
+            use: std/vectors
             MACRO: [
                 dup
                 ] scan-object-list
@@ -401,6 +405,7 @@ fn test_compile_define_use_function() {
         r#"
         use: std/internals
         use: std/scanning
+        use: std/vectors
 
         MACRO: {
                 dup
@@ -444,6 +449,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
             r#"
             use: std/internals
             use: std/scanning
+            use: std/vectors
 
         MACRO: {
                 dup
