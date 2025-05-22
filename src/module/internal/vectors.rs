@@ -17,7 +17,7 @@ pub struct VectorsBuilder;
 impl InternalBuilder for VectorsBuilder {
     fn define_module(
         &self,
-        module_manager: &ModuleManager,
+        _module_manager: &ModuleManager,
         op_table: &mut Vec<Shared<Lambda>>,
     ) -> Module {
         let mut index = HashMap::new();
@@ -26,9 +26,8 @@ impl InternalBuilder for VectorsBuilder {
         push_op(op_table, &mut index, "push!", push);
         push_op(op_table, &mut index, "push-left!", push_left);
         push_op(op_table, &mut index, "concat", concat);
-        push_op(op_table, &mut index, "split-head!", split_head);
+        push_op(op_table, &mut index, "pop-left!", pop_left);
         push_op(op_table, &mut index, "pop!", pop);
-        // TODO: pop-left!
         // TODO: first
         // TODO: second
         // TODO: third
@@ -59,7 +58,7 @@ fn create_list(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(ValueData::List(Vec::new()).into()))
 }
 
-/// push ( value vector -- )
+/// push! ( value vector -- )
 fn push(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let value = vm.pop()?;
@@ -73,6 +72,7 @@ fn push(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+/// push-left! ( value vector -- )
 fn push_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let value = vm.pop()?;
@@ -86,6 +86,7 @@ fn push_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+/// concat ( list1 list2 -- list1+2 )
 fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list2 = vm.pop()?;
     let list1 = vm.pop()?;
@@ -110,7 +111,8 @@ fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(ValueData::List(new_items).into()))
 }
 
-fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+/// pop-left! ( vector -- item )
+fn pop_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let head = (*list)
         .borrow_mut()
@@ -127,6 +129,7 @@ fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(head)
 }
 
+/// pop! ( vector -- item )
 fn pop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let item = list

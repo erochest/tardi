@@ -5,4 +5,4 @@ use: std/vectors
 <vector> 1 over push-left!
 <vector> 1 over push! 2 over push! 3 over push!
 <vector> 1 over push! 2 over push! <vector> 3 over push! 4 over push! concat
-<vector> 1 over push! 2 over push! dup split-head!
+<vector> 1 over push! 2 over push! dup pop-left!
