@@ -40,6 +40,7 @@ impl PartialEq for Value {
 
 // -- they're more closely tied to `Environment` and they're part of what
 // bridges across layers
+// TODO: Have a Value member for doc comments so we can grab those in macros
 // TODO: cache common values like small numbers, booleans, and empty collections.
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]

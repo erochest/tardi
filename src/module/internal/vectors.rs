@@ -22,14 +22,20 @@ impl InternalBuilder for VectorsBuilder {
     ) -> Module {
         let mut index = HashMap::new();
 
+        // TODO: make all destructive opearations have a `!` ?
         push_op(op_table, &mut index, "<vector>", create_list);
         push_op(op_table, &mut index, "push", push);
         push_op(op_table, &mut index, "push-left", push_left);
         push_op(op_table, &mut index, "concat", concat);
         push_op(op_table, &mut index, "split-head!", split_head);
-        // TODO: pop
-        // TODO: pop_left
+        push_op(op_table, &mut index, "pop", pop);
+        // TODO: pop-left
+        // TODO: first
+        // TODO: second
+        // TODO: third
+        // TODO: last
         // TODO: nth
+        // TODO: set-nth!
         // TODO: length
         // TODO: in?
         // TODO: empty?
@@ -50,12 +56,12 @@ impl InternalBuilder for VectorsBuilder {
 
 // List operations
 /// <vector> ( -- vec )
-pub fn create_list(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn create_list(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(ValueData::List(Vec::new()).into()))
 }
 
 /// push ( value vector -- )
-pub fn push(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn push(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let value = vm.pop()?;
 
@@ -68,7 +74,7 @@ pub fn push(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
-pub fn push_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn push_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let value = vm.pop()?;
 
@@ -81,7 +87,7 @@ pub fn push_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
-pub fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list2 = vm.pop()?;
     let list1 = vm.pop()?;
 
@@ -105,7 +111,7 @@ pub fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(ValueData::List(new_items).into()))
 }
 
-pub fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let head = (*list)
         .borrow_mut()
@@ -120,4 +126,14 @@ pub fn split_head(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         })?;
 
     vm.push(head)
+}
+
+fn pop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let item = list
+        .borrow_mut()
+        .get_list_mut()
+        .ok_or_else(|| VMError::TypeMismatch("pop list".to_string()))
+        .and_then(|l| l.pop().ok_or(VMError::EmptyList))?;
+    vm.push(item)
 }

@@ -72,6 +72,7 @@ impl InternalBuilder for ScanningBuilder {
         push_op(op_table, &mut index, "scan-value", scan_value);
         push_op(op_table, &mut index, "scan-value-list", scan_value_list);
         push_op(op_table, &mut index, "scan-object-list", scan_object_list);
+        // TODO: peek-value (for things like `inline` after function declarations)
         Module {
             imported: HashMap::new(),
             path: None,
