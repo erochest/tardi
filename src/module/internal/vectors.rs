@@ -14,6 +14,8 @@ pub const VECTORS: &str = "std/vectors";
 
 pub struct VectorsBuilder;
 
+// TODO: really need to implement an Option type for here
+// TODO: make this a hybrid by also loading a file and define first, &c, there
 impl InternalBuilder for VectorsBuilder {
     fn define_module(
         &self,
@@ -28,11 +30,11 @@ impl InternalBuilder for VectorsBuilder {
         push_op(op_table, &mut index, "concat", concat);
         push_op(op_table, &mut index, "pop-left!", pop_left);
         push_op(op_table, &mut index, "pop!", pop);
-        // TODO: first
+        push_op(op_table, &mut index, "nth", nth);
+        push_op(op_table, &mut index, "first", first);
         // TODO: second
         // TODO: third
         // TODO: last
-        // TODO: nth
         // TODO: set-nth!
         // TODO: length
         // TODO: in?
@@ -137,5 +139,44 @@ fn pop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .get_list_mut()
         .ok_or_else(|| VMError::TypeMismatch("pop list".to_string()))
         .and_then(|l| l.pop().ok_or(VMError::EmptyList))?;
+    vm.push(item)
+}
+
+/// first ( vector -- item/#f )
+fn first(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let head = (*list)
+        .borrow()
+        .get_list()
+        .ok_or_else(|| VMError::TypeMismatch("split head of list".to_string()))
+        .map(|l| {
+            if l.is_empty() {
+                shared(false.into())
+            } else {
+                l[0].clone()
+            }
+        })?;
+
+    vm.push(head)
+}
+
+/// nth ( i vector -- item/#f )
+fn nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let index = vm
+        .pop()?
+        .borrow()
+        .get_integer()
+        .ok_or_else(|| VMError::TypeMismatch("nth index".to_string()))? as usize;
+    let item = (*list)
+        .borrow()
+        .get_list()
+        .ok_or_else(|| VMError::TypeMismatch("split head of list".to_string()))
+        .map(|l| {
+            l.get(index)
+                .cloned()
+                .unwrap_or_else(|| shared(false.into()))
+        })?;
+
     vm.push(item)
 }

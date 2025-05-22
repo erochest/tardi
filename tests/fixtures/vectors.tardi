@@ -10,3 +10,11 @@ use: std/vectors
 { 1 2 3 4 5 }
 dup pop!
 over pop!
+
+pick first
+
+{ 10 9 8 7 6 5 4 3 2 1 }
+dup
+0 swap nth
+over 5 swap nth
+pick 8 swap nth
