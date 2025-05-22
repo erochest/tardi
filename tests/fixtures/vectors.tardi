@@ -3,10 +3,10 @@ use: std/vectors
 <vector>
 
 <vector>
-7 over push
-8 over push
-9 over push
+7 over push!
+8 over push!
+9 over push!
 
 { 1 2 3 4 5 }
-dup pop
-over pop
+dup pop!
+over pop!

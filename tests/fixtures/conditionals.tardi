@@ -5,7 +5,7 @@ use: std/vectors
 
 /// pushs a number to a list only if it's zero.
 /// list number --
-: push-zero   dup 0 == [ swap push ] [ 2drop ] if ;
+: push-zero!   dup 0 == [ swap push! ] [ 2drop ] if ;
 
-<vector> dup 4 push-zero
-<vector> dup 0 push-zero
+<vector> dup 4 push-zero!
+<vector> dup 0 push-zero!

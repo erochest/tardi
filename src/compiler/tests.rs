@@ -230,7 +230,7 @@ fn test_compile_macro_scan_value() {
         MACRO: \
             dup >r
             scan-value lit
-            r> push ;
+            r> push! ;
         "#,
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
@@ -272,7 +272,7 @@ fn test_compile_macro_scan_value_list() {
             MACRO: [
                 dup >r
                 ] scan-value-list
-                r> push ;
+                r> push! ;
         "#,
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
@@ -310,7 +310,7 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
             MACRO: [
                 dup >r
                 ] scan-object-list
-                r> push ;
+                r> push! ;
         "#,
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
@@ -350,7 +350,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
             MACRO: [
                 dup
                 ] scan-object-list
-                swap push ;
+                swap push! ;
         "#,
     );
     assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
@@ -410,7 +410,7 @@ fn test_compile_define_use_function() {
         MACRO: {
                 dup
                 } scan-object-list compile
-                swap push ;
+                swap push! ;
 
         over { >r dup r> swap } <function>
         "#,
@@ -454,7 +454,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
         MACRO: {
                 dup
                 } scan-object-list compile
-                swap push ;
+                swap push! ;
         "#,
         )
         .unwrap();
@@ -468,7 +468,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
 
     let result = tardi.execute_str(
         r#"
-            MACRO: \ scan-value over push ;
+            MACRO: \ scan-value over push! ;
             "#,
     );
     assert!(result.is_ok(), "ERROR MACRO \\ definition: {:?}", result);
@@ -476,7 +476,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
         r#"
             MACRO: [
                 ] scan-object-list
-                over push ;
+                over push! ;
             "#,
     );
     assert!(result.is_ok(), "ERROR MACRO [ definition: {:?}", result);
@@ -506,7 +506,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     let result = tardi.execute_str(
         r#"
         drop
-        : >name [ "name" ] swap over push ;
+        : >name [ "name" ] swap over push! ;
         "Zaphod" >name
         "#,
     );

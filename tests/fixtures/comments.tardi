@@ -5,11 +5,11 @@ use: std/vectors
 // Empty comment
 // Comment with special chars: !@#$%^&*()
 <vector> // Comment after list creation
-dup 1 swap push // Comment after push
+dup 1 swap push! // Comment after push!
 // Multiple
 // Comments
 // In a row
 dup // another comment
 2 swap // Comment
-push // Another comment
+push! // Another comment
 // Final comment

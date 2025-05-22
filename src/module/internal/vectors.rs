@@ -22,14 +22,13 @@ impl InternalBuilder for VectorsBuilder {
     ) -> Module {
         let mut index = HashMap::new();
 
-        // TODO: make all destructive opearations have a `!` ?
         push_op(op_table, &mut index, "<vector>", create_list);
-        push_op(op_table, &mut index, "push", push);
-        push_op(op_table, &mut index, "push-left", push_left);
+        push_op(op_table, &mut index, "push!", push);
+        push_op(op_table, &mut index, "push-left!", push_left);
         push_op(op_table, &mut index, "concat", concat);
         push_op(op_table, &mut index, "split-head!", split_head);
-        push_op(op_table, &mut index, "pop", pop);
-        // TODO: pop-left
+        push_op(op_table, &mut index, "pop!", pop);
+        // TODO: pop-left!
         // TODO: first
         // TODO: second
         // TODO: third
@@ -42,7 +41,7 @@ impl InternalBuilder for VectorsBuilder {
         // TODO: index-of?
         // TODO: subvector
         // TODO: join
-        // TODO: sort
+        // TODO: sort!
         // TODO: map
 
         Module {
