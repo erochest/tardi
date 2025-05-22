@@ -403,7 +403,7 @@ fn test_compile_define_use_function() {
 
     let result = tardi.execute_str(
         r#"
-        use: std/internals
+        use: std/.internals
         use: std/scanning
         use: std/vectors
 
@@ -447,7 +447,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     tardi
         .execute_str(
             r#"
-            use: std/internals
+            use: std/.internals
             use: std/scanning
             use: std/vectors
 

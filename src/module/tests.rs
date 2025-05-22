@@ -169,7 +169,7 @@ fn test_is_internal_on_standard_modules() {
     let cwd = env::current_dir().unwrap();
     let loader = ModuleManager::new(&[cwd.join("tests/modules")]);
 
-    assert!(loader.is_internal("std/internals"));
+    assert!(loader.is_internal("std/.internals"));
 }
 
 #[test]

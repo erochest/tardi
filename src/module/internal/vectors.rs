@@ -10,8 +10,7 @@ use crate::vm::VM;
 
 use super::{push_op, InternalBuilder};
 
-// XXX: make "std/.vectors"
-pub const VECTORS: &str = "std/vectors";
+pub const VECTORS: &str = "std/.vectors";
 
 pub struct VectorsBuilder;
 
