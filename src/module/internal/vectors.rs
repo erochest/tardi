@@ -10,12 +10,12 @@ use crate::vm::VM;
 
 use super::{push_op, InternalBuilder};
 
+// XXX: make "std/.vectors"
 pub const VECTORS: &str = "std/vectors";
 
 pub struct VectorsBuilder;
 
 // TODO: really need to implement an Option type for here
-// TODO: make this a hybrid by also loading a file and define first, &c, there
 impl InternalBuilder for VectorsBuilder {
     fn define_module(
         &self,
@@ -31,7 +31,6 @@ impl InternalBuilder for VectorsBuilder {
         push_op(op_table, &mut index, "pop-left!", pop_left);
         push_op(op_table, &mut index, "pop!", pop);
         push_op(op_table, &mut index, "nth", nth);
-        push_op(op_table, &mut index, "first", first);
         // TODO: second
         // TODO: third
         // TODO: last
@@ -44,6 +43,8 @@ impl InternalBuilder for VectorsBuilder {
         // TODO: join
         // TODO: sort!
         // TODO: map
+
+        // TODO: load ./src/bootstrap/vectors.tardi
 
         Module {
             imported: HashMap::new(),
@@ -140,24 +141,6 @@ fn pop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .ok_or_else(|| VMError::TypeMismatch("pop list".to_string()))
         .and_then(|l| l.pop().ok_or(VMError::EmptyList))?;
     vm.push(item)
-}
-
-/// first ( vector -- item/#f )
-fn first(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    let list = vm.pop()?;
-    let head = (*list)
-        .borrow()
-        .get_list()
-        .ok_or_else(|| VMError::TypeMismatch("split head of list".to_string()))
-        .map(|l| {
-            if l.is_empty() {
-                shared(false.into())
-            } else {
-                l[0].clone()
-            }
-        })?;
-
-    vm.push(head)
 }
 
 /// nth ( i vector -- item/#f )

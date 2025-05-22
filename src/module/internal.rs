@@ -16,6 +16,7 @@ use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING};
 pub mod strings;
 pub mod vectors;
 
+// XXX: how to handle modules that are deined through strings inserted in the executable?
 pub fn define_module(
     manager: &ModuleManager,
     name: &str,
@@ -145,6 +146,7 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, "lit", lit_stack);
         push_op(op_table, &mut index, "compile", compile);
         push_macro(op_table, &mut index, "use:", use_module);
+        // XXX: a macro for `exports: ... ;` or `re-exports: ... ;`
         Module {
             imported: HashMap::new(),
             path: None,

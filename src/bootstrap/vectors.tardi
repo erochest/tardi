@@ -1,0 +1,5 @@
+
+use: std/kernel
+
+: first   0 swap nth ;
+
