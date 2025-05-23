@@ -1,7 +1,24 @@
 
 use: std/_vectors
 
-exports: <vector> concat first nth pop! pop-left! push! push-left! ;
+// TODO: map
+// TODO: reduce
 
-: first   0 swap nth ;
+exports:
+    <vector> concat empty? first fourth in? index-of? join last length nth pop!
+    pop-left! push! push-left! second set-nth! sort! subvector third ;
 
+/// v -- x
+: first    0 swap nth ;
+/// v -- x
+: second   1 swap nth ;
+/// v -- x
+: third    2 swap nth ;
+/// v -- x
+: fourth   3 swap nth ;
+
+/// v -- x
+: last     [ length 1 - ] keep nth ;
+
+/// v -- ?
+: empty?   length 0 == ;

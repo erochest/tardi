@@ -101,3 +101,9 @@
 
 /// x y z -- x y z x
 : pick     overd swap ;
+
+/// w x y z -- w x y z w
+: reach   [ pick ] dip swap ;
+
+/// ...x lambda -- ...x' x
+: keep    over >r apply r> ;

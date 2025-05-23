@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
+// TODO: it's not loading from the `module_path`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub repl: ReplConfig,

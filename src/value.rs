@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
@@ -16,7 +17,7 @@ pub mod lambda;
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Ord, Eq)]
 pub struct Value {
     pub data: ValueData,
 
@@ -27,7 +28,7 @@ pub struct Value {
 }
 
 impl PartialOrd for Value {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.data.partial_cmp(&other.data)
     }
 }
@@ -73,7 +74,7 @@ impl ValueData {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Pos {
     /// Line number in source (1-based)
     pub line: usize,
@@ -431,6 +432,14 @@ impl fmt::Display for ValueData {
     }
 }
 
+impl Eq for ValueData {}
+
+impl Ord for ValueData {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Less)
+    }
+}
+
 // TODO: should symbols also match on strings?
 impl PartialEq for ValueData {
     fn eq(&self, other: &Self) -> bool {
@@ -472,7 +481,7 @@ impl PartialEq for ValueData {
 }
 
 impl PartialOrd for ValueData {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
             (ValueData::Integer(a), ValueData::Integer(b)) => a.partial_cmp(b),
             (ValueData::Float(a), ValueData::Float(b)) => a.partial_cmp(b),
@@ -483,17 +492,17 @@ impl PartialOrd for ValueData {
             (ValueData::List(a), ValueData::List(b)) => {
                 // First compare lengths
                 match a.len().partial_cmp(&b.len()) {
-                    Some(std::cmp::Ordering::Equal) => {
+                    Some(Ordering::Equal) => {
                         // If lengths are equal, compare elements
                         for (x, y) in a.iter().zip(b.iter()) {
                             let x_val = &*x.borrow();
                             let y_val = &*y.borrow();
                             match x_val.partial_cmp(y_val) {
-                                Some(std::cmp::Ordering::Equal) => continue,
+                                Some(Ordering::Equal) => continue,
                                 other => return other,
                             }
                         }
-                        Some(std::cmp::Ordering::Equal)
+                        Some(Ordering::Equal)
                     }
                     other => other,
                 }

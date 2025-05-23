@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use log::Level;
 use strings::{StringsBuilder, STRINGS};
 use vectors::{VectorsBuilder, VECTORS};
 

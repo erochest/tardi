@@ -5,7 +5,7 @@ use crate::error::{Error, Result, VMError};
 use crate::module::{Module, ModuleManager};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::Lambda;
-use crate::value::ValueData;
+use crate::value::{Value, ValueData};
 use crate::vm::VM;
 
 use super::{push_op, InternalBuilder};
@@ -30,20 +30,13 @@ impl InternalBuilder for VectorsBuilder {
         push_op(op_table, &mut index, "pop-left!", pop_left);
         push_op(op_table, &mut index, "pop!", pop);
         push_op(op_table, &mut index, "nth", nth);
-        // TODO: second
-        // TODO: third
-        // TODO: last
-        // TODO: set-nth!
-        // TODO: length
-        // TODO: in?
-        // TODO: empty?
-        // TODO: index-of?
-        // TODO: subvector
-        // TODO: join
-        // TODO: sort!
-        // TODO: map
-
-        // TODO: load ./src/bootstrap/vectors.tardi
+        push_op(op_table, &mut index, "set-nth!", set_nth);
+        push_op(op_table, &mut index, "length", length);
+        push_op(op_table, &mut index, "in?", is_in);
+        push_op(op_table, &mut index, "index-of?", index_of);
+        push_op(op_table, &mut index, "subvector", subvector);
+        push_op(op_table, &mut index, "join", join);
+        push_op(op_table, &mut index, "sort!", sort);
 
         Module {
             imported: HashMap::new(),
@@ -162,4 +155,134 @@ fn nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         })?;
 
     vm.push(item)
+}
+
+/// set-nth! ( x i vector -- )
+fn set_nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let index =
+        vm.pop()?
+            .borrow()
+            .get_integer()
+            .ok_or_else(|| VMError::TypeMismatch("set-nth! index".to_string()))? as usize;
+    let item = vm.pop()?;
+    let mut list = list.borrow_mut();
+    let list = list
+        .get_list_mut()
+        .ok_or_else(|| VMError::TypeMismatch("set-nth! of list".to_string()))?;
+
+    list[index] = item.clone();
+
+    Ok(())
+}
+
+/// length ( vector -- length )
+fn length(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let list = list.borrow();
+    let list = list
+        .get_list()
+        .ok_or_else(|| VMError::TypeMismatch("length of list".to_string()))?;
+
+    let length = list.len();
+
+    vm.push(shared((length as i64).into()))
+}
+
+/// in? ( item vector -- ? )
+fn is_in(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let list = list.borrow();
+    let list = list
+        .get_list()
+        .ok_or_else(|| VMError::TypeMismatch("in? list".to_string()))?;
+    let item = vm.pop()?;
+
+    let is_in = list.contains(&item);
+
+    vm.push(shared(is_in.into()))
+}
+
+/// index-of? ( item vector -- i/#f )
+fn index_of(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let list = list.borrow();
+    let list = list
+        .get_list()
+        .ok_or_else(|| VMError::TypeMismatch("in? list".to_string()))?;
+    let item = vm.pop()?;
+
+    let index = list
+        .iter()
+        .position(|i| i == &item)
+        .map(|i| Value::from(i as i64))
+        .unwrap_or_else(|| Value::from(false));
+
+    vm.push(shared(index))
+}
+
+/// subvector ( from to vector -- vector' )
+fn subvector(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let list = list.borrow();
+    let list = list
+        .get_list()
+        .ok_or_else(|| VMError::TypeMismatch("subvector list".to_string()))?;
+    let to_index =
+        vm.pop()?
+            .borrow()
+            .get_integer()
+            .ok_or_else(|| VMError::TypeMismatch("subvector to".to_string()))? as usize;
+    let to_index = to_index.min(list.len());
+    let from_index =
+        vm.pop()?
+            .borrow()
+            .get_integer()
+            .ok_or_else(|| VMError::TypeMismatch("subvector from".to_string()))? as usize;
+
+    // TODO: be more defensive about to_index and from_index
+    let subvector = list[from_index..to_index].to_vec();
+
+    vm.push(shared(subvector.into()))
+}
+
+/// join ( vector glue -- string )
+fn join(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let glue = vm.pop()?;
+    let glue = glue.borrow();
+    let glue = glue
+        .get_string()
+        .ok_or_else(|| VMError::TypeMismatch("join glue".to_string()))?;
+    let list = vm.pop()?;
+    let list = list.borrow();
+    let list = list
+        .get_list()
+        .ok_or_else(|| VMError::TypeMismatch("join list".to_string()))?;
+
+    let output = list
+        .iter()
+        // TODO: this works for non-strings, but strings can us an `id` function
+        .map(|item| {
+            item.borrow()
+                .get_string()
+                .map(|i| i.to_string())
+                .unwrap_or_else(|| item.borrow().to_string())
+        })
+        .collect::<Vec<_>>()
+        .join(glue);
+
+    vm.push(shared(output.into()))
+}
+
+/// sort! ( vector -- )
+fn sort(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let list = vm.pop()?;
+    let mut list = list.borrow_mut();
+    let mut list = list
+        .get_list_mut()
+        .ok_or_else(|| VMError::TypeMismatch("subvector list".to_string()))?;
+
+    list.sort();
+
+    Ok(())
 }
