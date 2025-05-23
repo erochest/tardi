@@ -74,6 +74,9 @@ impl Tardi {
             self.execute_module_str(KERNEL, include_str!("../bootstrap/00-core-macros.tardi"))?;
             self.execute_module_str(KERNEL, include_str!("../bootstrap/01-stack-ops.tardi"))?;
             self.execute_module_str(KERNEL, include_str!("../bootstrap/02-core-ops.tardi"))?;
+            let env = self.environment.borrow();
+            let kernel = env.get_module(KERNEL).unwrap();
+            log::trace!("Tardi::bootstrap {} {:?}", KERNEL, kernel);
         }
 
         Ok(())

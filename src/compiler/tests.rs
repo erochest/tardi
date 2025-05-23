@@ -221,7 +221,7 @@ fn test_compile_macro_basic() {
 #[test]
 fn test_compile_macro_scan_value() {
     // env_logger::init();
-    let mut tardi = Tardi::default();
+    let mut tardi = Tardi::new(None).unwrap();
 
     let result = tardi.execute_str(
         r#"
@@ -263,7 +263,7 @@ fn test_compile_macro_scan_value() {
 #[test]
 fn test_compile_macro_scan_value_list() {
     // env_logger::init();
-    let mut tardi = Tardi::default();
+    let mut tardi = Tardi::new(None).unwrap();
 
     let result = tardi.execute_str(
         r#"
@@ -301,7 +301,7 @@ fn test_compile_macro_scan_value_list() {
 #[test]
 fn test_compile_macro_scan_object_list_handles_flat_structures() {
     // env_logger::init();
-    let mut tardi = Tardi::default();
+    let mut tardi = Tardi::new(None).unwrap();
 
     let result = tardi.execute_str(
         r#"
@@ -341,25 +341,23 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
 #[test]
 fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     // env_logger::init();
-    let mut tardi = Tardi::default();
+    let mut tardi = Tardi::new(None).unwrap();
 
     let result = tardi.execute_str(
         r#"
             use: std/scanning
             use: std/vectors
-            MACRO: [
-                dup
-                ] scan-object-list
-                swap push! ;
-        "#,
-    );
-    assert!(result.is_ok(), "ERROR MACRO definition: {:?}", result);
+            MACRO: <|
+                |> scan-object-list
+                over push! ;
 
-    let result = tardi.execute_str(r#"[ 40 41 42 [ 43 44 45 ] ]"#);
+            <| 40 41 42 <| 43 44 45 |> |>
+            "#,
+    );
     assert!(result.is_ok(), "ERROR MACRO execution: {:?}", result);
     let stack = tardi.stack();
 
-    assert_eq!(stack.len(), 1);
+    assert_eq!(stack.len(), 1, "stack = {}", ValueVec(&stack));
     assert!(matches!(stack[0].data, ValueData::List(_)));
 
     let list = stack[0].get_list().unwrap();
@@ -398,34 +396,16 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
 
 #[test]
 fn test_compile_define_use_function() {
-    env_logger::init();
-    let mut tardi = Tardi::default();
+    // env_logger::init();
+    let mut tardi = Tardi::new(None).unwrap();
 
     let result = tardi.execute_str(
         r#"
-        use: std/_internals
-        use: std/scanning
-        use: std/vectors
-
-        MACRO: {
-                dup
-                } scan-object-list compile
-                swap push! ;
-
-        over { >r dup r> swap } <function>
+        : my-over   dupd swap ;
+        42 7 my-over
         "#,
     );
-    assert!(result.is_ok(), "ERROR defining macro {{ : {:?}", result);
-
-    // {
-    //     let env = tardi.environment.borrow();
-    //     let sandbox = env.get_module(SANDBOX).unwrap();
-    //     log::trace!("SANDBOX");
-    //     log::trace!("{:?}", sandbox);
-    // }
-
-    let result = tardi.execute_str("42 7 over");
-    assert!(result.is_ok(), "ERROR executing over: {:?}", result);
+    assert!(result.is_ok(), "ERROR my-over: {:?}", result);
     let stack = tardi.stack();
 
     assert_eq!(stack.len(), 3);
@@ -441,73 +421,21 @@ fn test_compile_define_use_function() {
 #[test]
 fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures() {
     // env_logger::init();
-    let mut tardi = Tardi::default();
+    let mut tardi = Tardi::new(None).unwrap();
 
     // TODO: can I embed a list in a `{ ... }` lambda?
-    tardi
-        .execute_str(
-            r#"
+    let result = tardi.execute_str(
+        r#"
             use: std/_internals
             use: std/scanning
             use: std/vectors
 
-        MACRO: {
-                dup
-                } scan-object-list compile
-                swap push! ;
-        "#,
-        )
-        .unwrap();
-    tardi
-        .execute_str(
-            r#"
-        over { >r dup r> swap } <function>
-        "#,
-        )
-        .unwrap();
-
-    let result = tardi.execute_str(
-        r#"
-            MACRO: \ scan-value over push! ;
-            "#,
-    );
-    assert!(result.is_ok(), "ERROR MACRO \\ definition: {:?}", result);
-    let result = tardi.execute_str(
-        r#"
-            MACRO: [
-                ] scan-object-list
+            MACRO: <|
+                |> scan-object-list
                 over push! ;
-            "#,
-    );
-    assert!(result.is_ok(), "ERROR MACRO [ definition: {:?}", result);
-    let result = tardi.execute_str(
-        r#"
-            MACRO: :
-                scan-value
-                \ ; scan-object-list compile
-                <function> ;
-        "#,
-    );
-    assert!(result.is_ok(), "ERROR MACRO : definition: {:?}", result);
 
-    let result = tardi.execute_str(
-        r#"
-        : double 2 * ;
-        4 double
-        "#,
-    );
-    assert!(result.is_ok(), "ERROR double: {:?}", result);
-    let stack = tardi.stack();
-    assert_eq!(stack.len(), 1, "stack = {}", ValueVec(&stack));
-
-    let doubled = stack[0].get_integer();
-    assert_eq!(Some(8), doubled);
-
-    let result = tardi.execute_str(
-        r#"
-        drop
-        : >name [ "name" ] swap over push! ;
-        "Zaphod" >name
+            : >name   <| "name" |> swap over push! ;
+            "Zaphod" >name
         "#,
     );
     assert!(result.is_ok(), "ERROR >name: {:?}", result);

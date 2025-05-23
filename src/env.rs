@@ -249,6 +249,11 @@ impl Environment {
                 name
             );
             let module = self.create_module(name);
+            log::trace!(
+                "Environment::get_or_create_module_mut created module {}: {:?}",
+                name,
+                module
+            );
             self.module_manager.add_module(module);
         }
         self.module_manager.get_mut(name).unwrap()
@@ -431,7 +436,7 @@ impl Environment {
         if let Some(ip) = op.borrow().get_ip() {
             write!(f, " {:0>4}", ip)?;
         } else {
-            write!(f, " comp")?;
+            write!(f, " ~~~~")?;
         }
 
         Ok(ip)

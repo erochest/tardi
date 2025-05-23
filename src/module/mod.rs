@@ -70,7 +70,9 @@ impl fmt::Debug for Module {
         for (name, index) in self.imported.iter() {
             writeln!(f, "\tIMPORTED: {:20} => {}", name, index)?;
         }
-        writeln!(f)?;
+        for name in self.exported.iter() {
+            writeln!(f, "\tEXPORTED: {:20} => {}", name, name)?;
+        }
         Ok(())
     }
 }
@@ -199,18 +201,25 @@ impl ModuleManager {
             self.modules.keys().collect::<Vec<_>>()
         );
         log::trace!(
-            "words imported in {}: {:?}",
+            "words imported in   {}: {:?}",
             name,
             self.modules
                 .get(name)
                 .map_or_else(Default::default, |m| m.imported.keys().collect::<Vec<_>>())
         );
         log::trace!(
-            "words defined  in {}: {:?}",
+            "words defined  in   {}: {:?}",
             name,
             self.modules
                 .get(name)
                 .map_or_else(Default::default, |m| m.defined.keys().collect::<Vec<_>>())
+        );
+        log::trace!(
+            "words exported from {}: {:?}",
+            name,
+            self.modules
+                .get(name)
+                .map_or_else(Default::default, |m| m.exported.iter().collect::<Vec<_>>())
         );
     }
 

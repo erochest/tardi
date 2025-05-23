@@ -9,7 +9,7 @@ use crate::compiler::Compiler;
 use crate::error::{Result, VMError};
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Lambda, OpFn};
-use crate::value::{Value, ValueData};
+use crate::value::{Value, ValueData, ValueVec};
 use crate::vm::VM;
 
 use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING};
@@ -374,9 +374,9 @@ fn export_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
         .get_module_mut(&module_name)
         .ok_or(VMError::MissingModule)?;
     log::trace!(
-        "export_list setting exports for {}: {:?}",
+        "export_list setting exports for {}: {}",
         module_name,
-        names
+        ValueVec(&names)
     );
 
     module

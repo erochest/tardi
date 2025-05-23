@@ -148,68 +148,6 @@ fn test_invalid_opcode() {
 }
 
 #[test]
-fn test_function_and_lambda_operations() {
-    // env_logger::init();
-    let mut tardi = Tardi::default();
-
-    tardi
-        .execute_str(
-            r#"
-        use: std/_internals
-        use: std/scanning
-        use: std/vectors
-        MACRO: {
-                dup
-                } scan-object-list compile
-                swap push! ;
-        "#,
-        )
-        .unwrap();
-    let result = tardi.execute_str("{ 2 3 * } apply");
-    assert!(result.is_ok());
-
-    // Verify the result of lambda execution (2 * 3 = 6)
-    assert!(matches!(
-        *tardi.executor.stack.pop().unwrap().borrow(),
-        Value {
-            data: ValueData::Integer(6),
-            ..
-        },
-    ));
-
-    // Function defined with `<function>` have to be defined in a previous input string.
-    // Macro-defined functions can be used in the same input string.
-    let result = tardi.execute_str("triple { 3 * } <function>");
-    assert!(result.is_ok());
-
-    let result = tardi.execute_str(
-        r#"
-        4 triple
-        "#,
-    );
-    assert!(result.is_ok());
-
-    // Verify the result of function execution (4 * 3 = 12)
-    assert!(
-        matches!(
-            *tardi.executor.stack.pop().unwrap().borrow(),
-            Value {
-                data: ValueData::Integer(12),
-                ..
-            }
-        ),
-        "stack = {}",
-        tardi
-            .executor
-            .stack
-            .iter()
-            .map(|v| format!("{}", v.borrow()))
-            .collect::<Vec<String>>()
-            .join(" "),
-    );
-}
-
-#[test]
 fn test_return_stack_operations() {
     // Test >r (to_r)
     let result = eval("42 >r stack-size r> drop");
@@ -764,31 +702,13 @@ fn test_predeclare_function_adds_undefined_function_to_op_table() {
 #[test]
 fn test_function_defines_predeclared_function() {
     init_logging();
-    // TODO: does predeclaring _have_ to happen in pass1?
-    let setup = r#"
-        use: std/_internals
-        use: std/scanning
-        use: std/vectors
-        MACRO: \ dup scan-value swap push! ;
-        MACRO: :
-                scan-value
-                dup <predeclare-function>
-                \ ; scan-object-list compile
-                <function> ;
-        MACRO: [
-                dup
-                ] scan-object-list compile
-                swap push! ;
-        "#;
     let word = "even?".to_string();
     let input = r#"
         : even?   dup 0 == [ drop #t ] [ 1 - even? ! ] ? apply ;
         "#;
-    // let mut tardi = Tardi::with_bootstrap(None).unwrap();
-    let mut tardi = Tardi::default();
 
-    let result = tardi.execute_str(setup);
-    assert_is_ok(setup, &result);
+    let mut tardi = Tardi::new(None).unwrap();
+
     let next_index = (*tardi.environment).borrow().op_table.len();
     let result = tardi.execute_str(input);
 
@@ -822,31 +742,13 @@ fn test_call_wont_execute_predeclared_function() {
 #[test]
 fn test_call_will_execute_defined_predeclared_function() {
     init_logging();
-    // TODO: does predeclaring _have_ to happen in pass1?
-    let setup = r#"
-        use: std/_internals
-        use: std/scanning
-        use: std/vectors
-        MACRO: \ dup scan-value swap push! ;
-        MACRO: :
-                scan-value
-                dup <predeclare-function>
-                \ ; scan-object-list compile
-                <function> ;
-        MACRO: [
-                dup
-                ] scan-object-list compile
-                swap push! ;
-        "#;
     let input = r#"
         : even?   dup 0 == [ drop #t ] [ 1 - even? ! ] ? apply ;
         1 even?
         2 even?
         "#;
-    let mut tardi = Tardi::default();
+    let mut tardi = Tardi::new(None).unwrap();
 
-    let result = tardi.execute_str(setup);
-    assert_is_ok(setup, &result);
     let result = tardi.execute_str(input);
 
     assert_is_ok(input, &result);

@@ -1,7 +1,7 @@
 
 use: std/_internals
 use: std/scanning
-use: std/vectors
+use: std/_vectors
 
 /// Escape the next token
 /// \ nuke
