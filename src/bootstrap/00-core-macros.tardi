@@ -1,5 +1,5 @@
 
-use: std/.internals
+use: std/_internals
 use: std/scanning
 use: std/vectors
 

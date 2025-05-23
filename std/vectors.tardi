@@ -1,5 +1,5 @@
 
-use: std/kernel
+use: std/_vectors
 
 : first   0 swap nth ;
 

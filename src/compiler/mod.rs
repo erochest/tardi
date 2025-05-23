@@ -158,7 +158,7 @@ impl Compiler {
             ValueData::Function(lambda) => self.add_function(lambda),
             ValueData::Symbol { .. } => self.compile_symbol(value),
             ValueData::Macro => unreachable!("This is handled by the Scanner."),
-            // XXX: does this ever get emitted anymore?
+            // TODO: does this ever get emitted anymore?
             ValueData::EndOfInput => {
                 log::trace!("Compiler::compile_value EndOfInput -- emitting Return");
                 self.compile_op(OpCode::Return)?;

@@ -25,7 +25,7 @@ pub trait Execute {
 }
 
 // TODO: make the VM the orchestrator and get rid of this?
-// XXX: rationalize how the environment gets passed around
+// TODO: rationalize how the environment gets passed around
 pub struct Tardi {
     pub input: Option<String>,
     pub environment: Shared<Environment>,
