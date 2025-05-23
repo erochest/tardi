@@ -65,6 +65,13 @@ pub struct Compiler {
 }
 
 impl Compiler {
+    pub fn environment(&self) -> Result<Shared<Environment>> {
+        self.environment
+            .as_ref()
+            .ok_or_else(|| CompilerError::MissingEnvironment.into())
+            .map(|e| e.clone())
+    }
+
     pub fn current_module_compiler(&self) -> Option<&ModuleCompiler> {
         self.module_stack.last()
     }
@@ -255,7 +262,7 @@ impl Compiler {
         // create `buffer` as a `Value<ValueData::List>` convert it back and forth.
         // It'll depend on how much macros get used.
         log::trace!(
-            "Compiler::compile_list executing macro {:?}",
+            "Compiler::execute_macro executing macro {:?}",
             lambda.borrow().name
         );
         let accumulator = shared(buffer.into());
@@ -267,9 +274,9 @@ impl Compiler {
             accumulator.clone(),
         )?;
         log::trace!(
-            "Compiler::compile_list macro {:?} returned {:#?}",
+            "Compiler::execute_macro macro {:?} returned '{}'",
             word,
-            accumulator
+            accumulator.borrow()
         );
         unshare_clone(accumulator).try_into()
     }
@@ -465,8 +472,11 @@ impl Compiler {
     }
 
     pub fn scan_value(&mut self) -> Option<CompilerResult<Value>> {
-        self.current_scanner_mut()
-            .and_then(|s| s.scan_value().map(|r| r.map_err(CompilerError::from)))
+        let value = self
+            .current_scanner_mut()
+            .and_then(|s| s.scan_value().map(|r| r.map_err(CompilerError::from)));
+        log::trace!("Compiler::scan_value {:?}", value);
+        value
     }
 
     pub fn scan_word(&mut self) -> Result<Value> {
@@ -478,14 +488,18 @@ impl Compiler {
     }
 
     pub fn scan_value_list(&mut self, delimiter: &ValueData) -> CompilerResult<Vec<Value>> {
-        self.current_scanner_mut()
+        log::trace!("Compiler::scan_value_list {:?}", delimiter);
+        let value_list = self
+            .current_scanner_mut()
             .ok_or_else(|| ScannerError::NotInitialized.into())
             .and_then(|s| {
                 let list = s.scan_value_list(delimiter.clone())?;
                 list.into_iter()
                     .collect::<result::Result<Vec<_>, _>>()
                     .map_err(CompilerError::from)
-            })
+            });
+        log::trace!("Compiler::scan_value_list {:?}", value_list);
+        value_list
     }
 
     // TODO: when this is done, can I reimplement `scan` to be
@@ -537,9 +551,9 @@ impl Compiler {
                     accumulator.clone(),
                 )?;
                 log::trace!(
-                    "Compiler::scan_object_list (macro {}) returned {:#?}",
+                    "Compiler::scan_object_list (macro {}) returned '{}'",
                     delimiter,
-                    accumulator
+                    accumulator.borrow()
                 );
             } else {
                 accumulator

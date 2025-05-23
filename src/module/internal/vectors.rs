@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::compiler::Compiler;
 use crate::error::{Error, Result, VMError};
@@ -50,6 +50,7 @@ impl InternalBuilder for VectorsBuilder {
             path: None,
             name: VECTORS.to_string(),
             defined: index,
+            exported: HashSet::new(),
         }
     }
 }
@@ -119,7 +120,7 @@ fn pop_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let head = (*list)
         .borrow_mut()
         .get_list_mut()
-        .ok_or_else(|| VMError::TypeMismatch("split head of list".to_string()))
+        .ok_or_else(|| VMError::TypeMismatch(format!("pop-left! of list: {}", list.borrow())))
         .and_then(|l| {
             if l.is_empty() {
                 Err(VMError::EmptyList)

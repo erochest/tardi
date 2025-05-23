@@ -254,6 +254,12 @@ impl From<char> for ValueData {
     }
 }
 
+impl From<&str> for ValueData {
+    fn from(value: &str) -> Self {
+        ValueData::String(value.to_string())
+    }
+}
+
 impl From<String> for ValueData {
     fn from(value: String) -> Self {
         ValueData::String(value)
@@ -425,6 +431,7 @@ impl fmt::Display for ValueData {
     }
 }
 
+// TODO: should symbols also match on strings?
 impl PartialEq for ValueData {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {

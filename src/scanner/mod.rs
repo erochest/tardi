@@ -227,7 +227,9 @@ impl Scanner {
 
         // Wrap successful tokens with position information
         Some(result.map(|value_data| {
-            self.create_value(value_data, start_offset, start_line, start_column)
+            let value = self.create_value(value_data, start_offset, start_line, start_column);
+            log::trace!("Scanner::scan_value {:?}", value);
+            value
         }))
     }
 

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::compiler::Compiler;
 use crate::error::{Result, VMError};
@@ -50,6 +50,7 @@ impl InternalBuilder for StringsBuilder {
             path: None,
             name: STRINGS.to_string(),
             defined: index,
+            exported: HashSet::new(),
         }
     }
 }

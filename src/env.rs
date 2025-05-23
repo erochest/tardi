@@ -256,19 +256,17 @@ impl Environment {
 
     pub fn use_module(&mut self, source_name: &str, dest: &str) -> Result<()> {
         log::trace!("Environment::use_module {} {}", source_name, dest);
-        let source = self
+        let imports = self
             .module_manager
             .get(source_name)
-            .ok_or_else(|| CompilerError::ModuleNotFound(source_name.to_string()))?
-            .defined
-            .clone();
+            .map(|m| m.get_exports())
+            .ok_or_else(|| CompilerError::ModuleNotFound(source_name.to_string()))?;
         let dest = self
             .module_manager
             .get_mut(dest)
             .ok_or_else(|| CompilerError::ModuleNotFound(dest.to_string()))?;
-        for (key, index) in source {
-            dest.imported.insert(key, index);
-        }
+        dest.imported.extend(imports);
+
         log::trace!(
             "{} imported {:?}",
             dest.name,

@@ -398,7 +398,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
 
 #[test]
 fn test_compile_define_use_function() {
-    // env_logger::init();
+    env_logger::init();
     let mut tardi = Tardi::default();
 
     let result = tardi.execute_str(

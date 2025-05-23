@@ -47,6 +47,10 @@ pub struct Module {
 
     /// This maps the imported word names to their indexes in the environment's `op_table`.
     pub imported: HashMap<String, usize>,
+
+    /// If listed, these are names that will be exported from either imported or defined.
+    /// If not given, this is just defined.
+    pub exported: HashSet<String>,
 }
 
 impl fmt::Debug for Module {
@@ -79,6 +83,7 @@ impl Module {
             name,
             defined: HashMap::new(),
             imported: HashMap::new(),
+            exported: HashSet::new(),
         }
     }
 
@@ -90,6 +95,7 @@ impl Module {
             name,
             defined: HashMap::new(),
             imported: HashMap::new(),
+            exported: HashSet::new(),
         }
     }
 
@@ -101,6 +107,7 @@ impl Module {
             name,
             defined: HashMap::new(),
             imported,
+            exported: HashSet::new(),
         }
     }
 
@@ -125,6 +132,24 @@ impl Module {
             self.name,
             self.imported.keys().collect::<Vec<_>>()
         );
+    }
+
+    pub fn get_exports(&self) -> HashMap<String, usize> {
+        let mut exports = HashMap::new();
+
+        if self.exported.is_empty() {
+            for (key, index) in self.defined.iter() {
+                exports.insert(key.clone(), *index);
+            }
+        } else {
+            for name in self.exported.iter() {
+                let index = self.defined.get(name).or_else(|| self.imported.get(name));
+                if let Some(index) = index {
+                    exports.insert(name.clone(), *index);
+                }
+            }
+        }
+        exports
     }
 }
 
@@ -239,7 +264,6 @@ impl ModuleManager {
         for path in self.paths.iter() {
             let target = path.join(module);
             let target = target.with_extension("tardi");
-            log::trace!("testing module at {:?}", target);
             if target.exists() {
                 let target = target.canonicalize()?;
                 return Ok(Some((module.to_string(), target)));

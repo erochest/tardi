@@ -1,5 +1,7 @@
 
 use: std/_vectors
 
+exports: <vector> concat first nth pop! pop-left! push! push-left! ;
+
 : first   0 swap nth ;
 

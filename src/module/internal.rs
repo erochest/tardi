@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
+use log::Level;
 use strings::{StringsBuilder, STRINGS};
 use vectors::{VectorsBuilder, VECTORS};
 
 use crate::compiler::error::CompilerError;
 use crate::compiler::Compiler;
-use crate::error::Result;
+use crate::error::{Result, VMError};
 use crate::shared::{shared, unshare_clone, Shared};
 use crate::value::lambda::{Lambda, OpFn};
 use crate::value::{Value, ValueData};
@@ -16,7 +17,6 @@ use super::{Module, ModuleManager, INTERNALS, KERNEL, SANDBOX, SCANNING};
 pub mod strings;
 pub mod vectors;
 
-// XXX: how to handle modules that are deined through strings inserted in the executable?
 pub fn define_module(
     manager: &ModuleManager,
     name: &str,
@@ -35,7 +35,7 @@ pub fn define_module(
     Ok(builder.define_module(manager, op_table))
 }
 
-pub trait InternalBuilder {
+trait InternalBuilder {
     fn define_module(
         &self,
         module_manager: &ModuleManager,
@@ -58,6 +58,7 @@ impl InternalBuilder for SandboxBuilder {
             path: None,
             name: SANDBOX.to_string(),
             defined,
+            exported: HashSet::new(),
         }
     }
 }
@@ -79,6 +80,7 @@ impl InternalBuilder for ScanningBuilder {
             path: None,
             name: SCANNING.to_string(),
             defined: index,
+            exported: HashSet::new(),
         }
     }
 }
@@ -105,6 +107,7 @@ impl InternalBuilder for InternalsModule {
             path: None,
             name: INTERNALS.to_string(),
             defined: index,
+            exported: HashSet::new(),
         }
     }
 }
@@ -146,12 +149,14 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, "lit", lit_stack);
         push_op(op_table, &mut index, "compile", compile);
         push_macro(op_table, &mut index, "use:", use_module);
-        // XXX: a macro for `exports: ... ;` or `re-exports: ... ;`
+        push_macro(op_table, &mut index, "exports:", export_list);
+
         Module {
             imported: HashMap::new(),
             path: None,
             name: KERNEL.to_string(),
             defined: index,
+            exported: HashSet::new(),
         }
     }
 }
@@ -189,128 +194,128 @@ fn push_macro(
 // }
 
 // Define the operations
-pub fn lit(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn lit(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.lit()
 }
 
-pub fn dup(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn dup(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.dup()
 }
 
-pub fn swap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn swap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.swap()
 }
 
-pub fn rot(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn rot(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.rot()
 }
 
-pub fn drop_op(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn drop_op(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.drop_op()
 }
 
-pub fn clear(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn clear(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.clear()
 }
 
-pub fn stack_size(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn stack_size(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.stack_size_op()
 }
 
-pub fn add(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn add(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.add()
 }
 
-pub fn subtract(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn subtract(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.subtract()
 }
 
-pub fn multiply(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn multiply(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.multiply()
 }
 
-pub fn divide(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn divide(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.divide()
 }
 
-pub fn to_r(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn to_r(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.to_r()
 }
 
-pub fn r_from(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn r_from(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.r_from()
 }
 
-pub fn r_fetch(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn r_fetch(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.r_fetch()
 }
 
-pub fn not(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn not(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.not()
 }
 
-pub fn question(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn question(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.question()
 }
 
-pub fn equal(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn equal(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.equal()
 }
 
-pub fn less(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn less(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.less()
 }
 
-pub fn greater(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn greater(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.greater()
 }
 
 // Function operations
 #[allow(dead_code)]
-pub fn call(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+fn call(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     vm.call(compiler)
 }
 
-pub fn apply(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+fn apply(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     vm.apply(compiler)
 }
 
-pub fn return_op(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn return_op(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.return_op()
 }
 
-pub fn stop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn stop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.stop()
 }
 
-pub fn bye(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn bye(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.bye()
 }
 
-pub fn jump(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn jump(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.jump()
 }
 
-pub fn jump_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn jump_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.jump_stack()
 }
 
-pub fn function(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn function(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.function()
 }
 
-pub fn predeclare_function(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn predeclare_function(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.predeclare_function()
 }
 
-pub fn scan_value(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+fn scan_value(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     let value = compiler.scan_word()?;
     let value = shared(value);
     vm.push(value)?;
     Ok(())
 }
 
-pub fn scan_value_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+fn scan_value_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     let delimiter = vm.pop()?;
     let delimiter: Value = unshare_clone(delimiter);
     let delimiter = &delimiter.data;
@@ -325,7 +330,7 @@ pub fn scan_value_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
-pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+fn scan_object_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     let delimiter = vm.pop()?;
     let delimiter: Value = unshare_clone(delimiter);
     let delimiter = delimiter.data;
@@ -339,7 +344,7 @@ pub fn scan_object_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
-pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+fn lit_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let value = vm.pop()?;
     let value: Value = unshare_clone(value);
     let literal = Value::new(ValueData::Literal(Box::new(value)));
@@ -348,10 +353,35 @@ pub fn lit_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
-pub fn compile(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+fn compile(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     vm.compile(compiler)
 }
 
-pub fn use_module(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+fn use_module(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     compiler.use_module(vm)
+}
+
+fn export_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+    log::trace!("export_list");
+    let names = compiler.scan_value_list(&ValueData::Word(";".to_string()))?;
+    let module_name = compiler
+        .current_scanner()
+        .map(|s| s.source.get_key())
+        .ok_or_else(|| CompilerError::InvalidState("missing scanner".to_string()))?;
+    let env = compiler.environment()?;
+    let mut env = env.borrow_mut();
+    let module = env
+        .get_module_mut(&module_name)
+        .ok_or(VMError::MissingModule)?;
+    log::trace!(
+        "export_list setting exports for {}: {:?}",
+        module_name,
+        names
+    );
+
+    module
+        .exported
+        .extend(names.iter().map(|v| v.get_word().unwrap().to_string()));
+
+    Ok(())
 }
