@@ -264,10 +264,12 @@ impl Environment {
 
     pub fn use_module(&mut self, source_name: &str, dest: &str) -> Result<()> {
         log::trace!("Environment::use_module {} {}", source_name, dest);
+        let segments = self.get_module_name_aliases(source_name);
         let imports = self
             .module_manager
             .get(source_name)
             .map(|m| m.get_exports())
+            .map(|e| self.expand_module_aliases(&segments, &e))
             .ok_or_else(|| CompilerError::ModuleNotFound(source_name.to_string()))?;
         let dest = self
             .module_manager
@@ -281,6 +283,49 @@ impl Environment {
             dest.imported.keys().collect::<Vec<_>>()
         );
         Ok(())
+    }
+
+    /// Returns the versions of `source_name` with the path elements stripped
+    /// off from the left. For instance, `std/vectors/concat` returns:
+    /// - `std/vectors`
+    /// - `vectors`
+    fn get_module_name_aliases(&self, source_name: &str) -> Vec<String> {
+        let mut buffer = Vec::new();
+        let parts = source_name.split('/').collect::<Vec<_>>();
+
+        for i in 0..parts.len() {
+            let element = parts[i..].join("/");
+            buffer.push(element);
+        }
+
+        buffer
+    }
+
+    /// Expands the module paths in `base_exports` by also adding ones created
+    /// from `modules_aliases`.
+    ///
+    /// Each item in `modules_aliases` is prepended to each key in
+    /// `base_exports`, and it's included in the output, associated with the
+    /// same key as the original key was in `base_exports`.
+    ///
+    /// Essentially, this creates aliases to the exports.
+    fn expand_module_aliases(
+        &self,
+        module_aliases: &[String],
+        base_exports: &HashMap<String, usize>,
+    ) -> HashMap<String, usize> {
+        let mut accum = HashMap::new();
+
+        for (name, ip) in base_exports {
+            accum.insert(name.clone(), *ip);
+            for segment in module_aliases {
+                let segment = segment.to_string();
+                let key = segment + "/" + name;
+                accum.insert(key, *ip);
+            }
+        }
+
+        accum
     }
 
     pub fn handle_internal_module(&mut self, name: &str) -> Result<bool> {
@@ -494,3 +539,6 @@ impl fmt::Debug for Environment {
 //         }
 //     }
 // }
+
+#[cfg(test)]
+mod tests;

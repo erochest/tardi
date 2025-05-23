@@ -1,0 +1,6 @@
+use: std/strings
+use: std/vectors
+
+"Hello " "world" "!" strings/concat std/strings/concat
+
+{ 1 1 } { 2 3 } { 5 8 } vectors/concat std/vectors/concat

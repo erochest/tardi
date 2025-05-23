@@ -124,18 +124,6 @@ impl Module {
             .copied()
     }
 
-    pub fn use_module(&mut self, other: &Module) {
-        for (key, index) in other.defined.iter() {
-            self.imported.insert(key.clone(), *index);
-        }
-        log::trace!("Module::use_module {} {}", self.name, other.name);
-        log::trace!(
-            "{} imported {:?}",
-            self.name,
-            self.imported.keys().collect::<Vec<_>>()
-        );
-    }
-
     pub fn get_exports(&self) -> HashMap<String, usize> {
         let mut exports = HashMap::new();
 
@@ -151,6 +139,7 @@ impl Module {
                 }
             }
         }
+
         exports
     }
 }
