@@ -144,6 +144,7 @@ impl Callable {
                 ip: instructions,
                 words,
             } => {
+                // TODO: have this run the IP for macros
                 log::trace!("calling compiled function: {:?}", words);
                 vm.push_ip()?;
                 log::trace!("moving instruction pointer to {}", instructions);

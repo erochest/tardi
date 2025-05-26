@@ -147,7 +147,7 @@ fn nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let item = (*list)
         .borrow()
         .get_list()
-        .ok_or_else(|| VMError::TypeMismatch("split head of list".to_string()))
+        .ok_or_else(|| VMError::TypeMismatch("nth list".to_string()))
         .map(|l| {
             l.get(index)
                 .cloned()

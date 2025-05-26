@@ -120,6 +120,8 @@ impl InternalBuilder for KernelModule {
     ) -> Module {
         let mut index = HashMap::new();
 
+        // TODO: loop, break, and continue
+
         push_op(op_table, &mut index, "<lit>", lit);
         push_op(op_table, &mut index, "dup", dup);
         push_op(op_table, &mut index, "swap", swap);

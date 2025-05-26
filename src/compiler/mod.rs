@@ -22,6 +22,10 @@ use crate::value::{Value, ValueData, ValueVec};
 use crate::vm::OpCode;
 use crate::{Scanner, VM};
 
+// TODO: TCO
+// TODO: Jump optimization
+// TODO: warning or error on unrecognized symbols/words
+
 #[derive(Default)]
 struct LambdaCompiler {
     words: Vec<String>,

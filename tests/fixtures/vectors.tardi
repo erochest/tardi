@@ -65,3 +65,7 @@ pick 8 swap nth
 { 1 } dup sort!
 { 3 2 1 } dup sort!
 { 1 0 9 3 5 8 7 2 4 6 } dup sort!
+
+{ } [ 2 * ] map
+{ 1 2 3 } [ ] map
+{ 1 2 3 4 } [ 2 * ] map

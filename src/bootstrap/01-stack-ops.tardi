@@ -5,9 +5,13 @@
 /// ...s x l -- ...s' x
 : dip   swap >r apply r> ;
 
+// ...s x y l -- ...s' x y
+: 2dip swap >r swap >r apply r> r> ;
+
+/// ...s x y z l -- ...s' x y z
+: 3dip   swap >r swap >r swap >r apply r> r> r> ;
+
 // TODO: Preserving combinators
-// 2dip ...s x y l -- ...s' x y
-// 3dip ...s x y z l -- ...s' x y z
 // 4dip ...s w x y z l -- ...s' w x y z
 // keep ...a x l(...a x -- ...b) --- ...b x
 // 2keep ...a x y l(...a x y -- ...b) --- ...b x y
@@ -70,6 +74,9 @@
 /// w x y z -- z y x w
 : 4spin    swap [ spin ] dip -rot ;
 
+/// v w x y z -- y x w v z
+: 4spind   [ 4spin ] dip ;
+
 /// w x y z -- x y w z
 : rotd     [ rot ] dip ;
 
@@ -96,6 +103,9 @@
 /// x y z -- x y z x y z
 : 3dup    2dupd swap [ swap dupd swap ] dip swap ;
 
+/// w x y z -- y z w x
+: 2swap    -rot -rot rotd ;
+
 /// x y z -- x y z x y
 : 2over    2dupd -rot ;
 
@@ -107,3 +117,5 @@
 
 /// ...x lambda -- ...x' x
 : keep    over >r apply r> ;
+
+// TODO: while

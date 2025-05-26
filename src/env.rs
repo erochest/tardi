@@ -15,6 +15,9 @@ use std::result;
 
 // TODO: umm. no tests for this module?
 // TODO: tests to make sure typical programs can decompile without errors
+// TODO: this isn't great for long-term interactive development
+// - redefining words leaks memory from the previous versions of it
+// - do we need to manage the memory in the instructions and GC it?
 
 /// This holds the running environment.
 #[derive(Default, Clone)]

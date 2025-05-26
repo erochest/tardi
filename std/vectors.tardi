@@ -1,12 +1,12 @@
 
 use: std/_vectors
 
-// TODO: map
 // TODO: reduce
+// TODO: each
 
 exports:
-    <vector> concat empty? first fourth in? index-of? join last length nth pop!
-    pop-left! push! push-left! second set-nth! sort! subvector third ;
+    <vector> concat empty? first fourth in? index-of? join last length map nth
+    pop! pop-left! push! push-left! second set-nth! sort! subvector third ;
 
 /// v -- x
 : first    0 swap nth ;
@@ -22,3 +22,66 @@ exports:
 
 /// v -- ?
 : empty?   length 0 == ;
+
+/// vector lambda -- lambda max index vector vector'
+: map-init
+    swap
+    [ length 0 ] keep 
+    { } ;
+
+// TODO: set up the data so that the iteration stuff is higher on the stack
+// this will make it easier to create shared code with `each` and maybe
+// redefine `map` on top of `each`
+/// vector' lambda vector max index -- lambda vector max index vector' item
+: clear-and-apply
+    dup >r         // v' l v m i | i
+    swap >r        // v' l v i   | m i
+    rotd swap >r   // l v i      | v' m i
+    pick >r        // l v i      | l v' m i
+    swap dup >r    // l i v      | v l v' m i
+
+    nth swap       // x l        | v l v' m i
+    apply          // x'         | v l v' m i
+
+    r> swap        // v x'       | l v' m i
+    r> -rot        // l v x'     | v' m i
+    r> swap        // l v v' x'  | m i
+    r> -rot        // l v m v' x' | i
+    r> -rot        // l v m i v' x'
+    ;
+// TODO: [ nth swap apply ] with-clear-stack
+
+/// vector' item -- vector'
+/// l v m i vector' item -- l v m i vector'
+: push-item!   over push! ;
+
+/// l v m index v' -- l v m v' index
+: next-item   swap 1 + ;
+
+/// lambda max index vector vector' -- vector' lambda vector max index ?
+: more-left?
+    2swap
+    [ -rot ] 2dip
+    2dup
+    > ;
+
+/// lambda vector max vector' index -- lambda max index vector vector'
+: prep-loop   swap rotd ;
+
+/// vector' l v m i -- vector'
+: cleanup   4drop ;
+
+/// lambda max index vector vector' -- vector'
+: map-loop
+    more-left?
+    [
+        clear-and-apply
+        push-item!
+        next-item
+        prep-loop
+        map-loop
+    ] [ cleanup ] if ;
+
+/// vector lambda -- vector'
+: map   map-init map-loop ;
+
