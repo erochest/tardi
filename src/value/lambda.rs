@@ -20,8 +20,13 @@ pub struct Lambda {
 }
 
 impl Lambda {
-    pub fn new_lambda(words: Vec<String>, ip: usize) -> Self {
-        let callable = Callable::Compiled { words, ip };
+    pub fn new_lambda(words: Vec<String>, ip: usize, length: usize) -> Self {
+        let callable = Callable::Compiled {
+            words,
+            ip,
+            length,
+            is_loop: false,
+        };
         Lambda {
             name: None,
             immediate: false,
@@ -65,6 +70,8 @@ impl Lambda {
         let callable = Callable::Compiled {
             words: vec![],
             ip: 0,
+            length: 0,
+            is_loop: false,
         };
         Lambda {
             name,
@@ -108,15 +115,41 @@ impl Lambda {
         }
     }
 
-    pub fn define_function(&mut self, ip: usize) -> Result<()> {
-        log::trace!("Lambda::define_function {:?} => {}", self.name, ip);
-        if let Callable::Compiled { ref words, .. } = self.callable {
+    pub fn get_length(&self) -> Option<usize> {
+        match self.callable {
+            Callable::Compiled { length, .. } => Some(length),
+            _ => None,
+        }
+    }
+
+    pub fn is_loop(&self) -> bool {
+        match self.callable {
+            Callable::Compiled { is_loop, .. } => is_loop,
+            _ => false,
+        }
+    }
+
+    pub fn set_loop(&mut self, new_is_loop: bool) {
+        log::trace!("setting a loop {}", new_is_loop);
+        if let Callable::Compiled {
+            ref mut is_loop, ..
+        } = self.callable
+        {
+            *is_loop = new_is_loop;
+        }
+    }
+
+    pub fn define_function(&mut self, new_ip: usize, new_length: usize) -> Result<()> {
+        log::trace!("Lambda::define_function {:?} => {}", self.name, new_ip);
+        if let Callable::Compiled {
+            ref mut ip,
+            ref mut length,
+            ..
+        } = self.callable
+        {
             self.defined = true;
-            // TODO: yuck. is there some better way to set this field?
-            self.callable = Callable::Compiled {
-                ip,
-                words: words.clone(),
-            };
+            *ip = new_ip;
+            *length = new_length;
             Ok(())
         } else {
             Err(VMError::TypeMismatch("setting ip of a builtin".to_string()).into())
@@ -130,7 +163,12 @@ pub enum Callable {
     /// Built-in function implemented in Rust
     BuiltIn { function: OpFn },
     /// User-defined function or lambda
-    Compiled { words: Vec<String>, ip: usize },
+    Compiled {
+        words: Vec<String>,
+        ip: usize,
+        length: usize,
+        is_loop: bool,
+    },
 }
 
 impl Callable {
@@ -143,10 +181,12 @@ impl Callable {
             Callable::Compiled {
                 ip: instructions,
                 words,
+                is_loop,
+                ..
             } => {
                 // TODO: have this run the IP for macros
                 log::trace!("calling compiled function: {:?}", words);
-                vm.push_ip()?;
+                vm.push_ip(*is_loop)?;
                 log::trace!("moving instruction pointer to {}", instructions);
                 vm.ip = *instructions;
                 Ok(())
@@ -186,7 +226,7 @@ impl fmt::Display for Callable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Callable::BuiltIn { .. } => write!(f, "fn"),
-            Callable::Compiled { words, ip } => write!(f, "[ {} ]@{}", words.join(" "), ip),
+            Callable::Compiled { words, ip, .. } => write!(f, "[ {} ]@{}", words.join(" "), ip),
         }
     }
 }

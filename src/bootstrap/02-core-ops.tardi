@@ -9,3 +9,6 @@
 ///
 /// == 0 [ "zero" ] [ "non-zero" ] if
 : if   ? apply ;
+
+/// `when` is `if` without the `else`.
+: when   [ ] if ;

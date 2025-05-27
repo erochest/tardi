@@ -11,6 +11,8 @@ use crate::vm::VM;
 
 use super::{push_macro, push_op, InternalBuilder};
 
+mod loop_word;
+
 pub const KERNEL: &str = "std/kernel";
 
 pub struct KernelModule;
@@ -24,6 +26,7 @@ impl InternalBuilder for KernelModule {
 
         // TODO: loop, break, and continue
 
+        push_op(op_table, &mut index, "<nop>", nop);
         push_op(op_table, &mut index, "<lit>", lit);
         push_op(op_table, &mut index, "dup", dup);
         push_op(op_table, &mut index, "swap", swap);
@@ -51,6 +54,9 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, "jump-stack", jump_stack);
         push_op(op_table, &mut index, "lit", lit_stack);
         push_op(op_table, &mut index, "compile", compile);
+        push_op(op_table, &mut index, "break", break_word);
+        push_op(op_table, &mut index, "continue", continue_word);
+        push_macro(op_table, &mut index, "loop", loop_word::loop_word);
         push_macro(op_table, &mut index, "use:", use_module);
         push_macro(op_table, &mut index, "exports:", export_list);
 
@@ -65,6 +71,11 @@ impl InternalBuilder for KernelModule {
 }
 
 // Define the operations
+fn nop(_vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    log::trace!("nop");
+    Ok(())
+}
+
 fn lit(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.lit()
 }
@@ -182,6 +193,14 @@ fn lit_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
 fn compile(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
     vm.compile(compiler)
+}
+
+fn break_word(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    vm.clear_jump()
+}
+
+fn continue_word(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    vm.clear_jump()
 }
 
 fn use_module(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {

@@ -54,9 +54,9 @@ impl VM {
     }
 
     /// Pushes the current instruction pointer onto the return stack
-    pub fn push_ip(&mut self) -> Result<()> {
+    pub fn push_ip(&mut self, is_breakpoint: bool) -> Result<()> {
         log::trace!("pushing instruction pointer onto return stack {}", self.ip);
-        self.push_return(shared(ValueData::Address(self.ip).into()))
+        self.push_return(shared(ValueData::Return(self.ip, is_breakpoint).into()))
     }
 
     /// Pushes a shared value onto the return stack
@@ -111,6 +111,11 @@ impl VM {
             log::warn!("VM::pop VMError::StackUnderflow");
             VMError::StackUnderflow.into()
         })
+    }
+
+    /// Peek at the top of the stack
+    pub fn peek(&self) -> Option<&SharedValue> {
+        self.stack.last()
     }
 
     /// Returns the current size of the data stack
@@ -345,13 +350,17 @@ impl VM {
         let get_op_index = env.borrow().get_op_index(module_name, name_str);
         if let Some(index) = get_op_index {
             log::trace!("VM::function defining predeclared function {}", name_str);
-            let ip = (*lambda)
+            let (ip, length) = (*lambda)
                 .borrow()
                 .get_function()
-                .and_then(|f| f.get_ip())
+                .and_then(|f| {
+                    let ip = f.get_ip()?;
+                    let length = f.get_length()?;
+                    Some((ip, length))
+                })
                 .unwrap(); // TODO: be more defensive here
             let function = &env.borrow_mut().get_op(&ip, index)?;
-            (*function).borrow_mut().define_function(ip)?;
+            (*function).borrow_mut().define_function(ip, length)?;
             return Ok(());
         }
 
@@ -408,6 +417,25 @@ impl VM {
         self.ip = addr;
 
         Ok(())
+    }
+
+    /// Break from a loop by removing things from the return stack until getting to a breakpoint
+    /// and then jumping to the next ip value.
+    pub fn clear_jump(&mut self) -> Result<()> {
+        log::trace!("VM::clear_jump");
+        if self.return_stack.is_empty() {
+            // TODO: not wild about using `VMError::Stop` for flow control here.
+            return Err(VMError::Stop.into());
+        }
+
+        while let Some(address) = self.return_stack.last() {
+            if address.borrow().is_breakpoint() {
+                break;
+            }
+            self.pop_return()?;
+        }
+
+        self.jump()
     }
 
     /// Return from a macro
@@ -481,7 +509,7 @@ impl VM {
             .map(|v| format!("[{}]", v.borrow()))
             .collect::<Vec<_>>()
             .join(" ");
-        log::trace!("DATA  : {}\tRETURN: {}", stack_repr, rstack_repr);
+        log::debug!("DATA  : {}\tRETURN: {}", stack_repr, rstack_repr);
     }
 }
 
@@ -515,6 +543,7 @@ impl Execute for VM {
                 self.debug_stacks();
             }
             if log_enabled!(Level::Debug) {
+                self.debug_stacks();
                 self.debug_op();
             }
 

@@ -1,0 +1,27 @@
+use: std/vectors
+
+// initialize
+{ }
+0
+
+[
+  // skip 2
+  dup 2 == [
+    1 +
+    continue
+  ] when
+
+  // stop 5
+  dup 5 == [
+    // clean up
+    drop
+    break
+  ] when
+
+  // push and increment
+  2dup swap push!
+  1 +
+] loop
+
+// leave something so we know it's executing things after the loop
+"still here"

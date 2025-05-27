@@ -198,6 +198,15 @@ impl Environment {
             .ok_or(VMError::InvalidInstructionPointer(ip))
     }
 
+    pub fn set_instruction(&mut self, ip: usize, op: usize) -> VMResult<()> {
+        if self.instructions.len() <= ip {
+            return Err(VMError::InvalidOpIndex(ip));
+        }
+        self.instructions[ip] = op;
+
+        Ok(())
+    }
+
     pub fn get_op(&self, ip: &usize, index: usize) -> VMResult<Shared<Lambda>> {
         self.op_table
             .get(index)
@@ -383,7 +392,8 @@ impl Environment {
     ) -> result::Result<usize, fmt::Error> {
         let next_ip = match op {
             OpCode::Lit => self.debug_const(op, f, ip),
-            OpCode::Dup
+            OpCode::Nop
+            | OpCode::Dup
             | OpCode::Swap
             | OpCode::Rot
             | OpCode::Drop
@@ -407,8 +417,9 @@ impl Environment {
             | OpCode::Bye
             | OpCode::JumpStack
             | OpCode::LitStack
-            | OpCode::Compile => self.debug_simple(op, f, ip),
-            OpCode::Jump => self.debug_jump(op, f, ip),
+            | OpCode::Compile
+            | OpCode::Continue => self.debug_simple(op, f, ip),
+            OpCode::Jump | OpCode::Break => self.debug_jump(op, f, ip),
         }?;
 
         self.write_function_names(f, ip)?;

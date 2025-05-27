@@ -162,7 +162,8 @@ impl Compiler {
             | ValueData::List(_)
             | ValueData::String(_)
             | ValueData::Address(_)
-            | ValueData::Literal(_) => self.compile_constant(value),
+            | ValueData::Literal(_)
+            | ValueData::Return(_, _) => self.compile_constant(value),
             ValueData::Function(ref lambda) if lambda.name.is_none() => {
                 self.compile_constant(value)
             }
@@ -187,6 +188,7 @@ impl Compiler {
             .ok_or_else(|| CompilerError::UnsupportedToken(format!("{:?}", value)))?;
 
         match word {
+            "<nop>" => self.compile_op(OpCode::Nop),
             "dup" => self.compile_op(OpCode::Dup),
             "swap" => self.compile_op(OpCode::Swap),
             "rot" => self.compile_op(OpCode::Rot),
@@ -220,6 +222,14 @@ impl Compiler {
             "apply" => self.compile_op(OpCode::Apply),
             "lit" => self.compile_op(OpCode::LitStack),
             "compile" => self.compile_op(OpCode::Compile),
+            "break" => {
+                self.compile_op(OpCode::Break)?;
+                self.compile_op(OpCode::Nop)
+            }
+            "continue" => {
+                self.compile_op(OpCode::Continue)?;
+                self.compile_op(OpCode::Nop)
+            }
             "stop" => self.compile_op(OpCode::Stop),
             "bye" => self.compile_op(OpCode::Bye),
             _ => self.compile_symbol_call(&value),
@@ -251,6 +261,9 @@ impl Compiler {
         }
 
         self.pass2(buffer)?;
+        // On loops these get replaced with a jump to the beginning.
+        self.compile_op(OpCode::Nop)?;
+        self.compile_op(OpCode::Nop)?;
         self.compile_op(OpCode::Return)?;
         self.end_function().map_err(Error::from)
     }
@@ -362,6 +375,7 @@ impl Compiler {
 
         // TODO: do more of this instead of cloning.
         let instructions = mem::take(&mut lambda.instructions);
+        let length = instructions.len();
         let ip = self
             .environment
             .as_ref()
@@ -372,7 +386,12 @@ impl Compiler {
             lambda.words.pop();
         }
 
-        log::trace!("Compiler::end_function: {} ({:?})", ip, lambda.words);
+        log::debug!(
+            "Compiler::end_function: {} - {} ({:?})",
+            ip,
+            length,
+            lambda.words
+        );
         // TODO: get the pos for this value from the outer punctuation.
         Ok(Lambda {
             name: None,
@@ -381,6 +400,8 @@ impl Compiler {
             callable: Callable::Compiled {
                 words: lambda.words,
                 ip,
+                length,
+                is_loop: false,
             },
         })
     }

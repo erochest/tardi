@@ -117,7 +117,7 @@ fn test_basic_vm_execution() {
     let mut tardi = Tardi::default();
     let environment = tardi.environment.clone();
     environment.borrow_mut().constants = vec![ValueData::Integer(123).into()];
-    environment.borrow_mut().instructions = vec![0, 0];
+    environment.borrow_mut().instructions = vec![1, 0];
 
     let result = tardi.execute_ip(0);
     assert!(result.is_ok(), "basic-vm-execution error: {:?}", result);
@@ -358,6 +358,8 @@ fn test_arithmetic_errors() {
 
 #[test]
 fn test_character_operations() {
+    env_logger::init();
+
     // Test basic character handling
     let mut stack = eval("'a'").unwrap();
     assert!(matches!(
@@ -452,12 +454,9 @@ fn test_character_operations() {
         }
     ));
 
-    // Test type mismatch with characters
+    // Test type mismatch with characters returns false
     let result = eval("'a' 1 ==");
-    assert!(matches!(
-        result,
-        Err(Error::VMError(VMError::TypeMismatch(_)))
-    ));
+    assert!(result.is_ok_and(|r| matches!(r[0].data, ValueData::Boolean(false))));
 }
 
 #[test]
@@ -513,10 +512,7 @@ fn test_comparison_operations() {
 
     // Test comparison error
     let result = eval("5 #t ==");
-    assert!(matches!(
-        result,
-        Err(Error::VMError(VMError::TypeMismatch(_)))
-    ));
+    assert!(result.is_ok_and(|r| matches!(r[0].data, ValueData::Boolean(false))));
 
     // Test NOT operation
     let mut stack = eval("#t !").unwrap();
@@ -581,13 +577,13 @@ fn test_jump_operations() {
         ValueData::Integer(3).into(),
     ];
     env.borrow_mut().instructions = vec![
-        0,
+        OpCode::Lit as usize,
         0, // lit 1
         OpCode::Jump as usize,
         6, // jump to position 5
-        0,
+        OpCode::Lit as usize,
         1, // lit 2 (skipped)
-        0,
+        OpCode::Lit as usize,
         2, // lit 3
         OpCode::Return as usize,
     ];
@@ -618,14 +614,14 @@ fn test_jump_operations() {
         ValueData::Integer(3).into(),
     ];
     env.borrow_mut().instructions = vec![
-        0,
+        OpCode::Lit as usize,
         0, // lit 1
-        0,
+        OpCode::Lit as usize,
         1, // lit address(7)
         OpCode::JumpStack as usize,
-        0,
+        OpCode::Lit as usize,
         2, // lit 2 (skipped)
-        0,
+        OpCode::Lit as usize,
         3, // lit 3
     ];
 

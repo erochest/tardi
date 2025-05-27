@@ -17,7 +17,7 @@ pub mod lambda;
 /// Shared value type for all values
 pub type SharedValue = Rc<RefCell<Value>>;
 
-#[derive(Debug, Clone, Ord, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct Value {
     pub data: ValueData,
 
@@ -27,9 +27,15 @@ pub struct Value {
     pub pos: Option<Pos>,
 }
 
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.data.cmp(&other.data)
+    }
+}
+
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.data.partial_cmp(&other.data)
+        Some(self.cmp(other))
     }
 }
 
@@ -59,6 +65,7 @@ pub enum ValueData {
     Symbol { module: String, word: String },
     Macro,
     Literal(Box<Value>),
+    Return(usize, bool),
     EndOfInput,
 }
 
@@ -200,10 +207,18 @@ impl Value {
     }
 
     pub fn get_address(&self) -> Option<usize> {
-        if let ValueData::Address(address) = self.data {
-            Some(address)
+        match self.data {
+            ValueData::Address(address) => Some(address),
+            ValueData::Return(address, _) => Some(address),
+            _ => None,
+        }
+    }
+
+    pub fn is_breakpoint(&self) -> bool {
+        if let ValueData::Return(_, breakpoint) = self.data {
+            breakpoint
         } else {
-            None
+            false
         }
     }
 
@@ -419,6 +434,7 @@ impl fmt::Display for ValueData {
                 }
                 write!(f, " }}")
             }
+            // TODO: don't quote this
             ValueData::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
             ValueData::Function(lambda) => write!(f, "{}", lambda),
             ValueData::Address(addr) => write!(f, "<@{}>", addr),
@@ -427,6 +443,7 @@ impl fmt::Display for ValueData {
             ValueData::Symbol { module, word } => write!(f, "{}::{}", module, word),
             ValueData::Macro => write!(f, "MACRO:"),
             ValueData::Literal(value) => write!(f, "\\ {}", value),
+            ValueData::Return(address, breakpoint) => write!(f, "<@{} - {}>", address, breakpoint),
             ValueData::EndOfInput => write!(f, "<EOI>"),
         }
     }
