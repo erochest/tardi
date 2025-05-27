@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt};
 
 use internal::define_module;
+use internal::kernel::KERNEL;
 use internal::strings::STRINGS;
 use internal::vectors::VECTORS;
 use lazy_static::lazy_static;
@@ -13,13 +14,11 @@ use crate::shared::Shared;
 use crate::value::lambda::Lambda;
 use crate::{config::Config, error::Result};
 
-mod internal;
+pub mod internal;
 
-// TODO: break std/kernel of these into their own modules
 // TODO: break std/_internals of these into their own modules
 // TODO: break std/scanning of these into their own modules
 // TODO: move consts into the module modules
-pub const KERNEL: &str = "std/kernel";
 pub const SANDBOX: &str = "std/sandbox";
 pub const INTERNALS: &str = "std/_internals";
 pub const SCANNING: &str = "std/scanning";
