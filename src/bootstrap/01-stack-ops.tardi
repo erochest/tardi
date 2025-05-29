@@ -13,9 +13,6 @@
 
 // TODO: Preserving combinators
 // 4dip ...s w x y z l -- ...s' w x y z
-// keep ...a x l(...a x -- ...b) --- ...b x
-// 2keep ...a x y l(...a x y -- ...b) --- ...b x y
-// 3keep ...a x y z l(...a x y z -- ...b) --- ...b x y z
 
 // Dropping stack elements
 
@@ -117,3 +114,9 @@
 
 /// ...x lambda -- ...x' x
 : keep    over >r apply r> ;
+
+/// ...a x y l(...a x y -- ...b) --- ...b x y
+: 2keep   over >r pick >r apply r> r> ;
+
+/// ...a x y z l(...a x y z -- ...b) --- ...b x y z
+: 3keep   over >r pick >r reach >r apply r> r> r> ;

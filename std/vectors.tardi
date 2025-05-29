@@ -5,8 +5,8 @@ use: std/_vectors
 // TODO: each
 
 exports:
-    <vector> concat empty? first fourth in? index-of? join last length map nth
-    pop! pop-left! push! push-left! second set-nth! sort! subvector third ;
+    <vector> concat each empty? first fourth in? index-of? join last length map
+    nth pop! pop-left! push! push-left! second set-nth! sort! subvector third ;
 
 /// v -- x
 : first    0 swap nth ;
@@ -22,6 +22,43 @@ exports:
 
 /// v -- ?
 : empty?   length 0 == ;
+
+// TODO: tardi (and others) often have lots of small, private, helper words.
+// maybe we could facilitate that by having a way to make them private and
+// scope them to only be visible inside a small set of other words, primarily
+// one other word.
+
+/// vector l -- l vector max index
+: each-init-index-limit   swap dup length 0 ;
+
+/// vector lambda -- lambda vector max index
+: each-init-state   each-init-index-limit ;
+
+/// max index -- max index ?
+: each-more?   2dup > ;
+
+/// vector m index -- item vector m index
+: each-get-item   -rot [ [ nth ] 2keep ] dip rot ;
+
+/// lambda item v m i -- lambda v m i
+: each-clear-apply   [ swap [ apply ] keep ] 3dip ;
+
+/// i -- i'
+: each-next   1 + ;
+
+/// lambda vector max index -- lambda vector max index'
+: each-loop
+    [ each-more? ] [
+        each-get-item
+        each-clear-apply
+        each-next
+    ] while ;
+
+/// l v m i --
+: each-cleanup   4drop ;
+
+/// vector lambda --
+: each   each-init-state each-loop each-cleanup ;
 
 /// vector lambda -- lambda max index vector vector'
 : map-init
