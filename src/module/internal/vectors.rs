@@ -278,7 +278,7 @@ fn join(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 fn sort(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let mut list = list.borrow_mut();
-    let mut list = list
+    let list = list
         .get_list_mut()
         .ok_or_else(|| VMError::TypeMismatch("subvector list".to_string()))?;
 

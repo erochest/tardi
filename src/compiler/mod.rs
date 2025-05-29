@@ -73,7 +73,7 @@ impl Compiler {
         self.environment
             .as_ref()
             .ok_or_else(|| CompilerError::MissingEnvironment.into())
-            .map(|e| e.clone())
+            .cloned()
     }
 
     pub fn current_module_compiler(&self) -> Option<&ModuleCompiler> {
