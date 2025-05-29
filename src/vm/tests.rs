@@ -358,7 +358,7 @@ fn test_arithmetic_errors() {
 
 #[test]
 fn test_character_operations() {
-    env_logger::init();
+    // env_logger::init();
 
     // Test basic character handling
     let mut stack = eval("'a'").unwrap();
