@@ -11,4 +11,22 @@
 : if   ? apply ;
 
 /// `when` is `if` without the `else`.
+/// ? if-true --
 : when   [ ] if ;
+
+/// ..s lambda x -- ..s' lambda x
+: deep-apply   dupd [ apply ] 2dip ;
+
+/// ..s pred exec -- ..s' pred exec ?
+: while-continue?   deep-apply rot ! ;
+
+/// pred exec --
+: while-cleanup   2drop ;
+
+/// `while` runs a lambda as long as a predicate lambda returns `#t`.
+/// It's tested before each run of the execution lambda.
+/// predicate execution --
+: while   [
+    while-continue? [ while-cleanup break ] when
+    swap deep-apply swap
+    ] loop ;

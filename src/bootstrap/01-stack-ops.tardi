@@ -117,5 +117,3 @@
 
 /// ...x lambda -- ...x' x
 : keep    over >r apply r> ;
-
-// TODO: while

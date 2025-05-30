@@ -25,3 +25,8 @@ use: std/vectors
 
 // leave something so we know it's executing things after the loop
 "still here"
+
+0
+[ dup 5 < ] [
+    1 +
+] while
