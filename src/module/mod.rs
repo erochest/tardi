@@ -4,7 +4,10 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt};
 
 use internal::define_module;
+use internal::internals::INTERNALS;
 use internal::kernel::KERNEL;
+use internal::sandbox::SANDBOX;
+use internal::scanning::SCANNING;
 use internal::strings::STRINGS;
 use internal::vectors::VECTORS;
 use lazy_static::lazy_static;
@@ -15,13 +18,6 @@ use crate::value::lambda::Lambda;
 use crate::{config::Config, error::Result};
 
 pub mod internal;
-
-// TODO: break std/_internals of these into their own modules
-// TODO: break std/scanning of these into their own modules
-// TODO: move consts into the module modules
-pub const SANDBOX: &str = "std/sandbox";
-pub const INTERNALS: &str = "std/_internals";
-pub const SCANNING: &str = "std/scanning";
 
 lazy_static! {
     static ref INTERNAL_MODULES: HashSet<String> = vec![

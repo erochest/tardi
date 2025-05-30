@@ -6,7 +6,6 @@ use crate::env::Environment;
 use crate::shared::unshare_clone;
 use crate::value::{Pos, Value};
 
-use crate::module::SANDBOX;
 use pretty_assertions::assert_eq;
 
 // TODO: more tests

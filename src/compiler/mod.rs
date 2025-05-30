@@ -5,7 +5,8 @@ use std::mem;
 use std::path::Path;
 use std::result;
 
-use crate::module::{Module, SANDBOX};
+use crate::module::internal::sandbox::SANDBOX;
+use crate::module::Module;
 use log::Level;
 
 pub mod error;

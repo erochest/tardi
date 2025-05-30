@@ -1,6 +1,6 @@
 pub mod error;
 
-use crate::module::SANDBOX;
+use crate::module::internal::sandbox::SANDBOX;
 use crate::scanner::error::{ScannerError, ScannerResult};
 use crate::value::{Value, ValueData};
 use std::convert::TryFrom;
