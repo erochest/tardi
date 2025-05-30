@@ -60,65 +60,28 @@ exports:
 /// vector lambda --
 : each   each-init-state each-loop each-cleanup ;
 
-/// vector lambda -- lambda max index vector vector'
-: map-init
-    swap
-    [ length 0 ] keep 
-    { } ;
+/// vector lambda -- vector' lambda vector
+: map-init   { } spin ;
 
-// TODO: set up the data so that the iteration stuff is higher on the stack
-// this will make it easier to create shared code with `each` and maybe
-// redefine `map` on top of `each`
-/// vector' lambda vector max index -- lambda vector max index vector' item
-: clear-and-apply
-    dup >r         // v' l v m i | i
-    swap >r        // v' l v i   | m i
-    rotd swap >r   // l v i      | v' m i
-    pick >r        // l v i      | l v' m i
-    swap dup >r    // l i v      | v l v' m i
+/// vector' lambda item -- item lambda vector'
+: map-init-step   spin ;
 
-    nth swap       // x l        | v l v' m i
-    apply          // x'         | v l v' m i
+/// item lambda vector' -- item' lambda vector'
+: map-clear-apply   [ [ apply ] keep ] dip ;
 
-    r> swap        // v x'       | l v' m i
-    r> -rot        // l v x'     | v' m i
-    r> swap        // l v v' x'  | m i
-    r> -rot        // l v m v' x' | i
-    r> -rot        // l v m i v' x'
-    ;
-// TODO: [ nth swap apply ] with-clear-stack
+/// item l vector' -- vector' l
+: map-push!   swap [ [ push! ] keep ] dip ;
 
-/// vector' item -- vector'
-/// l v m i vector' item -- l v m i vector'
-: push-item!   over push! ;
-
-/// l v m index v' -- l v m v' index
-: next-item   swap 1 + ;
-
-/// lambda max index vector vector' -- vector' lambda vector max index ?
-: more-left?
-    2swap
-    [ -rot ] 2dip
-    2dup
-    > ;
-
-/// lambda vector max vector' index -- lambda max index vector vector'
-: prep-loop   swap rotd ;
-
-/// vector' l v m i -- vector'
-: cleanup   4drop ;
-
-/// lambda max index vector vector' -- vector'
+/// vector' lambda vector -- vector' lambda
 : map-loop
-    more-left?
     [
-        clear-and-apply
-        push-item!
-        next-item
-        prep-loop
-        map-loop
-    ] [ cleanup ] if ;
+        map-init-step
+        map-clear-apply
+        map-push!
+    ] each ;
+
+/// lambda --
+: map-cleanup   drop ;
 
 /// vector lambda -- vector'
-: map   map-init map-loop ;
-
+: map   map-init map-loop map-cleanup ;
