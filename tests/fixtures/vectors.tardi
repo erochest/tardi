@@ -72,3 +72,5 @@ pick 8 swap nth
 
 // The types of this is a mess.
 { 2 4 6 8 10 } [ ] each
+
+{ 2 4 6 8 10 } 0 [ + ] reduce

@@ -1,12 +1,10 @@
 
 use: std/_vectors
 
-// TODO: reduce
-// TODO: each
-
 exports:
     <vector> concat each empty? first fourth in? index-of? join last length map
-    nth pop! pop-left! push! push-left! second set-nth! sort! subvector third ;
+    nth pop! pop-left! push! push-left! reduce second set-nth! sort! subvector
+    third ;
 
 /// v -- x
 : first    0 swap nth ;
@@ -85,3 +83,9 @@ exports:
 
 /// vector lambda -- vector'
 : map   map-init map-loop map-cleanup ;
+
+/// vector init ( accum item -- accum ) -- accum
+: reduce
+    rot
+    [ swap [ apply ] keep ] each 
+    drop ;
