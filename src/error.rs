@@ -13,7 +13,6 @@ use crate::scanner::error::ScannerError;
 pub type Result<R> = result::Result<R, Error>;
 pub type VMResult<R> = result::Result<R, VMError>;
 
-// TODO: box inner data, especially `figment::Error`
 #[derive(Debug)]
 pub enum Error {
     IoError(io::Error),
@@ -23,7 +22,7 @@ pub enum Error {
     InvalidOpCode(usize),
     ReplError(ReadlineError),
     TomlError(toml::de::Error),
-    ConfigReadError(figment::Error),
+    ConfigReadError(Box<figment::Error>),
     InfallibleError,
 }
 
@@ -123,7 +122,7 @@ impl From<toml::de::Error> for Error {
 
 impl From<figment::Error> for Error {
     fn from(err: figment::Error) -> Self {
-        ConfigReadError(err)
+        ConfigReadError(Box::new(err))
     }
 }
 
