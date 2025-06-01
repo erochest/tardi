@@ -44,7 +44,7 @@ impl Tardi {
         }
     }
 
-    // TODO: add bootstrapping to Config and then depreate this
+    // TODO: add bootstrapping to Config and then deprecate this
     pub fn new(bootstrap_dir: Option<PathBuf>) -> Result<Self> {
         let mut tardi = Tardi::default();
         tardi.bootstrap(bootstrap_dir)?;

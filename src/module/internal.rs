@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
+use fs::{FsModule, FS};
 use internals::{InternalsModule, INTERNALS};
+use io::{IoModule, IO};
 use kernel::{KernelModule, KERNEL};
 use sandbox::{SandboxBuilder, SANDBOX};
 use scanning::{ScanningBuilder, SCANNING};
@@ -14,14 +16,14 @@ use crate::value::lambda::{Lambda, OpFn};
 
 use super::{Module, ModuleManager};
 
+pub mod fs;
 pub mod internals;
+pub mod io;
 pub mod kernel;
 pub mod sandbox;
 pub mod scanning;
 pub mod strings;
 pub mod vectors;
-
-// TODO: break std/scanning of these into their own modules
 
 pub fn define_module(
     manager: &ModuleManager,
@@ -29,8 +31,10 @@ pub fn define_module(
     op_table: &mut Vec<Shared<Lambda>>,
 ) -> Result<Module> {
     let builder: Box<dyn InternalBuilder> = match name {
+        FS => Box::new(FsModule),
         KERNEL => Box::new(KernelModule),
         INTERNALS => Box::new(InternalsModule),
+        IO => Box::new(IoModule),
         SANDBOX => Box::new(SandboxBuilder),
         SCANNING => Box::new(ScanningBuilder),
         STRINGS => Box::new(StringsBuilder),

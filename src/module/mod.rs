@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt};
 
 use internal::define_module;
+use internal::fs::FS;
 use internal::internals::INTERNALS;
+use internal::io::IO;
 use internal::kernel::KERNEL;
 use internal::sandbox::SANDBOX;
 use internal::scanning::SCANNING;
@@ -21,9 +23,11 @@ pub mod internal;
 
 lazy_static! {
     static ref INTERNAL_MODULES: HashSet<String> = vec![
+        FS.to_string(),
         KERNEL.to_string(),
         SANDBOX.to_string(),
         INTERNALS.to_string(),
+        IO.to_string(),
         SCANNING.to_string(),
         STRINGS.to_string(),
         VECTORS.to_string(),
