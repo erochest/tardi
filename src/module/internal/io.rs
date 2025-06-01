@@ -43,12 +43,12 @@ fn write_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
     let path = path
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("write-file path must be string".to_string()))?;
     let contents = vm.pop()?;
     let contents = contents.borrow();
     let contents = contents
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("write-file contents must be string".to_string()))?;
 
     // TODO: needs to propagate errors
@@ -62,7 +62,7 @@ fn read_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
     let path = path
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("read-file path must be string".to_string()))?;
 
     // TODO: needs to propagate errors
@@ -78,12 +78,12 @@ fn open(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let mode = vm.pop()?;
     let mode = mode.borrow();
     let mode = mode
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("open mode must be string".to_string()))?;
     let path = vm.pop()?;
     let path = path.borrow();
     let path = path
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("open path must be string".to_string()))?;
     let path = PathBuf::from_str(path)?;
 

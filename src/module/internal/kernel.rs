@@ -225,7 +225,7 @@ fn export_list(_vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
 
     module
         .exported
-        .extend(names.iter().map(|v| v.get_word().unwrap().to_string()));
+        .extend(names.iter().map(|v| v.as_word().unwrap().to_string()));
 
     Ok(())
 }

@@ -411,7 +411,7 @@ impl Compiler {
     /// Compiles a word as a function call
     fn compile_symbol_call(&mut self, value: &Value) -> CompilerResult<()> {
         log::trace!("Compiler::compile_symbol_call {}", value);
-        let (module, word) = value.get_symbol().ok_or_else(|| {
+        let (module, word) = value.as_symbol().ok_or_else(|| {
             CompilerError::InvalidState(format!(
                 "Compiler::compile_symbol_call not a symbol {:?}",
                 value
@@ -585,7 +585,7 @@ impl Compiler {
             } else {
                 accumulator
                     .borrow_mut()
-                    .get_list_mut()
+                    .as_list_mut()
                     .unwrap()
                     .push(shared(value));
             }
@@ -642,7 +642,7 @@ impl Compiler {
     fn find_module_info(&mut self) -> Result<(String, Option<&Path>)> {
         let module_word = self.scan_word()?;
         let module_spec = module_word
-            .get_word()
+            .as_word()
             .ok_or_else(|| CompilerError::UnsupportedToken(format!("{}", module_word)))?;
         let context = self
             .current_scanner()

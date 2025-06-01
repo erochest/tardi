@@ -142,7 +142,7 @@ impl Value {
     }
 
     // TODO: change these into as_boolean
-    pub fn get_boolean(&self) -> Option<bool> {
+    pub fn as_boolean(&self) -> Option<bool> {
         if let ValueData::Boolean(b) = self.data {
             Some(b)
         } else {
@@ -150,7 +150,7 @@ impl Value {
         }
     }
 
-    pub fn get_integer(&self) -> Option<i64> {
+    pub fn as_integer(&self) -> Option<i64> {
         if let ValueData::Integer(i) = self.data {
             Some(i)
         } else {
@@ -158,7 +158,7 @@ impl Value {
         }
     }
 
-    pub fn get_string(&self) -> Option<&str> {
+    pub fn as_string(&self) -> Option<&str> {
         if let ValueData::String(ref s) = self.data {
             Some(s)
         } else {
@@ -166,7 +166,7 @@ impl Value {
         }
     }
 
-    pub fn get_char(&self) -> Option<char> {
+    pub fn as_char(&self) -> Option<char> {
         if let ValueData::Char(c) = self.data {
             Some(c)
         } else {
@@ -178,7 +178,7 @@ impl Value {
         matches!(self.data, ValueData::List(_))
     }
 
-    pub fn get_list(&self) -> Option<&Vec<SharedValue>> {
+    pub fn as_list(&self) -> Option<&Vec<SharedValue>> {
         if let ValueData::List(ref list) = self.data {
             Some(list)
         } else {
@@ -186,7 +186,7 @@ impl Value {
         }
     }
 
-    pub fn get_list_mut(&mut self) -> Option<&mut Vec<SharedValue>> {
+    pub fn as_list_mut(&mut self) -> Option<&mut Vec<SharedValue>> {
         if let ValueData::List(ref mut list) = self.data {
             Some(list)
         } else {
@@ -194,7 +194,7 @@ impl Value {
         }
     }
 
-    pub fn get_function(&self) -> Option<&Lambda> {
+    pub fn as_function(&self) -> Option<&Lambda> {
         if let ValueData::Function(ref callable) = self.data {
             Some(callable)
         } else {
@@ -202,7 +202,7 @@ impl Value {
         }
     }
 
-    pub fn get_function_mut(&mut self) -> Option<&mut Lambda> {
+    pub fn as_function_mut(&mut self) -> Option<&mut Lambda> {
         if let ValueData::Function(ref mut callable) = self.data {
             Some(callable)
         } else {
@@ -210,7 +210,7 @@ impl Value {
         }
     }
 
-    pub fn get_address(&self) -> Option<usize> {
+    pub fn as_address(&self) -> Option<usize> {
         match self.data {
             ValueData::Address(address) => Some(address),
             ValueData::Return(address, _) => Some(address),
@@ -226,7 +226,7 @@ impl Value {
         }
     }
 
-    pub fn get_word(&self) -> Option<&str> {
+    pub fn as_word(&self) -> Option<&str> {
         if let ValueData::Word(ref w) = self.data {
             Some(w)
         } else if let ValueData::Symbol { word: ref w, .. } = self.data {
@@ -236,7 +236,7 @@ impl Value {
         }
     }
 
-    pub fn get_symbol(&self) -> Option<(&str, &str)> {
+    pub fn as_symbol(&self) -> Option<(&str, &str)> {
         if let ValueData::Symbol {
             ref module,
             ref word,
@@ -246,10 +246,6 @@ impl Value {
         } else {
             None
         }
-    }
-
-    pub fn as_file(&self) -> Option<&File> {
-        todo!("as_file")
     }
 
     pub fn as_file_mut(&mut self) -> Option<Shared<File>> {

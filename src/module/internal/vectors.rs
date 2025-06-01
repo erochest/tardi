@@ -61,7 +61,7 @@ fn push(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     (*list)
         .borrow_mut()
-        .get_list_mut()
+        .as_list_mut()
         .map(|l| l.push(value))
         .ok_or_else(|| VMError::TypeMismatch("push to list".to_string()))?;
 
@@ -75,7 +75,7 @@ fn push_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     (*list)
         .borrow_mut()
-        .get_list_mut()
+        .as_list_mut()
         .map(|l| l.insert(0, value))
         .ok_or_else(|| VMError::TypeMismatch("push-left to list".to_string()))?;
 
@@ -90,8 +90,8 @@ fn concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let new_items = {
         let list1 = list1.borrow();
         let list2 = list2.borrow();
-        let list1_ref = list1.get_list();
-        let list2_ref = list2.get_list();
+        let list1_ref = list1.as_list();
+        let list2_ref = list2.as_list();
         match (list1_ref, list2_ref) {
             (Some(items1), Some(items2)) => {
                 let mut new_items = items1.clone();
@@ -112,7 +112,7 @@ fn pop_left(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let head = (*list)
         .borrow_mut()
-        .get_list_mut()
+        .as_list_mut()
         .ok_or_else(|| VMError::TypeMismatch(format!("pop-left! of list: {}", list.borrow())))
         .and_then(|l| {
             if l.is_empty() {
@@ -130,7 +130,7 @@ fn pop(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let item = list
         .borrow_mut()
-        .get_list_mut()
+        .as_list_mut()
         .ok_or_else(|| VMError::TypeMismatch("pop list".to_string()))
         .and_then(|l| l.pop().ok_or(VMError::EmptyList))?;
     vm.push(item)
@@ -142,11 +142,11 @@ fn nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let index = vm
         .pop()?
         .borrow()
-        .get_integer()
+        .as_integer()
         .ok_or_else(|| VMError::TypeMismatch("nth index".to_string()))? as usize;
     let item = (*list)
         .borrow()
-        .get_list()
+        .as_list()
         .ok_or_else(|| VMError::TypeMismatch("nth list".to_string()))
         .map(|l| {
             l.get(index)
@@ -163,12 +163,12 @@ fn set_nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let index =
         vm.pop()?
             .borrow()
-            .get_integer()
+            .as_integer()
             .ok_or_else(|| VMError::TypeMismatch("set-nth! index".to_string()))? as usize;
     let item = vm.pop()?;
     let mut list = list.borrow_mut();
     let list = list
-        .get_list_mut()
+        .as_list_mut()
         .ok_or_else(|| VMError::TypeMismatch("set-nth! of list".to_string()))?;
 
     list[index] = item.clone();
@@ -181,7 +181,7 @@ fn length(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let list = list.borrow();
     let list = list
-        .get_list()
+        .as_list()
         .ok_or_else(|| VMError::TypeMismatch("length of list".to_string()))?;
 
     let length = list.len();
@@ -194,7 +194,7 @@ fn is_in(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let list = list.borrow();
     let list = list
-        .get_list()
+        .as_list()
         .ok_or_else(|| VMError::TypeMismatch("in? list".to_string()))?;
     let item = vm.pop()?;
 
@@ -208,7 +208,7 @@ fn index_of(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let list = list.borrow();
     let list = list
-        .get_list()
+        .as_list()
         .ok_or_else(|| VMError::TypeMismatch("in? list".to_string()))?;
     let item = vm.pop()?;
 
@@ -226,18 +226,18 @@ fn subvector(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let list = list.borrow();
     let list = list
-        .get_list()
+        .as_list()
         .ok_or_else(|| VMError::TypeMismatch("subvector list".to_string()))?;
     let to_index =
         vm.pop()?
             .borrow()
-            .get_integer()
+            .as_integer()
             .ok_or_else(|| VMError::TypeMismatch("subvector to".to_string()))? as usize;
     let to_index = to_index.min(list.len());
     let from_index =
         vm.pop()?
             .borrow()
-            .get_integer()
+            .as_integer()
             .ok_or_else(|| VMError::TypeMismatch("subvector from".to_string()))? as usize;
 
     // TODO: be more defensive about to_index and from_index
@@ -251,12 +251,12 @@ fn join(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let glue = vm.pop()?;
     let glue = glue.borrow();
     let glue = glue
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("join glue".to_string()))?;
     let list = vm.pop()?;
     let list = list.borrow();
     let list = list
-        .get_list()
+        .as_list()
         .ok_or_else(|| VMError::TypeMismatch("join list".to_string()))?;
 
     let output = list
@@ -264,7 +264,7 @@ fn join(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         // TODO: this works for non-strings, but strings can us an `id` function
         .map(|item| {
             item.borrow()
-                .get_string()
+                .as_string()
                 .map(|i| i.to_string())
                 .unwrap_or_else(|| item.borrow().to_string())
         })
@@ -279,7 +279,7 @@ fn sort(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let mut list = list.borrow_mut();
     let list = list
-        .get_list_mut()
+        .as_list_mut()
         .ok_or_else(|| VMError::TypeMismatch("subvector list".to_string()))?;
 
     list.sort();

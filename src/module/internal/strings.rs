@@ -73,12 +73,12 @@ fn to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 fn utf8_to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let list = vm.pop()?;
     let list = list.borrow();
-    let list = list.get_list();
+    let list = list.as_list();
 
     if let Some(items) = list {
         let mut bytes = Vec::new();
         for item in items {
-            if let Some(n) = item.borrow().get_integer() {
+            if let Some(n) = item.borrow().as_integer() {
                 if (0..=255).contains(&n) {
                     bytes.push(n as u8);
                     continue;
@@ -103,9 +103,9 @@ fn string_concat(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     let result = {
         let a = a.borrow();
-        let a = a.get_string();
+        let a = a.as_string();
         let b = b.borrow();
-        let b = b.get_string();
+        let b = b.as_string();
         match (a, b) {
             (Some(s1), Some(s2)) => {
                 let mut new_string = s1.to_string();
@@ -124,12 +124,12 @@ fn nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let i = vm
         .pop()?
         .borrow()
-        .get_integer()
+        .as_integer()
         .ok_or_else(|| VMError::TypeMismatch("nth index should be integer".to_string()))?;
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("nth string".to_string()))?;
     // TODO: should strings always be represented as `Vec<char>`?
     let c = s
@@ -147,7 +147,7 @@ fn to_utf8(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch(">utf8".to_string()))?;
 
     let bytes = s.as_bytes().to_vec();
@@ -162,7 +162,7 @@ fn is_empty(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("empty?".to_string()))?;
 
     vm.push(shared(Value::from(s.is_empty())))?;
@@ -178,12 +178,12 @@ fn is_in(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let haystack = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("in? haystack".to_string()))?;
 
-    let result = if let Some(n) = needle.get_string() {
+    let result = if let Some(n) = needle.as_string() {
         haystack.contains(n)
-    } else if let Some(n) = needle.get_char() {
+    } else if let Some(n) = needle.as_char() {
         haystack.contains(n)
     } else {
         return Err(VMError::TypeMismatch("in? needle".to_string()).into());
@@ -199,13 +199,13 @@ fn starts_with(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let sub = vm.pop()?;
     let sub = sub.borrow();
     let sub = sub
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("starts-with? sub".to_string()))?;
 
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("starts-with? str".to_string()))?;
 
     vm.push(shared(Value::from(s.starts_with(sub))))?;
@@ -218,13 +218,13 @@ fn ends_with(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let sub = vm.pop()?;
     let sub = sub.borrow();
     let sub = sub
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("ends-with? sub".to_string()))?;
 
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("ends-with? str".to_string()))?;
 
     vm.push(shared(Value::from(s.ends_with(sub))))?;
@@ -237,13 +237,13 @@ fn index_of(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let sub = vm.pop()?;
     let sub = sub.borrow();
     let sub = sub
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("index-of? sub".to_string()))?;
 
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("index-of? str".to_string()))?;
 
     let result = if let Some(i) = s.find(sub) {
@@ -262,7 +262,7 @@ fn length(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("length".to_string()))?;
 
     vm.push(shared(Value::from(s.len() as i64)))?;
@@ -275,19 +275,19 @@ fn replace_all(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let replace = vm.pop()?;
     let replace = replace.borrow();
     let replace = replace
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("replace-all replace".to_string()))?;
 
     let target = vm.pop()?;
     let target = target.borrow();
     let target = target
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("replace-all target".to_string()))?;
 
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("replace-all str".to_string()))?;
 
     let result = s.replace(target, replace);
@@ -301,13 +301,13 @@ fn split(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let sub = vm.pop()?;
     let sub = sub.borrow();
     let sub = sub
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("split sub".to_string()))?;
 
     let s_value = vm.pop()?;
     let s = s_value.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("split str".to_string()))?;
 
     if let Some((prefix, suffix)) = s.split_once(sub) {
@@ -324,13 +324,13 @@ fn split_all(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let sub = vm.pop()?;
     let sub = sub.borrow();
     let sub = sub
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("split-all sub".to_string()))?;
 
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("split-all str".to_string()))?;
 
     let splits = Value::from(s.split(sub).collect::<Vec<_>>());
@@ -342,14 +342,14 @@ fn split_at(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let i = vm.pop()?;
     let i = i.borrow();
     let i = i
-        .get_integer()
+        .as_integer()
         .ok_or_else(|| VMError::TypeMismatch("split-at index".to_string()))?;
     let i = i as usize;
 
     let s_value = vm.pop()?;
     let s = s_value.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("split-at str".to_string()))?;
 
     if i <= s.len() {
@@ -367,7 +367,7 @@ fn split_whitespace(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("split-whitespace".to_string()))?;
 
     let parts = Value::from(s.split_whitespace().collect::<Vec<_>>());
@@ -379,7 +379,7 @@ fn lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("lines".to_string()))?;
 
     let lines = Value::from(s.lines().collect::<Vec<_>>());
@@ -391,13 +391,13 @@ fn strip_start(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let prefix = vm.pop()?;
     let prefix = prefix.borrow();
     let prefix = prefix
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("strip-start prefix".to_string()))?;
 
     let s_value = vm.pop()?;
     let s = s_value.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("strip-start str".to_string()))?;
 
     let result = s
@@ -412,13 +412,13 @@ fn strip_end(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let suffix = vm.pop()?;
     let suffix = suffix.borrow();
     let suffix = suffix
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("strip-end suffix".to_string()))?;
 
     let s_value = vm.pop()?;
     let s = s_value.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("strip-end str".to_string()))?;
 
     let result = s
@@ -433,20 +433,20 @@ fn substring(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let end = vm.pop()?;
     let end = end.borrow();
     let end = end
-        .get_integer()
+        .as_integer()
         .ok_or_else(|| VMError::TypeMismatch("substring end".to_string()))? as usize;
 
     let start = vm.pop()?;
     let start = start.borrow();
     let start = start
-        .get_integer()
+        .as_integer()
         .ok_or_else(|| VMError::TypeMismatch("substring start".to_string()))?
         as usize;
 
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("substring str".to_string()))?;
 
     // TODO: this is missing some edges. one or two
@@ -459,7 +459,7 @@ fn to_lowercase(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch(">lowercase".to_string()))?;
 
     vm.push(shared(Value::from(s.to_lowercase())))
@@ -470,7 +470,7 @@ fn to_uppercase(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let s = vm.pop()?;
     let s = s.borrow();
     let s = s
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch(">uppercase".to_string()))?;
 
     vm.push(shared(Value::from(s.to_uppercase())))

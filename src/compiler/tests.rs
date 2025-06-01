@@ -281,7 +281,7 @@ fn test_compile_macro_scan_value_list() {
     let stack = tardi.stack();
     assert_eq!(stack.len(), 1);
     assert!(matches!(stack[0].data, ValueData::List(_)));
-    let list = stack[0].get_list().unwrap();
+    let list = stack[0].as_list().unwrap();
     assert_eq!(3, list.len());
     assert_eq!(
         ValueData::Integer(40),
@@ -321,7 +321,7 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
     assert_eq!(stack.len(), 1);
     assert!(matches!(stack[0].data, ValueData::List(_)));
 
-    let list = stack[0].get_list().unwrap();
+    let list = stack[0].as_list().unwrap();
     assert_eq!(3, list.len());
     assert_eq!(
         ValueData::Integer(40),
@@ -359,7 +359,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     assert_eq!(stack.len(), 1, "stack = {}", ValueVec(&stack));
     assert!(matches!(stack[0].data, ValueData::List(_)));
 
-    let list = stack[0].get_list().unwrap();
+    let list = stack[0].as_list().unwrap();
     assert_eq!(4, list.len());
     assert_eq!(
         ValueData::Integer(40),
@@ -375,7 +375,7 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
     );
 
     let sublist: Value = unshare_clone(list.get(3).cloned().unwrap());
-    let sublist = sublist.get_list();
+    let sublist = sublist.as_list();
     assert!(sublist.is_some());
     let sublist = sublist.unwrap();
     assert_eq!(3, sublist.len());
@@ -441,7 +441,7 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     let stack = tardi.stack();
     assert_eq!(stack.len(), 1, "stack = {}", ValueVec(&stack));
 
-    let list = stack[0].get_list().unwrap();
+    let list = stack[0].as_list().unwrap();
     assert_eq!(2, list.len());
     assert_eq!(
         ValueData::String("name".to_string()),

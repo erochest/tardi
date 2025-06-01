@@ -58,7 +58,7 @@ pub fn loop_word(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 fn loop_apply(accum: &SharedValue) {
     let mut accum = accum.borrow_mut();
     accum
-        .get_list_mut()
+        .as_list_mut()
         .unwrap()
         .push(shared(Value::new(ValueData::Symbol {
             module: KERNEL.to_string(),
@@ -79,7 +79,7 @@ fn loop_lit(
         .get_constant(const_index)
         .ok_or(VMError::InvalidConstantIndex(const_index))?;
 
-    if let Some(child_ip) = lit.get_function().and_then(|f| f.get_ip()) {
+    if let Some(child_ip) = lit.as_function().and_then(|f| f.get_ip()) {
         lambda_stack.push_front(child_ip);
     }
 
@@ -108,7 +108,7 @@ fn get_lambda_span(accum: &SharedValue) -> Result<(usize, usize)> {
     let mut accum = accum.borrow_mut();
 
     let list = accum
-        .get_list_mut()
+        .as_list_mut()
         .ok_or_else(|| VMError::TypeMismatch("macro accumulator list".to_string()))?;
     let last = list.last_mut().ok_or_else(|| {
         VMError::TypeMismatch("loop expects non-empty accumalator list".to_string())
@@ -117,7 +117,7 @@ fn get_lambda_span(accum: &SharedValue) -> Result<(usize, usize)> {
     loop_set_lambda_loop(last)?;
 
     let last = last.borrow();
-    let lambda = last.get_function();
+    let lambda = last.as_function();
     let lambda = lambda.ok_or_else(|| VMError::TypeMismatch("loop expects lambda".to_string()))?;
 
     let start_ip = lambda
@@ -133,7 +133,7 @@ fn get_lambda_span(accum: &SharedValue) -> Result<(usize, usize)> {
 
 fn loop_set_lambda_loop(last: &mut SharedValue) -> Result<()> {
     let mut last = last.borrow_mut();
-    let lambda = last.get_function_mut();
+    let lambda = last.as_function_mut();
     let lambda = lambda.ok_or_else(|| VMError::TypeMismatch("loop expects lambda".to_string()))?;
     lambda.set_loop(true);
     Ok(())

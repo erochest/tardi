@@ -36,7 +36,7 @@ fn rm(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
     let path = path
-        .get_string()
+        .as_string()
         .ok_or_else(|| VMError::TypeMismatch("rm path must be string".to_string()))?;
 
     fs::remove_file(path)?;

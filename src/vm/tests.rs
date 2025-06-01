@@ -751,7 +751,7 @@ fn test_call_will_execute_defined_predeclared_function() {
     let stack = tardi
         .stack()
         .into_iter()
-        .map(|v| v.get_boolean())
+        .map(|v| v.as_boolean())
         .collect::<Vec<_>>();
     assert_eq!(stack, vec![Some(false), Some(true)]);
 }

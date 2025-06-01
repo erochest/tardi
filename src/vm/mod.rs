@@ -273,7 +273,7 @@ impl VM {
         let condition = self.pop()?;
 
         log::trace!("VM::question condition {}", condition.borrow());
-        if let Some(b) = condition.borrow().get_boolean() {
+        if let Some(b) = condition.borrow().as_boolean() {
             if b {
                 self.push(if_true.clone())?;
             } else {
@@ -314,7 +314,7 @@ impl VM {
 
         (*func)
             .borrow()
-            .get_function()
+            .as_function()
             .ok_or_else(|| {
                 Error::from(VMError::TypeMismatch(format!(
                     "not a word: {}",
@@ -333,7 +333,7 @@ impl VM {
 
         let name = name.borrow();
         let (module_name, name_str) = name
-            .get_symbol()
+            .as_symbol()
             .ok_or_else(|| VMError::TypeMismatch(format!("function name: {:?}", name)))?;
         log::trace!("VM::function {}::{}", module_name, name_str);
         if log::log_enabled!(Level::Trace) {
@@ -352,7 +352,7 @@ impl VM {
             log::trace!("VM::function defining predeclared function {}", name_str);
             let (ip, length) = (*lambda)
                 .borrow()
-                .get_function()
+                .as_function()
                 .and_then(|f| {
                     let ip = f.get_ip()?;
                     let length = f.get_length()?;
@@ -367,7 +367,7 @@ impl VM {
         // Define a word
         let callable = (*lambda)
             .borrow_mut()
-            .get_function_mut()
+            .as_function_mut()
             .ok_or_else(|| Error::from(VMError::TypeMismatch("lambda".to_string())))
             .map(|c| {
                 c.name = Some(name_str.to_string());
@@ -386,7 +386,7 @@ impl VM {
 
         let name = name.borrow();
         let (module_name, name_str) = name
-            .get_symbol()
+            .as_symbol()
             .ok_or_else(|| VMError::TypeMismatch("function name".to_string()))?;
         log::trace!("VM::predefine_function {}::{}", module_name, name_str);
 
@@ -412,7 +412,7 @@ impl VM {
         let return_addr = self.pop_return()?;
         let return_addr = return_addr.borrow();
         let addr = return_addr
-            .get_address()
+            .as_address()
             .ok_or_else(|| VMError::TypeMismatch("return addres".to_string()))?;
         self.ip = addr;
 
@@ -469,7 +469,7 @@ impl VM {
         let target = self.pop()?;
         let target = target.borrow();
         let addr = target
-            .get_address()
+            .as_address()
             .ok_or_else(|| VMError::TypeMismatch("jump addres".to_string()))?;
         self.ip = addr;
         Ok(())
