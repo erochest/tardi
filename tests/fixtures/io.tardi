@@ -15,6 +15,11 @@ Goodbye, cruel world!
 "temporary-file.txt" rm
 
 // io/open
+"another-temporary.txt" "w" open
+
+// io/close
+
+// io/buffer
 
 // io/read
 // io/read-line
@@ -25,6 +30,7 @@ Goodbye, cruel world!
 // io/write-line
 // io/write-lines
 // io/write
+// io/flush
 
 // fs/exists?
 // fs/mkdir
@@ -32,3 +38,15 @@ Goodbye, cruel world!
 // fs/ensure-dir
 // fs/touch
 
+// io/stdin
+// io/stdout
+// io/stderr
+// io/print
+// io/println
+// io/nl
+// io/eprint
+// io/eprintln
+// io/eln
+
+// io/.
+// io/.s

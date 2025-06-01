@@ -2,13 +2,15 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
+use std::fs::File;
 use std::ops::{Add, Div, Mul, Sub};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use lambda::Lambda;
 
 use crate::error::{Error, Result, VMError};
-use crate::shared::{shared, unshare_clone};
+use crate::shared::{shared, unshare_clone, Shared};
 
 pub mod lambda;
 
@@ -66,6 +68,7 @@ pub enum ValueData {
     Macro,
     Literal(Box<Value>),
     Return(usize, bool),
+    File(PathBuf, String, Shared<File>),
     EndOfInput,
 }
 
@@ -444,6 +447,7 @@ impl fmt::Display for ValueData {
             ValueData::Macro => write!(f, "MACRO:"),
             ValueData::Literal(value) => write!(f, "\\ {}", value),
             ValueData::Return(address, breakpoint) => write!(f, "<@{} - {}>", address, breakpoint),
+            ValueData::File(path, mode, _) => write!(f, "<file: {:?} {:?}>", path, mode),
             ValueData::EndOfInput => write!(f, "<EOI>"),
         }
     }
