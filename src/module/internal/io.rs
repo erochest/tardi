@@ -27,6 +27,7 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "write-file", write_file);
         push_op(op_table, &mut index, "read-file", read_file);
         push_op(op_table, &mut index, "open", open);
+        push_op(op_table, &mut index, "close", close);
 
         Module {
             imported: HashMap::new(),
@@ -106,6 +107,21 @@ fn open(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file = open_options.open(path.clone())?;
     let value_data = ValueData::File(path, mode.to_string(), shared(file));
     vm.push(shared(value_data.into()))?;
+
+    Ok(())
+}
+
+fn close(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let file_value = vm.pop()?;
+    let mut file_value = file_value.borrow_mut();
+    let file_value = file_value
+        .as_file_mut()
+        .ok_or_else(|| VMError::TypeMismatch("close must be a file".to_string()))?;
+
+    // TODO: propagate errors
+    file_value.borrow_mut().sync_all()?;
+
+    vm.push(shared(true.into()))?;
 
     Ok(())
 }

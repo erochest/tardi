@@ -141,6 +141,7 @@ impl Value {
         Value::with_pos(data, lexeme, pos)
     }
 
+    // TODO: change these into as_boolean
     pub fn get_boolean(&self) -> Option<bool> {
         if let ValueData::Boolean(b) = self.data {
             Some(b)
@@ -242,6 +243,18 @@ impl Value {
         } = self.data
         {
             Some((module, word))
+        } else {
+            None
+        }
+    }
+
+    pub fn as_file(&self) -> Option<&File> {
+        todo!("as_file")
+    }
+
+    pub fn as_file_mut(&mut self) -> Option<Shared<File>> {
+        if let ValueData::File(_, _, ref file) = self.data {
+            Some(file.clone())
         } else {
             None
         }

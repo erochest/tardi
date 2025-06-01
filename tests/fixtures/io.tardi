@@ -18,6 +18,7 @@ Goodbye, cruel world!
 "another-temporary.txt" "w" open
 
 // io/close
+close
 
 // io/buffer
 
