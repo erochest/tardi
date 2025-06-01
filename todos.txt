@@ -1,0 +1,93 @@
+# bugs
+src\config.rs: // TODO: it's not loading from the `module_path`
+src\compiler\mod.rs: // TODO: warning or error on unrecognized symbols/words
+
+# configuration and bootstrapping
+src\config.rs: // TODO: can I use the Cli struct as a provider?
+src\core\mod.rs:    // TODO: add bootstrapping to Config and then deprecate this
+src\config.rs: // TODO: different qualifier and organization
+src\core\mod.rs: // TODO: add bootstrapping from the default directory to here?
+tests\test_main.rs:        // TODO: some way to make the next line optional
+
+# optimization
+src\compiler\mod.rs: // TODO: TCO
+src\compiler\mod.rs: // TODO: Jump optimization
+src\compiler\mod.rs: // TODO: is there a faster hashmap I should use here?
+
+# std library
+src\bootstrap\01-stack-ops.tardi: // TODO: bring in tuck and others
+src\bootstrap\01-stack-ops.tardi: // TODO: Preserving combinators
+
+# cleanup
+src\core\mod.rs:    // TODO: can i move this into the test module?
+src\compiler\mod.rs:        todo!("Compiler::get_current_module_mut")
+
+# consolidation
+src\compiler\mod.rs:            // TODO: also compile functions here? there'd be fewer constants hanging around.
+
+# repl
+src\lib.rs: // TODO: highlighting
+src\lib.rs: // TODO: completion
+src\lib.rs: // TODO: hints
+src\lib.rs: // TODO: multilines (via rustyline::validate)
+
+# rearchitecting
+src\core\mod.rs: // TODO: make the VM the orchestrator and get rid of this?
+src\core\mod.rs: // TODO: rationalize how the environment gets passed around
+
+src\compiler\mod.rs:            // TODO: does this ever get emitted anymore?
+src\compiler\mod.rs:        // TODO: can I reuse this function for anything else?
+src\compiler\mod.rs:        // TODO: once we get more code to test on, benchmark whether it's better to
+src\compiler\mod.rs:        // TODO: do more of this instead of cloning.
+src\compiler\mod.rs:        // TODO: get the pos for this value from the outer punctuation.
+src\compiler\mod.rs:    // TODO: when this is done, can I reimplement `scan` to be
+src\env.rs: // TODO: umm. no tests for this module?
+src\env.rs: // TODO: tests to make sure typical programs can decompile without errors
+src\env.rs: // TODO: this isn't great for long-term interactive development
+src\env.rs:                    // TODO: any way to use the Display implementation defined for Value or ValueData?
+src\env.rs:        // TODO: sometimes the column before this is omitted. Make them line up.
+src\lib.rs:    // TODO: add an option for the bootstrap dir
+src\lib.rs:                // TODO: reset the stack and items on it on errors
+src\main.rs:    // TODO: some way to dump out the default config and print the path
+src\main.rs:    // TODO: some way to edit config from the command line
+src\module\internal.rs: // TODO: break std/scanning of these into their own modules
+src\value\lambda.rs:    // TODO: this needs to include the module as well somehow
+src\value\lambda.rs:        todo!("Lambda::new_compiled")
+src\value\lambda.rs:        todo!("Lambda::new_macro")
+src\value\lambda.rs:                // TODO: have this run the IP for macros
+src\scanner\mod.rs:        // TODO: have it look in imported/defined names for one and use that module here?
+src\scanner\mod.rs:        // TODO: parse `module/word` pairs into symbols
+src\scanner\mod.rs:        // TODO: Future number format support:
+src\module\internal\scanning.rs:        // TODO: peek-value (for things like `inline` after function declarations)
+src\compiler\tests.rs: // TODO: more tests
+src\compiler\tests.rs: // TODO: it seems like previous tests works because the outer macro call is
+src\compiler\tests.rs:    // TODO: can I embed a list in a `{ ... }` lambda?
+src\module\mod.rs:        todo!("Loader::from<&Config>")
+src\value.rs: // TODO: group Value and ValueData implementations better
+src\value.rs: // TODO: Have a Value member for doc comments so we can grab those in macros
+src\value.rs: // TODO: cache common values like small numbers, booleans, and empty collections.
+src\value.rs:    // TODO: rename to Vector
+src\value.rs:            // TODO: don't quote this
+src\value.rs:            // TODO: escape word if it starts with punctuation (`module::\:` or something)
+src\value.rs: // TODO: should symbols also match on strings?
+src\scanner\tests.rs: // TODO: better tests for errors
+src\scanner\tests.rs:    // TODO: These tests are commented out since we now parse these as words,
+src\module\internal\strings.rs: // TODO: move this operations from the VM into here
+src\module\internal\strings.rs:    // TODO: should strings always be represented as `Vec<char>`?
+src\module\internal\strings.rs:    // TODO: this is missing some edges. one or two
+src\vm\mod.rs:    // TODO: make this smaller and more optimized?
+src\vm\mod.rs:    // TODO: there are also limits that usize places on things that i can't
+src\vm\mod.rs:        // TODO: probably need to be more defensive about this.
+src\vm\mod.rs:                .unwrap(); // TODO: be more defensive here
+src\vm\mod.rs:            // TODO: not wild about using `VMError::Stop` for flow control here.
+src\vm\mod.rs:            // TODO: not wild about using `VMError::Stop` for flow control here.
+src\vm\mod.rs:            // TODO: DRY these up some
+src\vm\ops.rs: // TODO: /mod (divmod)
+src\vm\ops.rs: // TODO: move things out of opcodes and just have native functions
+src\vm\ops.rs:    // TODO: move `rot` to bootstrapping
+src\vm\ops.rs:    // TODO: do i need versions of this able to index larger numbers in the op table?
+src\vm\ops.rs:    // TODO: There's nothing using this. Add a word for it
+src\module\internal\vectors.rs: // TODO: really need to implement an Option type for here
+src\module\internal\vectors.rs:    // TODO: be more defensive about to_index and from_index
+src\module\internal\vectors.rs:        // TODO: this works for non-strings, but strings can us an `id` function
+src\vm\tests.rs:    // TODO: uncomment once there's a word for <jump-stack>
