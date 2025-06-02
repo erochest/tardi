@@ -1,10 +1,10 @@
 
-use: std/_internals
-use: std/scanning
-use: std/_vectors
+uses: std/_internals
+uses: std/scanning
+uses: std/_vectors
 
 exports: <nop> <lit> dup swap rot drop clear stack-size + - * / == < > ! ? >r r>
-  r@ apply return stop bye jump jump-stack lit compile break continue loop use:
+  r@ apply return stop bye jump jump-stack lit compile break continue loop uses:
   exports: \ { [ : dip 2dip 3dip 2drop 3drop 4drop 5drop nip 2nip 3nip 4nip 5nip 
   dupd swapd overd -rot spin 4spin 4spind rotd -rotd nipd 2nipd 3nipd 2dup dupd
   3dup 2swap 2over pick reach keep if when while ;

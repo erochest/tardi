@@ -1,4 +1,4 @@
-use: std/vectors
+uses: std/vectors
 
 <vector>
 <vector> 42 over push!

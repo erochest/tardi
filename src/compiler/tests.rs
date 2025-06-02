@@ -210,7 +210,7 @@ fn test_compile_macro_basic() {
 
     let result = tardi.execute_str("40 41 & 42");
 
-    assert!(result.is_ok(), "ERROR MACRO use: {:?}", result);
+    assert!(result.is_ok(), "ERROR MACRO uses: {:?}", result);
     assert_eq!(
         tardi.stack(),
         vec![ValueData::Integer(40).into(), 41.into(), 42.into()]
@@ -224,8 +224,8 @@ fn test_compile_macro_scan_value() {
 
     let result = tardi.execute_str(
         r#"
-        use: std/scanning
-        use: std/vectors
+        uses: std/scanning
+        uses: std/vectors
         MACRO: \
             dup >r
             scan-value lit
@@ -266,8 +266,8 @@ fn test_compile_macro_scan_value_list() {
 
     let result = tardi.execute_str(
         r#"
-            use: std/scanning
-            use: std/vectors
+            uses: std/scanning
+            uses: std/vectors
             MACRO: [
                 dup >r
                 ] scan-value-list
@@ -304,8 +304,8 @@ fn test_compile_macro_scan_object_list_handles_flat_structures() {
 
     let result = tardi.execute_str(
         r#"
-            use: std/scanning
-            use: std/vectors
+            uses: std/scanning
+            uses: std/vectors
             MACRO: [
                 dup >r
                 ] scan-object-list
@@ -344,8 +344,8 @@ fn test_compile_macro_scan_object_list_allows_embedded_structures() {
 
     let result = tardi.execute_str(
         r#"
-            use: std/scanning
-            use: std/vectors
+            uses: std/scanning
+            uses: std/vectors
             MACRO: <|
                 |> scan-object-list
                 over push! ;
@@ -425,9 +425,9 @@ fn test_compile_macro_scan_object_list_allows_heterogeneous_embedded_structures(
     // TODO: can I embed a list in a `{ ... }` lambda?
     let result = tardi.execute_str(
         r#"
-            use: std/_internals
-            use: std/scanning
-            use: std/vectors
+            uses: std/_internals
+            uses: std/scanning
+            uses: std/vectors
 
             MACRO: <|
                 |> scan-object-list

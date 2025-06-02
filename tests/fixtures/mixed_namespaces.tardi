@@ -1,5 +1,5 @@
-use: std/strings
-use: std/vectors
+uses: std/strings
+uses: std/vectors
 
 "Hello " "world" "!" strings/concat std/strings/concat
 

@@ -544,14 +544,14 @@ fn test_function_and_lambda_errors() {
     ));
 
     // Test function definition with invalid name
-    let result = eval("use: std/_internals 42 { 2 * } <function>");
+    let result = eval("uses: std/_internals 42 { 2 * } <function>");
     assert!(matches!(
         result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
     ));
 
     // Test function definition with invalid lambda
-    let result = eval("use: std/_internals \"test\" 42 <function>");
+    let result = eval("uses: std/_internals \"test\" 42 <function>");
     assert!(matches!(
         result,
         Err(Error::VMError(VMError::TypeMismatch(_)))
@@ -676,7 +676,7 @@ fn test_clear() {
 #[test]
 fn test_predeclare_function_adds_undefined_function_to_op_table() {
     let word = "even?".to_string();
-    let input = r#" use: std/_internals even? <predeclare-function> "#;
+    let input = r#" uses: std/_internals even? <predeclare-function> "#;
     let mut tardi = Tardi::new(None).unwrap();
     let env = tardi.environment.clone();
     let next_index = (*env).borrow().op_table.len();
@@ -724,7 +724,7 @@ fn test_function_defines_predeclared_function() {
 fn test_call_wont_execute_predeclared_function() {
     init_logging();
 
-    let setup = r#" use: std/_internals even? <predeclare-function> "#;
+    let setup = r#" uses: std/_internals even? <predeclare-function> "#;
     let input = r#" 7 even? "#;
     let mut tardi = Tardi::new(None).unwrap();
 

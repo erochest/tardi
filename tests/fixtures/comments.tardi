@@ -1,4 +1,4 @@
-use: std/vectors
+uses: std/vectors
 
 // This is a comment
 42 // This is a comment after a number

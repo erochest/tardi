@@ -1,1 +1,1 @@
-use: ./import-cycle-2
+uses: ./import-cycle-2

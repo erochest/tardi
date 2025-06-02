@@ -1,5 +1,5 @@
 
-use: ../modules/basic-test
+uses: ../modules/basic-test
 
 basic-test
 

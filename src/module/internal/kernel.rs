@@ -55,7 +55,7 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, "break", break_word);
         push_op(op_table, &mut index, "continue", continue_word);
         push_macro(op_table, &mut index, "loop", loop_word::loop_word);
-        push_macro(op_table, &mut index, "use:", use_module);
+        push_macro(op_table, &mut index, "uses:", use_module);
         push_macro(op_table, &mut index, "exports:", export_list);
 
         Module {

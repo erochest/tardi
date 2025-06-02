@@ -1,5 +1,5 @@
 
-use: std/_vectors
+uses: std/_vectors
 
 exports:
     <vector> concat each empty? first fourth in? index-of? join last length map
