@@ -6,19 +6,20 @@ use: std/io
 """
 Hello, world!
 Goodbye, cruel world!
-""" "temporary-file.txt" write-file
+""" "tmp/temporary-file.txt" write-file
 
 // io/read-file
-"temporary-file.txt" read-file
+"tmp/temporary-file.txt" read-file
 
 // fs/rm
-"temporary-file.txt" rm
+"tmp/temporary-file.txt" rm
 
 // io/open
-"another-temporary.txt" "w" open
+"tmp/another-temporary.txt" "w" open
 
 // io/close
 close
+"tmp/another-temporary.txt" rm
 
 // io/buffer
 

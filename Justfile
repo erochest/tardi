@@ -20,6 +20,9 @@ clean:
 watch:
     cargo watch -x "nextest run"
 
+init:
+    mkdir tmp
+
 install:
     cargo install --path .
 
