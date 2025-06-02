@@ -11,6 +11,8 @@ use crate::error::{Result, VMError};
 
 use super::KERNEL;
 
+// TODO: `loop` and `inline` can be handled similarly
+// TODO: would i need to compile lambdas directly, though?
 pub fn loop_word(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     log::trace!("loop_word");
     let env = vm.environment.as_ref().unwrap().clone();
