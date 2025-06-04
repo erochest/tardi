@@ -21,6 +21,12 @@ impl InternalBuilder for FsModule {
         let mut index = HashMap::new();
 
         push_op(op_table, &mut index, "rm", rm);
+        // TODO: push_op(op_table, &mut index, "truncate", truncate);
+        // TODO: push_op(op_table, &mut index, "exists?", exists?);
+        // TODO: push_op(op_table, &mut index, "mkdir", mkdir);
+        // TODO: push_op(op_table, &mut index, "rmdir", rmdir);
+        // TODO: push_op(op_table, &mut index, "ensure-dir", ensure-dir);
+        // TODO: push_op(op_table, &mut index, "touch", touch);
 
         Module {
             imported: HashMap::new(),

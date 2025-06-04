@@ -5,5 +5,10 @@ Goodbye, cruel world!
 "
 #t
 #t
+<writer: "tmp/another-temporary.txt">
+"tmp/another-temporary.txt"
+#t
+#t
+<writer: "tmp/temporary-three.txt">
 #t
 #t

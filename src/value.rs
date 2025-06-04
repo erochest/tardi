@@ -2,9 +2,10 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::io::{BufReader, BufWriter, Write};
 use std::ops::{Add, Div, Mul, Sub};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use lambda::Lambda;
@@ -68,8 +69,52 @@ pub enum ValueData {
     Macro,
     Literal(Box<Value>),
     Return(usize, bool),
-    File(PathBuf, String, Shared<File>),
+    Writer(TardiWriter),
     EndOfInput,
+}
+
+#[derive(Debug, Clone)]
+pub enum TardiWriter {
+    // TODO: Stdout,
+    // TODO: Stderr,
+    File {
+        name: String,
+        writer: Shared<BufWriter<File>>,
+    },
+    // TODO: add for empty, network, and pipes
+}
+
+impl TardiWriter {
+    pub fn from_path(path: &Path) -> Result<Self> {
+        let name = path.to_string_lossy().to_string();
+        let file = OpenOptions::new().create(true).append(true).open(path)?;
+        let writer = shared(BufWriter::new(file));
+        Ok(TardiWriter::File { name, writer })
+    }
+
+    pub fn get_path(&self) -> Option<String> {
+        let TardiWriter::File { name, .. } = self;
+        Some(name.clone())
+    }
+}
+
+impl fmt::Display for TardiWriter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let TardiWriter::File { name, .. } = self;
+        write!(f, "<writer: {:?}>", name)
+    }
+}
+
+impl Write for TardiWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let TardiWriter::File { ref mut writer, .. } = self;
+        writer.borrow_mut().write(buf)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        let TardiWriter::File { ref mut writer, .. } = self;
+        writer.borrow_mut().flush()
+    }
 }
 
 impl ValueData {
@@ -78,6 +123,22 @@ impl ValueData {
             Some(w)
         } else if let ValueData::Symbol { word: ref w, .. } = self {
             Some(w)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_writer(&self) -> Option<&TardiWriter> {
+        if let Self::Writer(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_writer_mut(&mut self) -> Option<&mut TardiWriter> {
+        if let Self::Writer(v) = self {
+            Some(v)
         } else {
             None
         }
@@ -243,14 +304,6 @@ impl Value {
         } = self.data
         {
             Some((module, word))
-        } else {
-            None
-        }
-    }
-
-    pub fn as_file_mut(&mut self) -> Option<Shared<File>> {
-        if let ValueData::File(_, _, ref file) = self.data {
-            Some(file.clone())
         } else {
             None
         }
@@ -456,7 +509,7 @@ impl fmt::Display for ValueData {
             ValueData::Macro => write!(f, "MACRO:"),
             ValueData::Literal(value) => write!(f, "\\ {}", value),
             ValueData::Return(address, breakpoint) => write!(f, "<@{} - {}>", address, breakpoint),
-            ValueData::File(path, mode, _) => write!(f, "<file: {:?} {:?}>", path, mode),
+            ValueData::Writer(writer) => write!(f, "{}", writer),
             ValueData::EndOfInput => write!(f, "<EOI>"),
         }
     }

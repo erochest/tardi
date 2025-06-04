@@ -14,25 +14,35 @@ Goodbye, cruel world!
 // fs/rm
 "tmp/temporary-file.txt" rm
 
-// io/open
-"tmp/another-temporary.txt" "w" open
+// io/<writer>
+"tmp/another-temporary.txt" <writer>
 
+// io/<reader>
+
+// io/file-path>>
+dup file-path>>
 // io/close
-close
-"tmp/another-temporary.txt" rm
+over close
+over
+rm
 
-// io/buffer
+"tmp/temporary-three.txt" <writer>
+dup close
 
-// io/read
-// io/read-line
-// io/read-lines
-// io/read-all
+// fs/truncate
 
 // io/write
 // io/write-line
 // io/write-lines
 // io/write
 // io/flush
+
+// io/read
+// io/read-line
+// io/read-lines
+// io/read-all
+
+"tmp/temporary-three.txt" rm
 
 // fs/exists?
 // fs/mkdir
