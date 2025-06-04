@@ -21,7 +21,7 @@ impl InternalBuilder for FsModule {
         let mut index = HashMap::new();
 
         push_op(op_table, &mut index, "rm", rm);
-        // TODO: push_op(op_table, &mut index, "truncate", truncate);
+        push_op(op_table, &mut index, "truncate", truncate);
         // TODO: push_op(op_table, &mut index, "exists?", exists?);
         // TODO: push_op(op_table, &mut index, "mkdir", mkdir);
         // TODO: push_op(op_table, &mut index, "rmdir", rmdir);
@@ -46,6 +46,20 @@ fn rm(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .ok_or_else(|| VMError::TypeMismatch("rm path must be string".to_string()))?;
 
     fs::remove_file(path)?;
+
+    vm.push(shared(true.into()))?;
+    Ok(())
+}
+
+fn truncate(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let path = vm.pop()?;
+    let path = path.borrow();
+    let path = path
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("truncate path must be string".to_string()))?;
+
+    // TODO: propagate errors
+    fs::write(path, "")?;
 
     vm.push(shared(true.into()))?;
     Ok(())

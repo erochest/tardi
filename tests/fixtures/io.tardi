@@ -1,40 +1,45 @@
 
+// ? c ? ? w fp ? ? w ?
+
 uses: std/fs
 uses: std/io
 
-// io/write-file
+"io/write-file"
 """
 Hello, world!
 Goodbye, cruel world!
 """ "tmp/temporary-file.txt" write-file
 
-// io/read-file
+"io/read-file"
 "tmp/temporary-file.txt" read-file
 
-// fs/rm
+"fs/rm"
 "tmp/temporary-file.txt" rm
 
-// io/<writer>
+"io/<writer>"
 "tmp/another-temporary.txt" <writer>
 
-// io/<reader>
+"io/<reader>"
 
-// io/file-path>>
-dup file-path>>
-// io/close
-over close
-over
-rm
+"io/file-path>>"
+pick file-path>>
+"io/close"
+[ reach ] dip swap close
+pick rm
 
 "tmp/temporary-three.txt" <writer>
 dup close
 
-// fs/truncate
+"fs/truncate"
+"tmp/test-truncate.txt" 
+"this has some content\n" over write-file drop
+dup truncate swap
+dup read-file drop
+swap rm
 
 // io/write
 // io/write-line
 // io/write-lines
-// io/write
 // io/flush
 
 // io/read

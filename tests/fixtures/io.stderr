@@ -1,14 +1,25 @@
+"io/write-file"
 #t
+"io/read-file"
 "
 Hello, world!
 Goodbye, cruel world!
 "
 #t
+"fs/rm"
 #t
+"io/<writer>"
 <writer: "tmp/another-temporary.txt">
+"io/<reader>"
+"io/file-path>>"
 "tmp/another-temporary.txt"
+"io/close"
 #t
 #t
 <writer: "tmp/temporary-three.txt">
+#t
+"fs/truncate"
+#t
+""
 #t
 #t
