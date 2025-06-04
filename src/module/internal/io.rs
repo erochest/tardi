@@ -31,7 +31,7 @@ impl InternalBuilder for IoModule {
         // TODO: push_op(op_table, &mut index, "<reader>", reader);
         push_op(op_table, &mut index, "file-path>>", get_file_path);
         push_op(op_table, &mut index, "close", close);
-        // TODO: push_op(op_table, &mut index, "write", write);
+        push_op(op_table, &mut index, "write", write);
         // TODO: push_op(op_table, &mut index, "write-line", write-line);
         // TODO: push_op(op_table, &mut index, "write-lines", write-lines);
         // TODO: push_op(op_table, &mut index, "flush", flush);
@@ -60,6 +60,10 @@ impl InternalBuilder for IoModule {
     }
 }
 
+fn push_true(vm: &mut VM) -> Result<()> {
+    vm.push(shared(true.into()))
+}
+
 fn write_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
@@ -75,8 +79,7 @@ fn write_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     // TODO: needs to propagate errors
     fs::write(path, contents)?;
 
-    vm.push(shared(true.into()))?;
-    Ok(())
+    push_true(vm)
 }
 
 fn read_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
@@ -90,9 +93,7 @@ fn read_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let contents = fs::read_to_string(path)?;
 
     vm.push(shared(contents.into()))?;
-    vm.push(shared(true.into()))?;
-
-    Ok(())
+    push_true(vm)
 }
 
 fn writer(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
@@ -122,9 +123,7 @@ fn close(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     // TODO: propagate errors
     writer.flush()?;
 
-    vm.push(shared(true.into()))?;
-
-    Ok(())
+    push_true(vm)
 }
 
 fn get_file_path(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
@@ -133,7 +132,7 @@ fn get_file_path(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = file_value
         .data
         .as_writer()
-        .ok_or_else(|| VMError::TypeMismatch("close must be a writer".to_string()))?
+        .ok_or_else(|| VMError::TypeMismatch("file-path>> must be a writer".to_string()))?
         .get_path();
 
     let value_data = path
@@ -142,4 +141,23 @@ fn get_file_path(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(value_data.into()))?;
 
     Ok(())
+}
+
+// TODO: add stack effect comments
+fn write(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let file_value = vm.pop()?;
+    let mut file_value = file_value.borrow_mut();
+    let writer = file_value
+        .data
+        .as_writer_mut()
+        .ok_or_else(|| VMError::TypeMismatch("write must be a writer".to_string()))?;
+
+    let contents = vm.pop()?;
+    let contents = contents.borrow();
+    let contents = contents
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("write contents must be string".to_string()))?;
+
+    writer.write_all(contents.as_bytes())?;
+    push_true(vm)
 }

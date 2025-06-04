@@ -29,6 +29,7 @@ pick rm
 
 "tmp/temporary-three.txt" <writer>
 dup close
+"tmp/temporary-three.txt" rm
 
 "fs/truncate"
 "tmp/test-truncate.txt" 
@@ -37,7 +38,14 @@ dup truncate swap
 dup read-file drop
 swap rm
 
-// io/write
+"io/write"
+"tmp/test-write.txt"
+dup <writer>
+"some text to write" over write
+swap close drop
+swap dup read-file drop
+swap rm drop
+
 // io/write-line
 // io/write-lines
 // io/flush
@@ -46,8 +54,6 @@ swap rm
 // io/read-line
 // io/read-lines
 // io/read-all
-
-"tmp/temporary-three.txt" rm
 
 // fs/exists?
 // fs/mkdir
