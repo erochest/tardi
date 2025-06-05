@@ -24,7 +24,11 @@ swap rm drop
 
 /// call the lambda with the filename and then delete the filename, if it exists.
 /// filename lambda -- 
-: clean-file ;
+: clean-file
+    over >r apply r>
+    dup exists?
+    [ rm ] when
+    drop ;
 
 "io/<writer>"
 "tmp/another-temporary.txt" <writer>
@@ -33,28 +37,30 @@ swap rm drop
 
 "io/file-path>>"
 pick file-path>>
+
 "io/close"
 [ reach ] dip swap close
 pick rm
 
-"tmp/temporary-three.txt" <writer>
-dup close
-"tmp/temporary-three.txt" rm
+"tmp/temporary-three.txt"
+[ <writer> dup close ] clean-file
 
 "fs/truncate"
 "tmp/test-truncate.txt" 
-"this has some content\n" over write-file drop
-dup truncate swap
-dup read-file drop
-swap rm
+[
+    "this has some content\n" over write-file drop
+    dup truncate
+    swap read-file drop
+] clean-file
 
 "io/write"
 "tmp/test-write.txt"
-dup <writer>
-"some text to write" over write
-swap close drop
-swap dup read-file drop
-swap rm drop
+[
+    dup <writer>
+    "some text to write" over write
+    swap close drop
+    swap read-file drop
+] clean-file
 
 "io/write-line"
 "tmp/"

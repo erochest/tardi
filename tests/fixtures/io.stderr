@@ -21,11 +21,9 @@ Goodbye, cruel world!
 #t
 <writer: "tmp/temporary-three.txt">
 #t
-#t
 "fs/truncate"
 #t
 ""
-#t
 "io/write"
 #t
 "some text to write"
