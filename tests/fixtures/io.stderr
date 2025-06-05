@@ -28,4 +28,10 @@ Goodbye, cruel world!
 #t
 "some text to write"
 "io/write-line"
-"tmp/"
+#t
+#t
+#t
+"first line
+second line
+third line
+"

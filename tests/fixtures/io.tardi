@@ -1,8 +1,7 @@
 
-// ? c ? ? w fp ? ? w ?
-
 uses: std/fs
 uses: std/io
+uses: std/vectors
 
 "io/write-file"
 """
@@ -63,7 +62,17 @@ pick rm
 ] clean-file
 
 "io/write-line"
-"tmp/"
+/// writer content -- result-flag writer
+: (write-line)   over write-line swap ;
+"tmp/test-write-line.txt"
+[
+    dup <writer>
+    { "first line" "second line" "third line" }
+    [ (write-line) ] each
+    close drop
+    rotd swap
+    read-file drop
+] clean-file
 
 // io/write-lines
 // io/flush

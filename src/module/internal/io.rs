@@ -32,7 +32,7 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "file-path>>", get_file_path);
         push_op(op_table, &mut index, "close", close);
         push_op(op_table, &mut index, "write", write);
-        // TODO: push_op(op_table, &mut index, "write-line", write-line);
+        push_op(op_table, &mut index, "write-line", write_line);
         // TODO: push_op(op_table, &mut index, "write-lines", write-lines);
         // TODO: push_op(op_table, &mut index, "flush", flush);
         // TODO: push_op(op_table, &mut index, "read", read);
@@ -159,5 +159,22 @@ fn write(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .ok_or_else(|| VMError::TypeMismatch("write contents must be string".to_string()))?;
 
     writer.write_all(contents.as_bytes())?;
+    push_true(vm)
+}
+
+fn write_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let writer = vm.pop()?;
+    let mut writer = writer.borrow_mut();
+    let writer = writer
+        .data
+        .as_writer_mut()
+        .ok_or_else(|| VMError::TypeMismatch("write-line must be a writer".to_string()))?;
+    let line = vm.pop()?;
+    let line = line.borrow();
+    let line = line
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("write-line contents must be string".to_string()))?;
+
+    writeln!(writer, "{}", line)?;
     push_true(vm)
 }
