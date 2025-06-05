@@ -38,6 +38,7 @@ impl InternalBuilder for FsModule {
     }
 }
 
+/// path -- result-flag
 fn rm(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
@@ -51,6 +52,7 @@ fn rm(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+/// path -- result-flag
 fn truncate(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
@@ -65,6 +67,7 @@ fn truncate(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+/// path -- ?
 fn does_file_exist(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();

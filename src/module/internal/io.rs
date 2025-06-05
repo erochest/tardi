@@ -64,6 +64,7 @@ fn push_true(vm: &mut VM) -> Result<()> {
     vm.push(shared(true.into()))
 }
 
+/// contents path -- result-flag
 fn write_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
@@ -82,6 +83,7 @@ fn write_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+/// path -- contents result-flag
 fn read_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
@@ -96,6 +98,7 @@ fn read_file(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+/// path -- writer
 fn writer(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
     let path = path.borrow();
@@ -112,6 +115,7 @@ fn writer(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+/// writer -- result-flag
 fn close(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file_value = vm.pop()?;
     let mut file_value = file_value.borrow_mut();
@@ -126,6 +130,7 @@ fn close(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+/// writer -- path
 fn get_file_path(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file_value = vm.pop()?;
     let file_value = file_value.borrow();
@@ -143,7 +148,7 @@ fn get_file_path(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
-// TODO: add stack effect comments
+/// contents writer -- result-flag
 fn write(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file_value = vm.pop()?;
     let mut file_value = file_value.borrow_mut();
@@ -162,6 +167,7 @@ fn write(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+/// line writer -- result-flag
 fn write_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let writer = vm.pop()?;
     let mut writer = writer.borrow_mut();
