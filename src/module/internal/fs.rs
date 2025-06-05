@@ -22,7 +22,7 @@ impl InternalBuilder for FsModule {
 
         push_op(op_table, &mut index, "rm", rm);
         push_op(op_table, &mut index, "truncate", truncate);
-        // TODO: push_op(op_table, &mut index, "exists?", exists?);
+        push_op(op_table, &mut index, "exists?", does_file_exist);
         // TODO: push_op(op_table, &mut index, "mkdir", mkdir);
         // TODO: push_op(op_table, &mut index, "rmdir", rmdir);
         // TODO: push_op(op_table, &mut index, "ensure-dir", ensure-dir);
@@ -63,4 +63,16 @@ fn truncate(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     vm.push(shared(true.into()))?;
     Ok(())
+}
+
+fn does_file_exist(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let path = vm.pop()?;
+    let path = path.borrow();
+    let path = path
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("exists? path must be string".to_string()))?;
+
+    let exists = fs::exists(path)?;
+
+    vm.push(shared(exists.into()))
 }

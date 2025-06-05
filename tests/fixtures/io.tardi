@@ -16,6 +16,16 @@ Goodbye, cruel world!
 "fs/rm"
 "tmp/temporary-file.txt" rm
 
+"fs/exists?"
+"tmp/test-exists.txt" dup exists? swap
+"something something" over write-file drop
+dup exists?
+swap rm drop
+
+/// call the lambda with the filename and then delete the filename, if it exists.
+/// filename lambda -- 
+: clean-file ;
+
 "io/<writer>"
 "tmp/another-temporary.txt" <writer>
 
@@ -46,7 +56,9 @@ swap close drop
 swap dup read-file drop
 swap rm drop
 
-// io/write-line
+"io/write-line"
+"tmp/"
+
 // io/write-lines
 // io/flush
 
@@ -55,7 +67,6 @@ swap rm drop
 // io/read-lines
 // io/read-all
 
-// fs/exists?
 // fs/mkdir
 // fs/rmdir
 // fs/ensure-dir

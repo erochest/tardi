@@ -8,6 +8,9 @@ Goodbye, cruel world!
 #t
 "fs/rm"
 #t
+"fs/exists?"
+#f
+#t
 "io/<writer>"
 <writer: "tmp/another-temporary.txt">
 "io/<reader>"
@@ -26,3 +29,5 @@ Goodbye, cruel world!
 "io/write"
 #t
 "some text to write"
+"io/write-line"
+"tmp/"
