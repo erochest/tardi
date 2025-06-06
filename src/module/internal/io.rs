@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
+use std::f32::consts::PI;
 use std::fs;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -9,7 +10,7 @@ use crate::error::Result;
 use crate::error::VMError;
 use crate::module::Module;
 use crate::shared::shared;
-use crate::value::{TardiWriter, ValueData};
+use crate::value::{TardiReader, TardiWriter, ValueData};
 use crate::vm::VM;
 
 use super::{push_op, InternalBuilder};
@@ -20,7 +21,7 @@ pub struct IoModule;
 impl InternalBuilder for IoModule {
     fn define_module(
         &self,
-        module_manager: &crate::module::ModuleManager,
+        _module_manager: &crate::module::ModuleManager,
         op_table: &mut Vec<crate::shared::Shared<crate::value::lambda::Lambda>>,
     ) -> crate::module::Module {
         let mut index = HashMap::new();
@@ -28,14 +29,14 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "write-file", write_file);
         push_op(op_table, &mut index, "read-file", read_file);
         push_op(op_table, &mut index, "<writer>", writer);
-        // TODO: push_op(op_table, &mut index, "<reader>", reader);
+        push_op(op_table, &mut index, "<reader>", reader);
         push_op(op_table, &mut index, "file-path>>", get_file_path);
         push_op(op_table, &mut index, "close", close);
         push_op(op_table, &mut index, "write", write);
         push_op(op_table, &mut index, "write-line", write_line);
         push_op(op_table, &mut index, "write-lines", write_lines);
         push_op(op_table, &mut index, "flush", flush);
-        // TODO: push_op(op_table, &mut index, "read", read);
+        push_op(op_table, &mut index, "read", read);
         // TODO: push_op(op_table, &mut index, "read-line", read-line);
         // TODO: push_op(op_table, &mut index, "read-lines", read-lines);
         // TODO: push_op(op_table, &mut index, "stdin", stdin);
@@ -104,7 +105,7 @@ fn writer(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = path.borrow();
     let path = path
         .as_string()
-        .ok_or_else(|| VMError::TypeMismatch("open path must be string".to_string()))?;
+        .ok_or_else(|| VMError::TypeMismatch("<writer> path must be string".to_string()))?;
     let path = PathBuf::from_str(path)?;
 
     let writer = TardiWriter::from_path(&path)?;
@@ -115,35 +116,62 @@ fn writer(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+/// path -- reader
+fn reader(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let path = vm.pop()?;
+    let path = path.borrow();
+    let path = path
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("<reader> path must be string".to_string()))?;
+    let path = PathBuf::from_str(path)?;
+
+    let reader = TardiReader::from_path(&path)?;
+
+    let value_data = ValueData::Reader(reader);
+    vm.push(shared(value_data.into()))?;
+
+    Ok(())
+}
+
 /// writer -- result-flag
 fn close(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file_value = vm.pop()?;
+    let file_repr = file_value.borrow().to_string();
     let mut file_value = file_value.borrow_mut();
-    let writer = file_value
-        .data
-        .as_writer_mut()
-        .ok_or_else(|| VMError::TypeMismatch("close must be a writer".to_string()))?;
-
     // TODO: propagate errors
-    writer.flush()?;
+    if let Some(writer) = file_value.data.as_writer_mut() {
+        writer.flush()?;
+    } else if let Some(_) = file_value.data.as_reader_mut() {
+        // No need to close reader. We need to drop it, but that's hard
+        // to do between Shared<_> and the stack.
+    } else {
+        return Err(VMError::TypeMismatch(format!(
+            "close must be a writer or reader: {}",
+            file_repr
+        ))
+        .into());
+    }
 
     push_true(vm)
 }
 
-/// writer -- path
+/// writer|reader -- path
 fn get_file_path(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file_value = vm.pop()?;
     let file_value = file_value.borrow();
     let path = file_value
         .data
         .as_writer()
-        .ok_or_else(|| VMError::TypeMismatch("file-path>> must be a writer".to_string()))?
-        .get_path();
+        .and_then(|w| w.get_path())
+        .or_else(|| file_value.data.as_reader().and_then(|r| r.get_path()))
+        .ok_or_else(|| {
+            VMError::TypeMismatch(format!(
+                "file-path>> must be a writer or a reader: {}",
+                file_value
+            ))
+        })?;
 
-    let value_data = path
-        .map(ValueData::from)
-        .unwrap_or_else(|| ValueData::Boolean(false));
-    vm.push(shared(value_data.into()))?;
+    vm.push(shared(path.into()))?;
 
     Ok(())
 }
@@ -217,5 +245,22 @@ fn flush(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     writer.flush()?;
 
+    push_true(vm)
+}
+
+/// reader -- content result-flag
+fn read(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let reader = vm.pop()?;
+    let reader_repr = reader.borrow().to_repr();
+    let mut reader = reader.borrow_mut();
+    let reader = reader
+        .data
+        .as_reader_mut()
+        .ok_or_else(|| VMError::TypeMismatch(format!("read must be a reader: {}", reader_repr)))?;
+
+    let mut content = String::new();
+    reader.read_to_string(&mut content)?;
+
+    vm.push(shared(content.into()))?;
     push_true(vm)
 }

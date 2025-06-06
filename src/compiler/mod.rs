@@ -165,6 +165,7 @@ impl Compiler {
             | ValueData::Address(_)
             | ValueData::Literal(_)
             | ValueData::Writer(_)
+            | ValueData::Reader(_)
             | ValueData::Return(_, _) => self.compile_constant(value),
             ValueData::Function(ref lambda) if lambda.name.is_none() => {
                 self.compile_constant(value)

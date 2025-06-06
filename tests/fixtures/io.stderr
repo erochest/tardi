@@ -13,7 +13,6 @@ Goodbye, cruel world!
 #t
 "io/<writer>"
 <writer: "tmp/another-temporary.txt">
-"io/<reader>"
 "io/file-path>>"
 "tmp/another-temporary.txt"
 "io/close"
@@ -42,3 +41,10 @@ second line
 third line
 "
 "io/flush"
+"io/<reader>"
+"io/read"
+"line 1
+line 2
+line 3
+"
+#t

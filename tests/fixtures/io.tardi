@@ -32,13 +32,11 @@ swap rm drop
 "io/<writer>"
 "tmp/another-temporary.txt" <writer>
 
-"io/<reader>"
-
 "io/file-path>>"
-pick file-path>>
+over file-path>>
 
 "io/close"
-[ reach ] dip swap close
+reach close
 pick rm
 
 "tmp/temporary-three.txt"
@@ -87,10 +85,23 @@ pick rm
 "io/flush"
 // Not sure how to test this really.
 
-// io/read
+// TODO: worth having in std/io?
+/// path lambda --
+: with-reader
+        [ <reader> ] dip
+        over >r
+        apply
+        r> close drop ;
+
+"tmp/test-all-reads.txt"
+[
+    "line 1\nline 2\nline 3\n" over write-file drop
+    "io/<reader>" "io/read" rot
+    [ read ] with-reader
+] clean-file
+
 // io/read-line
 // io/read-lines
-// io/read-all
 
 // fs/mkdir
 // fs/rmdir

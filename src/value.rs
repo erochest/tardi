@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fs::{File, OpenOptions};
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::ops::{Add, Div, Mul, Sub};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -70,9 +70,11 @@ pub enum ValueData {
     Literal(Box<Value>),
     Return(usize, bool),
     Writer(TardiWriter),
+    Reader(TardiReader),
     EndOfInput,
 }
 
+// TODO: pull this into its own module
 #[derive(Debug, Clone)]
 pub enum TardiWriter {
     // TODO: Stdout,
@@ -117,6 +119,46 @@ impl Write for TardiWriter {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum TardiReader {
+    // TODO: stdin
+    File {
+        name: String,
+        reader: Shared<BufReader<File>>,
+    },
+    // TODO: add for empty, network, and pipes
+}
+
+impl TardiReader {
+    pub fn from_path(path: &Path) -> Result<Self> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        Ok(TardiReader::File {
+            name: path.to_string_lossy().to_string(),
+            reader: shared(reader),
+        })
+    }
+
+    pub fn get_path(&self) -> Option<String> {
+        let TardiReader::File { name, .. } = self;
+        Some(name.clone())
+    }
+}
+
+impl fmt::Display for TardiReader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let TardiReader::File { name, .. } = self;
+        write!(f, "<reader: {:?}>", name)
+    }
+}
+
+impl Read for TardiReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let TardiReader::File { reader, .. } = self;
+        reader.borrow_mut().read(buf)
+    }
+}
+
 impl ValueData {
     pub fn get_word(&self) -> Option<&str> {
         if let ValueData::Word(ref w) = self {
@@ -138,6 +180,22 @@ impl ValueData {
 
     pub fn as_writer_mut(&mut self) -> Option<&mut TardiWriter> {
         if let Self::Writer(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_reader(&self) -> Option<&TardiReader> {
+        if let Self::Reader(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_reader_mut(&mut self) -> Option<&mut TardiReader> {
+        if let Self::Reader(v) = self {
             Some(v)
         } else {
             None
@@ -517,6 +575,7 @@ impl fmt::Display for ValueData {
             ValueData::Literal(value) => write!(f, "\\ {}", value),
             ValueData::Return(address, breakpoint) => write!(f, "<@{} - {}>", address, breakpoint),
             ValueData::Writer(writer) => write!(f, "{}", writer),
+            ValueData::Reader(reader) => write!(f, "{}", reader),
             ValueData::EndOfInput => write!(f, "<EOI>"),
         }
     }

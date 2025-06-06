@@ -15,7 +15,7 @@ pub struct FsModule;
 impl InternalBuilder for FsModule {
     fn define_module(
         &self,
-        module_manager: &crate::module::ModuleManager,
+        _module_manager: &crate::module::ModuleManager,
         op_table: &mut Vec<crate::shared::Shared<crate::value::lambda::Lambda>>,
     ) -> crate::module::Module {
         let mut index = HashMap::new();
