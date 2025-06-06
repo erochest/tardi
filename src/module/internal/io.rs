@@ -34,7 +34,7 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "write", write);
         push_op(op_table, &mut index, "write-line", write_line);
         push_op(op_table, &mut index, "write-lines", write_lines);
-        // TODO: push_op(op_table, &mut index, "flush", flush);
+        push_op(op_table, &mut index, "flush", flush);
         // TODO: push_op(op_table, &mut index, "read", read);
         // TODO: push_op(op_table, &mut index, "read-line", read-line);
         // TODO: push_op(op_table, &mut index, "read-lines", read-lines);
@@ -202,6 +202,20 @@ fn write_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     for line in line_seq {
         writeln!(writer, "{}", line.borrow())?;
     }
+
+    push_true(vm)
+}
+
+/// writer -- result-flag
+fn flush(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let writer = vm.pop()?;
+    let mut writer = writer.borrow_mut();
+    let writer = writer
+        .data
+        .as_writer_mut()
+        .ok_or_else(|| VMError::TypeMismatch("write-line must be a writer".to_string()))?;
+
+    writer.flush()?;
 
     push_true(vm)
 }

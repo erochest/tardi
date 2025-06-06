@@ -84,7 +84,8 @@ pick rm
     read-file drop
 ] clean-file
 
-// io/flush
+"io/flush"
+// Not sure how to test this really.
 
 // io/read
 // io/read-line
