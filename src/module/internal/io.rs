@@ -33,7 +33,7 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "close", close);
         push_op(op_table, &mut index, "write", write);
         push_op(op_table, &mut index, "write-line", write_line);
-        // TODO: push_op(op_table, &mut index, "write-lines", write-lines);
+        push_op(op_table, &mut index, "write-lines", write_lines);
         // TODO: push_op(op_table, &mut index, "flush", flush);
         // TODO: push_op(op_table, &mut index, "read", read);
         // TODO: push_op(op_table, &mut index, "read-line", read-line);
@@ -182,5 +182,26 @@ fn write_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .ok_or_else(|| VMError::TypeMismatch("write-line contents must be string".to_string()))?;
 
     writeln!(writer, "{}", line)?;
+    push_true(vm)
+}
+
+/// line-vector writer -- result-flag
+fn write_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let writer = vm.pop()?;
+    let mut writer = writer.borrow_mut();
+    let writer = writer
+        .data
+        .as_writer_mut()
+        .ok_or_else(|| VMError::TypeMismatch("write-line must be a writer".to_string()))?;
+    let line_seq = vm.pop()?;
+    let line_seq = line_seq.borrow();
+    let line_seq = line_seq.as_list().ok_or_else(|| {
+        VMError::TypeMismatch("write-lines contents must be a vector".to_string())
+    })?;
+
+    for line in line_seq {
+        writeln!(writer, "{}", line.borrow())?;
+    }
+
     push_true(vm)
 }

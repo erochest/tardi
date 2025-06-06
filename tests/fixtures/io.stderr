@@ -35,3 +35,9 @@ Goodbye, cruel world!
 second line
 third line
 "
+"io/write-lines"
+#t
+"first line
+second line
+third line
+"

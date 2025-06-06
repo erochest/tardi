@@ -36,7 +36,7 @@ pub fn run_file(path: &Path, _config: Config, print_stack: bool) -> Result<()> {
     if print_stack {
         // Print stack contents from top to bottom
         for value in tardi.stack() {
-            eprintln!("{}", value);
+            eprintln!("{}", value.to_repr());
         }
     }
 
@@ -79,7 +79,7 @@ pub fn repl(config: Config) -> Result<()> {
                 }
 
                 for value in tardi.stack() {
-                    println!("{}", value);
+                    println!("{}", value.to_repr());
                 }
             }
             Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {

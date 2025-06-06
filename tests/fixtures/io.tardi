@@ -22,7 +22,7 @@ dup exists?
 swap rm drop
 
 /// call the lambda with the filename and then delete the filename, if it exists.
-/// filename lambda -- 
+/// filename lambda --
 : clean-file
     over >r apply r>
     dup exists?
@@ -45,7 +45,7 @@ pick rm
 [ <writer> dup close ] clean-file
 
 "fs/truncate"
-"tmp/test-truncate.txt" 
+"tmp/test-truncate.txt"
 [
     "this has some content\n" over write-file drop
     dup truncate
@@ -74,7 +74,16 @@ pick rm
     read-file drop
 ] clean-file
 
-// io/write-lines
+"io/write-lines"
+"tmp/test-write-lines.txt"
+[
+    dup <writer>
+    { "first line" "second line" "third line" } over
+    write-lines swap
+    close drop swap
+    read-file drop
+] clean-file
+
 // io/flush
 
 // io/read

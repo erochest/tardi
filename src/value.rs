@@ -202,6 +202,14 @@ impl Value {
         Value::with_pos(data, lexeme, pos)
     }
 
+    pub fn to_repr(&self) -> String {
+        if let ValueData::String(ref s) = self.data {
+            format!("\"{}\"", s.replace("\"", "\\\""))
+        } else {
+            self.data.to_string()
+        }
+    }
+
     // TODO: change these into as_boolean
     pub fn as_boolean(&self) -> Option<bool> {
         if let ValueData::Boolean(b) = self.data {
@@ -457,7 +465,7 @@ impl fmt::Display for ValueVec<'_> {
             "{{ {} }}",
             values
                 .iter()
-                .map(|v| format!("{}", v))
+                .map(|v| v.to_repr())
                 .collect::<Vec<String>>()
                 .join(", ")
         )
@@ -495,12 +503,11 @@ impl fmt::Display for ValueData {
             ValueData::List(list) => {
                 write!(f, "{{")?;
                 for item in list.iter() {
-                    write!(f, " {}", item.borrow())?;
+                    write!(f, " {}", item.borrow().to_repr())?;
                 }
                 write!(f, " }}")
             }
-            // TODO: don't quote this
-            ValueData::String(s) => write!(f, "\"{}\"", s.replace('"', "\\\"")),
+            ValueData::String(s) => write!(f, "{}", s),
             ValueData::Function(lambda) => write!(f, "{}", lambda),
             ValueData::Address(addr) => write!(f, "<@{}>", addr),
             ValueData::Word(word) => write!(f, "{}", word),
