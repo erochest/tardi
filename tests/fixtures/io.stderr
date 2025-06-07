@@ -61,3 +61,7 @@ line 3
 "fs/rmdir"
 #t
 #f
+"fs/touch"
+#f
+#t
+#t

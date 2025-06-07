@@ -112,7 +112,12 @@ pick rm
 "tmp/ensure-dir" rmdir
 "tmp/ensure-dir" rmdir
 
-// fs/touch
+"fs/touch"
+"tmp/test-touch.txt" dup exists?
+over touch
+pick exists?
+rotd swap rm drop
+
 // fs/ls
 
 // io/stdin

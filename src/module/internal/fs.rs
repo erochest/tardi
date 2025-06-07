@@ -25,7 +25,7 @@ impl InternalBuilder for FsModule {
         push_op(op_table, &mut index, "exists?", does_file_exist);
         push_op(op_table, &mut index, "rmdir", rmdir);
         push_op(op_table, &mut index, "ensure-dir", ensure_dir);
-        // TODO: push_op(op_table, &mut index, "touch", touch);
+        push_op(op_table, &mut index, "touch", touch);
         // TODO: push_op(op_table, &mut index, "ls", ls);
 
         Module {
@@ -112,4 +112,18 @@ fn ensure_dir(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         fs::create_dir_all(path)?;
         push_true(vm)
     }
+}
+
+/// path -- ?
+/// Returns `#t` if it creates the file, `#f` if not.
+fn touch(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let path = vm.pop()?;
+    let path = path.borrow();
+    let path = path
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("touch path must be string".to_string()))?;
+
+    fs::write(path, b"")?;
+
+    push_true(vm)
 }
