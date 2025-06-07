@@ -139,9 +139,19 @@ nl
 "goodbye cruel world" println
 "again" println
 
-// io/eprint
-// io/eprintln
-// io/eln
+"io/eprint"
+42 eprint
+13 eprint
+
+"io/enl"
+enl
+
+"io/eprintln"
+"Hello, " eprint
+"world" eprint
+enl
+"goodbye cruel world" eprintln
+"again" eprintln
 
 // io/.
 // io/.s

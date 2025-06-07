@@ -5,11 +5,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::compiler::Compiler;
-use crate::error::{Error, Result};
+use crate::error::{Result};
 use crate::error::VMError;
 use crate::module::Module;
 use crate::shared::shared;
-use crate::value::{TardiIoError, TardiReader, TardiWriter, ValueData};
+use crate::value::{TardiReader, TardiWriter, ValueData};
 use crate::vm::VM;
 
 use super::{push_false, push_op, push_true, InternalBuilder};
@@ -47,9 +47,9 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "println", println);
         push_op(op_table, &mut index, "nl", nl);
 
-        // TODO: push_op(op_table, &mut index, "eprint", eprint);
-        // TODO: push_op(op_table, &mut index, "eprintln", eprintln);
-        // TODO: push_op(op_table, &mut index, "enl", enl);
+        push_op(op_table, &mut index, "eprint", eprint);
+        push_op(op_table, &mut index, "eprintln", eprintln);
+        push_op(op_table, &mut index, "enl", enl);
 
         // TODO: push_op(op_table, &mut index, ".", .);
         // TODO: push_op(op_table, &mut index, ".s", .s);
@@ -324,5 +324,25 @@ fn println(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 /// --
 fn nl(_vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     println!();
+    Ok(())
+}
+
+/// object --
+fn eprint(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let object = vm.pop()?;
+    eprint!("{}", object.borrow());
+    Ok(())
+}
+
+/// object --
+fn eprintln(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let object = vm.pop()?;
+    eprintln!("{}", object.borrow());
+    Ok(())
+}
+
+/// --
+fn enl(_vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    eprintln!();
     Ok(())
 }

@@ -1,3 +1,7 @@
+4213
+Hello, world
+goodbye cruel world
+again
 "io/write-file"
 #t
 "io/read-file"
@@ -70,3 +74,6 @@ line 3
 "io/print"
 "io/nl"
 "io/println"
+"io/eprint"
+"io/enl"
+"io/eprintln"
