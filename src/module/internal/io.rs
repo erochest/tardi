@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use std::f32::consts::PI;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -37,7 +36,7 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "write-lines", write_lines);
         push_op(op_table, &mut index, "flush", flush);
         push_op(op_table, &mut index, "read", read);
-        // TODO: push_op(op_table, &mut index, "read-line", read-line);
+        push_op(op_table, &mut index, "read-line", read_line);
         // TODO: push_op(op_table, &mut index, "read-lines", read-lines);
         // TODO: push_op(op_table, &mut index, "stdin", stdin);
         // TODO: push_op(op_table, &mut index, "stdout", stdout);
@@ -260,6 +259,22 @@ fn read(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     let mut content = String::new();
     reader.read_to_string(&mut content)?;
+
+    vm.push(shared(content.into()))?;
+    push_true(vm)
+}
+
+/// reader -- line result-flag
+fn read_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let reader = vm.pop()?;
+    let reader_repr = reader.borrow().to_repr();
+    let mut reader = reader.borrow_mut();
+    let reader = reader
+        .data
+        .as_reader_mut()
+        .ok_or_else(|| VMError::TypeMismatch(format!("read must be a reader: {}", reader_repr)))?;
+
+    let content = reader.read_line()?;
 
     vm.push(shared(content.into()))?;
     push_true(vm)

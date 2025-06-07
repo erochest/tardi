@@ -97,10 +97,12 @@ pick rm
 [
     "line 1\nline 2\nline 3\n" over write-file drop
     "io/<reader>" "io/read" rot
-    [ read ] with-reader
+    [ [ read ] with-reader ] keep
+    "io/read-line" swap
+// "" "" c "" fp | fp
+    [ read-line ] with-reader
 ] clean-file
 
-// io/read-line
 // io/read-lines
 
 // fs/mkdir

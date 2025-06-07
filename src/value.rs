@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
-use std::fmt;
+use std::{fmt, io};
 use std::fs::{File, OpenOptions};
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::ops::{Add, Div, Mul, Sub};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -108,12 +108,12 @@ impl fmt::Display for TardiWriter {
 }
 
 impl Write for TardiWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let TardiWriter::File { ref mut writer, .. } = self;
         writer.borrow_mut().write(buf)
     }
 
-    fn flush(&mut self) -> std::io::Result<()> {
+    fn flush(&mut self) -> io::Result<()> {
         let TardiWriter::File { ref mut writer, .. } = self;
         writer.borrow_mut().flush()
     }
@@ -143,6 +143,15 @@ impl TardiReader {
         let TardiReader::File { name, .. } = self;
         Some(name.clone())
     }
+
+    pub fn read_line(&mut self) -> Result<String> {
+        let TardiReader::File { reader, .. } = self;
+        let mut buffer = String::new();
+
+        reader.borrow_mut().read_line(&mut buffer)?;
+
+        Ok(buffer)
+    }
 }
 
 impl fmt::Display for TardiReader {
@@ -153,7 +162,7 @@ impl fmt::Display for TardiReader {
 }
 
 impl Read for TardiReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let TardiReader::File { reader, .. } = self;
         reader.borrow_mut().read(buf)
     }

@@ -48,3 +48,7 @@ line 2
 line 3
 "
 #t
+"io/read-line"
+"line 1
+"
+#t
