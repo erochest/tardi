@@ -118,7 +118,8 @@ over touch
 pick exists?
 rotd swap rm drop
 
-// fs/ls
+"fs/ls"
+"tmp/" ls
 
 // io/stdin
 // io/stdout

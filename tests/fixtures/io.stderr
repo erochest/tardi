@@ -65,3 +65,5 @@ line 3
 #f
 #t
 #t
+"fs/ls"
+{ ".do-not-delete" }

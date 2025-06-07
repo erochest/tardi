@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
+use std::{fs, io};
 
 use crate::error::Result;
 use crate::module::Module;
@@ -26,7 +26,7 @@ impl InternalBuilder for FsModule {
         push_op(op_table, &mut index, "rmdir", rmdir);
         push_op(op_table, &mut index, "ensure-dir", ensure_dir);
         push_op(op_table, &mut index, "touch", touch);
-        // TODO: push_op(op_table, &mut index, "ls", ls);
+        push_op(op_table, &mut index, "ls", ls);
 
         Module {
             imported: HashMap::new(),
@@ -126,4 +126,22 @@ fn touch(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     fs::write(path, b"")?;
 
     push_true(vm)
+}
+
+/// dir-path -- vector
+/// Returns a vector of all the file names in the directory
+fn ls(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let path = vm.pop()?;
+    let path = path.borrow();
+    let path = path
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("touch path must be string".to_string()))?;
+
+    let ls = fs::read_dir(path)?
+        .collect::<io::Result<Vec<_>>>()?
+        .iter()
+        .map(|entry| entry.file_name().to_string_lossy().to_string())
+        .collect::<Vec<_>>();
+
+    vm.push(shared(ls.into()))
 }
