@@ -99,11 +99,11 @@ pick rm
     "io/<reader>" "io/read" rot
     [ [ read ] with-reader ] keep
     "io/read-line" swap
-// "" "" c "" fp | fp
-    [ read-line ] with-reader
+    [ [ read-line ] with-reader ] keep
+    "io/read-lines" swap
+// "" "" c "" c ? fn "" | fp
+    [ read-lines ] with-reader
 ] clean-file
-
-// io/read-lines
 
 // fs/mkdir
 // fs/rmdir

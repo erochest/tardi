@@ -1,15 +1,15 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::{BufRead, Read, Write};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::compiler::Compiler;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::error::VMError;
 use crate::module::Module;
 use crate::shared::shared;
-use crate::value::{TardiReader, TardiWriter, ValueData};
+use crate::value::{TardiIoError, TardiReader, TardiWriter, ValueData};
 use crate::vm::VM;
 
 use super::{push_op, InternalBuilder};
@@ -37,7 +37,7 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "flush", flush);
         push_op(op_table, &mut index, "read", read);
         push_op(op_table, &mut index, "read-line", read_line);
-        // TODO: push_op(op_table, &mut index, "read-lines", read-lines);
+        push_op(op_table, &mut index, "read-lines", read_lines);
         // TODO: push_op(op_table, &mut index, "stdin", stdin);
         // TODO: push_op(op_table, &mut index, "stdout", stdout);
         // TODO: push_op(op_table, &mut index, "stderr", stderr);
@@ -62,6 +62,10 @@ impl InternalBuilder for IoModule {
 
 fn push_true(vm: &mut VM) -> Result<()> {
     vm.push(shared(true.into()))
+}
+
+fn push_false(vm: &mut VM) -> Result<()> {
+    vm.push(shared(false.into()))
 }
 
 /// contents path -- result-flag
@@ -132,6 +136,7 @@ fn reader(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+// TODO: consume it here
 /// writer -- result-flag
 fn close(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file_value = vm.pop()?;
@@ -175,6 +180,7 @@ fn get_file_path(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     Ok(())
 }
 
+// TODO: if it's None, return an error `#f`
 /// contents writer -- result-flag
 fn write(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let file_value = vm.pop()?;
@@ -194,6 +200,7 @@ fn write(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+// TODO: if it's None, return an error `#f`
 /// line writer -- result-flag
 fn write_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let writer = vm.pop()?;
@@ -212,6 +219,7 @@ fn write_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+// TODO: if it's None, return an error `#f`
 /// line-vector writer -- result-flag
 fn write_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let writer = vm.pop()?;
@@ -233,6 +241,7 @@ fn write_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+// TODO: if it's None, return an error `#f`
 /// writer -- result-flag
 fn flush(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let writer = vm.pop()?;
@@ -247,6 +256,7 @@ fn flush(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+// TODO: if it's None, return an error `#f`
 /// reader -- content result-flag
 fn read(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let reader = vm.pop()?;
@@ -264,6 +274,7 @@ fn read(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     push_true(vm)
 }
 
+// TODO: if it's None, return an error `#f`
 /// reader -- line result-flag
 fn read_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let reader = vm.pop()?;
@@ -272,10 +283,30 @@ fn read_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let reader = reader
         .data
         .as_reader_mut()
-        .ok_or_else(|| VMError::TypeMismatch(format!("read must be a reader: {}", reader_repr)))?;
+        .ok_or_else(|| VMError::TypeMismatch(format!("read-line must be a reader: {}", reader_repr)))?;
 
     let content = reader.read_line()?;
 
     vm.push(shared(content.into()))?;
     push_true(vm)
+}
+
+/// reader -- line-vector result-flag
+fn read_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let reader = vm.pop()?;
+    let reader_repr = reader.borrow().to_repr();
+    let mut reader = reader.borrow_mut();
+    let reader = reader
+        .data
+        .as_reader_mut()
+        .ok_or_else(|| VMError::TypeMismatch(format!("read-lines must be a reader: {}", reader_repr)))?;
+
+    if reader.is_consumed() {
+        push_false(vm)?;
+        push_false(vm)
+    } else {
+        let lines = reader.read_lines()?;
+        vm.push(shared(lines.into()))?;
+        push_true(vm)
+    }
 }

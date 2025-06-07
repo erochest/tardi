@@ -5,7 +5,7 @@ use std::{fmt, io};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::ops::{Add, Div, Mul, Sub};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::rc::Rc;
 
 use lambda::Lambda;
@@ -75,12 +75,35 @@ pub enum ValueData {
 }
 
 // TODO: pull this into its own module
+#[derive(Debug)]
+pub enum TardiIoError {
+    ResourceClosed(String)
+}
+
+impl fmt::Display for TardiIoError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TardiIoError::ResourceClosed(name) => write!(f, "resource closed: {}", name),
+        }
+    }
+}
+
+impl std::error::Error for TardiIoError {}
+
+impl From<TardiIoError> for Error {
+    fn from(value: TardiIoError) -> Self {
+        Error::TardiError(Box::new(value))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum TardiWriter {
     // TODO: Stdout,
     // TODO: Stderr,
     File {
         name: String,
+        // TODO: make this an Option<BufWriter<File>>> and if it's consumed.
+        // TODO: if it's None, return an error `#f`
         writer: Shared<BufWriter<File>>,
     },
     // TODO: add for empty, network, and pipes
@@ -124,7 +147,7 @@ pub enum TardiReader {
     // TODO: stdin
     File {
         name: String,
-        reader: Shared<BufReader<File>>,
+        reader: Shared<Option<BufReader<File>>>,
     },
     // TODO: add for empty, network, and pipes
 }
@@ -135,7 +158,7 @@ impl TardiReader {
         let reader = BufReader::new(file);
         Ok(TardiReader::File {
             name: path.to_string_lossy().to_string(),
-            reader: shared(reader),
+            reader: shared(Some(reader)),
         })
     }
 
@@ -144,13 +167,32 @@ impl TardiReader {
         Some(name.clone())
     }
 
-    pub fn read_line(&mut self) -> Result<String> {
+    pub fn is_consumed(&self) -> bool {
         let TardiReader::File { reader, .. } = self;
-        let mut buffer = String::new();
+        reader.borrow().is_none()
+    }
 
-        reader.borrow_mut().read_line(&mut buffer)?;
+    pub fn read_line(&mut self) -> Result<String> {
+        let TardiReader::File { name, reader, .. } = self;
 
-        Ok(buffer)
+        if let Some(ref mut reader) = reader.borrow_mut().as_mut() {
+            let mut buffer = String::new();
+            reader.read_line(&mut buffer)?;
+            Ok(buffer)
+        } else {
+            Err(TardiIoError::ResourceClosed(name.clone()).into())
+        }
+    }
+
+    pub fn read_lines(&mut self) -> Result<Vec<String>> {
+        let TardiReader::File { name, reader, .. } = self;
+
+        if let Some(ref mut reader) = reader.borrow_mut().as_mut() {
+            let lines = reader.lines().collect::<io::Result<Vec<_>>>()?;
+            Ok(lines)
+        } else {
+            Err(TardiIoError::ResourceClosed(name.clone()).into())
+        }
     }
 }
 
@@ -164,7 +206,9 @@ impl fmt::Display for TardiReader {
 impl Read for TardiReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let TardiReader::File { reader, .. } = self;
-        reader.borrow_mut().read(buf)
+        // TODO: be more defensive
+        let mut reader = reader.borrow_mut();
+        reader.as_mut().map(|r| r.read(buf)).unwrap()
     }
 }
 

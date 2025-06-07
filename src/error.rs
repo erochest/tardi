@@ -24,6 +24,7 @@ pub enum Error {
     TomlError(toml::de::Error),
     ConfigReadError(Box<figment::Error>),
     InfallibleError,
+    TardiError(Box<dyn error::Error>),
 }
 
 #[derive(Debug)]
@@ -63,6 +64,7 @@ impl fmt::Display for Error {
             TomlError(ref err) => err.fmt(f),
             ConfigReadError(ref err) => err.fmt(f),
             InfallibleError => unimplemented!("Error::InfallibleError"),
+            TardiError(ref err) => err.fmt(f),
         }
     }
 }
