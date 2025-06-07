@@ -69,3 +69,4 @@ line 3
 { ".do-not-delete" }
 "io/print"
 "io/nl"
+"io/println"

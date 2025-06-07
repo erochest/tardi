@@ -130,8 +130,14 @@ rotd swap rm drop
 13 print
 
 "io/nl"
+nl
 
-// io/println
+"io/println"
+"Hello, " print
+"world" print
+nl
+"goodbye cruel world" println
+"again" println
 
 // io/eprint
 // io/eprintln
