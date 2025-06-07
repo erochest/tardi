@@ -67,3 +67,4 @@ line 3
 #t
 "fs/ls"
 { ".do-not-delete" }
+"io/print"

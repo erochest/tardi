@@ -124,9 +124,15 @@ rotd swap rm drop
 // io/stdin
 // io/stdout
 // io/stderr
-// io/print
-// io/println
+
+"io/print"
+42 print
+13 print
+
 // io/nl
+
+// io/println
+
 // io/eprint
 // io/eprintln
 // io/eln
