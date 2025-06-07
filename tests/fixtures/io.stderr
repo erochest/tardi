@@ -55,3 +55,6 @@ line 3
 "io/read-lines"
 { "line 1" "line 2" "line 3" }
 #t
+"fs/ensure-dir"
+#t
+#f

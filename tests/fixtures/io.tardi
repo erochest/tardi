@@ -101,14 +101,16 @@ pick rm
     "io/read-line" swap
     [ [ read-line ] with-reader ] keep
     "io/read-lines" swap
-// "" "" c "" c ? fn "" | fp
     [ read-lines ] with-reader
 ] clean-file
 
-// fs/mkdir
+"fs/ensure-dir"
+"tmp/ensure-dir" ensure-dir
+"tmp/ensure-dir" ensure-dir
+
 // fs/rmdir
-// fs/ensure-dir
 // fs/touch
+// fs/ls
 
 // io/stdin
 // io/stdout
