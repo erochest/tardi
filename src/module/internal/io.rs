@@ -45,7 +45,7 @@ impl InternalBuilder for IoModule {
 
         push_op(op_table, &mut index, "print", print);
         // TODO: push_op(op_table, &mut index, "println", println);
-        // TODO: push_op(op_table, &mut index, "nl", nl);
+        push_op(op_table, &mut index, "nl", nl);
 
         // TODO: push_op(op_table, &mut index, "eprint", eprint);
         // TODO: push_op(op_table, &mut index, "eprintln", eprintln);
@@ -311,5 +311,11 @@ fn read_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 fn print(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let object = vm.pop()?;
     print!("{}", object.borrow());
+    Ok(())
+}
+
+/// --
+fn nl(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    println!();
     Ok(())
 }

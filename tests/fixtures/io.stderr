@@ -68,3 +68,4 @@ line 3
 "fs/ls"
 { ".do-not-delete" }
 "io/print"
+"io/nl"

@@ -129,7 +129,7 @@ rotd swap rm drop
 42 print
 13 print
 
-// io/nl
+"io/nl"
 
 // io/println
 
