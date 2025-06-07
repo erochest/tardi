@@ -108,7 +108,10 @@ pick rm
 "tmp/ensure-dir" ensure-dir
 "tmp/ensure-dir" ensure-dir
 
-// fs/rmdir
+"fs/rmdir"
+"tmp/ensure-dir" rmdir
+"tmp/ensure-dir" rmdir
+
 // fs/touch
 // fs/ls
 

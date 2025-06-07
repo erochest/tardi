@@ -7,7 +7,7 @@ use crate::shared::shared;
 use crate::vm::VM;
 use crate::{compiler::Compiler, error::VMError};
 
-use super::{push_op, InternalBuilder};
+use super::{push_false, push_op, push_true, InternalBuilder};
 
 pub const FS: &str = "std/fs";
 
@@ -23,7 +23,7 @@ impl InternalBuilder for FsModule {
         push_op(op_table, &mut index, "rm", rm);
         push_op(op_table, &mut index, "truncate", truncate);
         push_op(op_table, &mut index, "exists?", does_file_exist);
-        // TODO: push_op(op_table, &mut index, "rmdir", rmdir);
+        push_op(op_table, &mut index, "rmdir", rmdir);
         push_op(op_table, &mut index, "ensure-dir", ensure_dir);
         // TODO: push_op(op_table, &mut index, "touch", touch);
         // TODO: push_op(op_table, &mut index, "ls", ls);
@@ -81,6 +81,23 @@ fn does_file_exist(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 }
 
 /// path -- ?
+/// Returns `#t` if it removes the directory, `#f` if not.
+fn rmdir(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let path = vm.pop()?;
+    let path = path.borrow();
+    let path = path
+        .as_string()
+        .ok_or_else(|| VMError::TypeMismatch("rmdir path must be string".to_string()))?;
+
+    if fs::exists(path)? {
+        fs::remove_dir(path)?;
+        push_true(vm)
+    } else {
+        push_false(vm)
+    }
+}
+
+/// path -- ?
 /// Returns `#t` if it creates the directory, `#f` if not.
 fn ensure_dir(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let path = vm.pop()?;
@@ -90,9 +107,9 @@ fn ensure_dir(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .ok_or_else(|| VMError::TypeMismatch("ensure-dir path must be string".to_string()))?;
 
     if fs::exists(path)? {
-        vm.push(shared(false.into()))
+        push_false(vm)
     } else {
         fs::create_dir_all(path)?;
-        vm.push(shared(true.into()))
+        push_true(vm)
     }
 }

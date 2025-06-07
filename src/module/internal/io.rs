@@ -12,7 +12,7 @@ use crate::shared::shared;
 use crate::value::{TardiIoError, TardiReader, TardiWriter, ValueData};
 use crate::vm::VM;
 
-use super::{push_op, InternalBuilder};
+use super::{push_false, push_op, push_true, InternalBuilder};
 
 pub const IO: &str = "std/io";
 
@@ -58,14 +58,6 @@ impl InternalBuilder for IoModule {
             exported: HashSet::new(),
         }
     }
-}
-
-fn push_true(vm: &mut VM) -> Result<()> {
-    vm.push(shared(true.into()))
-}
-
-fn push_false(vm: &mut VM) -> Result<()> {
-    vm.push(shared(false.into()))
 }
 
 /// contents path -- result-flag

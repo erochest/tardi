@@ -58,3 +58,6 @@ line 3
 "fs/ensure-dir"
 #t
 #f
+"fs/rmdir"
+#t
+#f

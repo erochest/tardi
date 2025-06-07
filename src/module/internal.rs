@@ -13,6 +13,7 @@ use crate::compiler::error::CompilerError;
 use crate::error::Result;
 use crate::shared::{shared, Shared};
 use crate::value::lambda::{Lambda, OpFn};
+use crate::vm::VM;
 
 use super::{Module, ModuleManager};
 
@@ -75,4 +76,12 @@ fn push_macro(
     let index = op_table.len();
     op_table.push(shared(lambda));
     table.insert(name.to_string(), index);
+}
+
+pub fn push_true(vm: &mut VM) -> Result<()> {
+    vm.push(shared(true.into()))
+}
+
+pub fn push_false(vm: &mut VM) -> Result<()> {
+    vm.push(shared(false.into()))
 }
