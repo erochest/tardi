@@ -153,5 +153,8 @@ enl
 "goodbye cruel world" eprintln
 "again" eprintln
 
-// io/.
-// io/.s
+"io/."
+13 42 76 . . .
+
+"io/.s"
+13 42 76 .s

@@ -2,3 +2,86 @@
 Hello, world
 goodbye cruel world
 again
+76
+42
+13
+"io/write-file"
+#t
+"io/read-file"
+"
+Hello, world!
+Goodbye, cruel world!
+"
+#t
+"fs/rm"
+#t
+"fs/exists?"
+#f
+#t
+"io/<writer>"
+<writer: "tmp/another-temporary.txt">
+"io/file-path>>"
+"tmp/another-temporary.txt"
+"io/close"
+#t
+#t
+<writer: "tmp/temporary-three.txt">
+#t
+"fs/truncate"
+#t
+""
+"io/write"
+#t
+"some text to write"
+"io/write-line"
+#t
+#t
+#t
+"first line
+second line
+third line
+"
+"io/write-lines"
+#t
+"first line
+second line
+third line
+"
+"io/flush"
+"io/<reader>"
+"io/read"
+"line 1
+line 2
+line 3
+"
+#t
+"io/read-line"
+"line 1
+"
+#t
+"io/read-lines"
+{ "line 1" "line 2" "line 3" }
+#t
+"fs/ensure-dir"
+#t
+#f
+"fs/rmdir"
+#t
+#f
+"fs/touch"
+#f
+#t
+#t
+"fs/ls"
+{ ".do-not-delete" }
+"io/print"
+"io/nl"
+"io/println"
+"io/eprint"
+"io/enl"
+"io/eprintln"
+"io/."
+"io/.s"
+13
+42
+76

@@ -51,8 +51,8 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "eprintln", eprintln);
         push_op(op_table, &mut index, "enl", enl);
 
-        // TODO: push_op(op_table, &mut index, ".", .);
-        // TODO: push_op(op_table, &mut index, ".s", .s);
+        push_op(op_table, &mut index, ".", dot);
+        push_op(op_table, &mut index, ".s", dot_stack);
 
         Module {
             imported: HashMap::new(),
@@ -344,5 +344,20 @@ fn eprintln(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 /// --
 fn enl(_vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     eprintln!();
+    Ok(())
+}
+
+/// object --
+fn dot(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let object = vm.pop()?;
+    println!("{}", object.borrow().to_repr());
+    Ok(())
+}
+
+/// ...s -- ...s
+fn dot_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    for value in vm.stack.iter() {
+        println!("{}", value.borrow().to_repr());
+    }
     Ok(())
 }

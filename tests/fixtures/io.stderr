@@ -77,3 +77,8 @@ line 3
 "io/eprint"
 "io/enl"
 "io/eprintln"
+"io/."
+"io/.s"
+13
+42
+76
