@@ -2,6 +2,9 @@
 Hello, world
 goodbye cruel world
 again
+line delta
+line epsilon
+line zeta
 "io/write-file"
 #t
 "io/read-file"
@@ -83,4 +86,6 @@ line 3
 42
 76
 "<stdout>"
+#t
+"<stderr>"
 #t

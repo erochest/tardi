@@ -121,10 +121,6 @@ rotd swap rm drop
 "fs/ls"
 "tmp/" ls
 
-// io/stdin
-// io/stdout
-// io/stderr
-
 "io/print"
 42 print
 13 print
@@ -161,3 +157,6 @@ enl
 
 "<stdout>"
 { "line alpha" "line beta" "line gamma" } <stdout> write-lines
+
+"<stderr>"
+{ "line delta" "line epsilon" "line zeta" } <stderr> write-lines

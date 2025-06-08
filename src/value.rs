@@ -100,7 +100,7 @@ impl From<TardiIoError> for Error {
 pub enum TardiWriter {
     #[default]
     Stdout,
-    // TODO: Stderr,
+    Stderr,
     File {
         name: String,
         // TODO: make this an Option<BufWriter<File>>> and if it's consumed.
@@ -121,6 +121,7 @@ impl TardiWriter {
     pub fn get_path(&self) -> Option<String> {
         let name = match self {
             TardiWriter::Stdout => "<stdout>".to_string(),
+            TardiWriter::Stderr => "<stderr>".to_string(),
             TardiWriter::File { name, .. } => name.clone(),
         };
         Some(name)
@@ -138,9 +139,14 @@ impl Write for TardiWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self {
             TardiWriter::Stdout => {
-                let stdout = io::stdout();
-                let mut stdout = stdout.lock();
-                stdout.write(buf)
+                        let stdout = io::stdout();
+                        let mut stdout = stdout.lock();
+                        stdout.write(buf)
+                    }
+            TardiWriter::Stderr => {
+                        let stderr = io::stderr();
+                        let mut stderr = stderr.lock();
+                        stderr.write(buf)
             }
             TardiWriter::File { ref mut writer, .. } => writer.borrow_mut().write(buf),
         }
@@ -152,6 +158,11 @@ impl Write for TardiWriter {
                 let stdout = io::stdout();
                 let mut stdout = stdout.lock();
                 stdout.flush()
+            }
+            TardiWriter::Stderr => {
+                let stderr = io::stderr();
+                let mut stderr = stderr.lock();
+                stderr.flush()
             }
             TardiWriter::File { ref mut writer, .. } => writer.borrow_mut().flush(),
         }
