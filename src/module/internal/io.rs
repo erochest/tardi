@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
+use std::{fs, io};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -39,9 +39,11 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "read-line", read_line);
         push_op(op_table, &mut index, "read-lines", read_lines);
 
-        // TODO: push_op(op_table, &mut index, "stdin", stdin);
-        // TODO: push_op(op_table, &mut index, "stdout", stdout);
-        // TODO: push_op(op_table, &mut index, "stderr", stderr);
+        push_op(op_table, &mut index, "<stdin>", stdin);
+        // TODO: push_op(op_table, &mut index, "<stdout>", stdout);
+        // TODO: push_op(op_table, &mut index, "<stderr>", stderr);
+        // TODO: push_op(op_table, &mut index, "<string-reader>", string_reader);
+        // TODO: push_op(op_table, &mut index, "<string-writer>", string_writer);
 
         push_op(op_table, &mut index, "print", print);
         push_op(op_table, &mut index, "println", println);
@@ -307,51 +309,73 @@ fn read_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     }
 }
 
+/// -- <stdin>
+fn stdin(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let reader = TardiReader::Stdin;
+    vm.push(shared(ValueData::Reader(reader).into()))
+}
+
+fn flush_stdout() -> Result<()> {
+    let stdout = io::stdout();
+    let mut stdout = stdout.lock();
+    stdout.flush()?;
+    Ok(())
+}
+
+fn flush_stderr() -> Result<()> {
+    let stderr = io::stderr();
+    let mut stderr = stderr.lock();
+    stderr.flush()?;
+    Ok(())
+}
+
 /// object --
 fn print(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let object = vm.pop()?;
+
     print!("{}", object.borrow());
-    Ok(())
+    flush_stdout()
 }
 
 /// object --
 fn println(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let object = vm.pop()?;
+
     println!("{}", object.borrow());
-    Ok(())
+    flush_stdout()
 }
 
 /// --
 fn nl(_vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     println!();
-    Ok(())
+    flush_stdout()
 }
 
 /// object --
 fn eprint(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let object = vm.pop()?;
     eprint!("{}", object.borrow());
-    Ok(())
+    flush_stderr()
 }
 
 /// object --
 fn eprintln(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let object = vm.pop()?;
     eprintln!("{}", object.borrow());
-    Ok(())
+    flush_stderr()
 }
 
 /// --
 fn enl(_vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     eprintln!();
-    Ok(())
+    flush_stderr()
 }
 
 /// object --
 fn dot(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let object = vm.pop()?;
     println!("{}", object.borrow().to_repr());
-    Ok(())
+    flush_stdout()
 }
 
 /// ...s -- ...s
@@ -359,5 +383,5 @@ fn dot_stack(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     for value in vm.stack.iter() {
         println!("{}", value.borrow().to_repr());
     }
-    Ok(())
+    flush_stdout()
 }

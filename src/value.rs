@@ -1,12 +1,12 @@
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
-use std::{fmt, io};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::ops::{Add, Div, Mul, Sub};
 use std::path::Path;
 use std::rc::Rc;
+use std::{fmt, io};
 
 use lambda::Lambda;
 
@@ -77,7 +77,7 @@ pub enum ValueData {
 // TODO: pull this into its own module
 #[derive(Debug)]
 pub enum TardiIoError {
-    ResourceClosed(String)
+    ResourceClosed(String),
 }
 
 impl fmt::Display for TardiIoError {
@@ -144,7 +144,7 @@ impl Write for TardiWriter {
 
 #[derive(Debug, Clone)]
 pub enum TardiReader {
-    // TODO: stdin
+    Stdin,
     File {
         name: String,
         reader: Shared<Option<BufReader<File>>>,
@@ -163,52 +163,109 @@ impl TardiReader {
     }
 
     pub fn get_path(&self) -> Option<String> {
-        let TardiReader::File { name, .. } = self;
-        Some(name.clone())
+        match self {
+            TardiReader::File { name, .. } => Some(name.clone()),
+            TardiReader::Stdin => Some("<stdin>".to_string()),
+        }
     }
 
     pub fn is_consumed(&self) -> bool {
-        let TardiReader::File { reader, .. } = self;
-        reader.borrow().is_none()
+        match self {
+            TardiReader::File { reader, .. } => reader.borrow().is_none(),
+            TardiReader::Stdin => {
+                false
+                // TODO: this is unstable. use this later. in the meantime, we'll assume it's always good
+                // let stdin = io::stdin();
+                // let mut stdin = stdin.lock();
+                // !stdin.has_data_left().unwrap_or(false)
+            }
+        }
     }
 
-    pub fn read_line(&mut self) -> Result<String> {
-        let TardiReader::File { name, reader, .. } = self;
+    // fn with_reader<'a, F>(&'a mut self, action: &mut F) -> Result<()>
+    //     where F: FnMut(Box<dyn BufRead + 'a>) -> Result<()> {
+    //     match self {
+    //         TardiReader::Stdin => {
+    //             let stdin = io::stdin();
+    //             let stdin = stdin.lock();
+    //             action(Box::new(stdin))
+    //         }
+    //         TardiReader::File { reader, name, .. } => {
+    //             let mut reader = reader.borrow_mut();
+    //             let reader = reader.as_mut();
+    //             if let Some(reader) = reader {
+    //                 action(Box::new(reader))
+    //             } else {
+    //                 Err(TardiIoError::ResourceClosed(name.clone()).into())
+    //             }
+    //         }
+    //                 }
+    // }
 
-        if let Some(ref mut reader) = reader.borrow_mut().as_mut() {
-            let mut buffer = String::new();
-            reader.read_line(&mut buffer)?;
-            Ok(buffer)
-        } else {
-            Err(TardiIoError::ResourceClosed(name.clone()).into())
+    pub fn read_line(&mut self) -> Result<String> {
+        let mut buffer = String::new();
+
+        match self {
+            TardiReader::Stdin => {
+                let stdin = io::stdin();
+                let mut stdin = stdin.lock();
+                stdin.read_line(&mut buffer)?;
+            }
+            TardiReader::File { reader, name, .. } => {
+                if let Some(ref mut reader) = reader.borrow_mut().as_mut() {
+                    reader.read_line(&mut buffer)?;
+                } else {
+                    return Err(TardiIoError::ResourceClosed(name.clone()).into());
+                }
+            }
         }
+
+        Ok(buffer)
     }
 
     pub fn read_lines(&mut self) -> Result<Vec<String>> {
-        let TardiReader::File { name, reader, .. } = self;
+        let lines = match self {
+            TardiReader::Stdin => {
+                let stdin = io::stdin();
+                let stdin = stdin.lock();
+                stdin.lines().collect::<io::Result<Vec<_>>>()?
+            }
+            TardiReader::File { name, reader } => {
+                if let Some(ref mut reader) = reader.borrow_mut().as_mut() {
+                    reader.lines().collect::<io::Result<Vec<_>>>()?
+                } else {
+                    return Err(TardiIoError::ResourceClosed(name.clone()).into());
+                }
+            }
+        };
 
-        if let Some(ref mut reader) = reader.borrow_mut().as_mut() {
-            let lines = reader.lines().collect::<io::Result<Vec<_>>>()?;
-            Ok(lines)
-        } else {
-            Err(TardiIoError::ResourceClosed(name.clone()).into())
-        }
+        Ok(lines)
     }
 }
 
 impl fmt::Display for TardiReader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let TardiReader::File { name, .. } = self;
+        let name = match self {
+            TardiReader::Stdin => "<stdin>".to_string(),
+            TardiReader::File { name, .. } => name.clone(),
+        };
         write!(f, "<reader: {:?}>", name)
     }
 }
 
 impl Read for TardiReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let TardiReader::File { reader, .. } = self;
         // TODO: be more defensive
-        let mut reader = reader.borrow_mut();
-        reader.as_mut().map(|r| r.read(buf)).unwrap()
+        match self {
+            TardiReader::Stdin => {
+                let stdin = io::stdin();
+                let mut stdin = stdin.lock();
+                stdin.read(buf)
+            }
+            TardiReader::File { reader, .. } => {
+                reader.borrow_mut().as_mut().map(|r| r.read(buf)).unwrap()
+            }
+        }
     }
 }
 
