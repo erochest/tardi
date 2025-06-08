@@ -40,7 +40,7 @@ impl InternalBuilder for IoModule {
         push_op(op_table, &mut index, "read-lines", read_lines);
 
         push_op(op_table, &mut index, "<stdin>", stdin);
-        // TODO: push_op(op_table, &mut index, "<stdout>", stdout);
+        push_op(op_table, &mut index, "<stdout>", stdout);
         // TODO: push_op(op_table, &mut index, "<stderr>", stderr);
         // TODO: push_op(op_table, &mut index, "<string-reader>", string_reader);
         // TODO: push_op(op_table, &mut index, "<string-writer>", string_writer);
@@ -313,6 +313,12 @@ fn read_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 fn stdin(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let reader = TardiReader::Stdin;
     vm.push(shared(ValueData::Reader(reader).into()))
+}
+
+/// -- <stdout>
+fn stdout(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let writer = TardiWriter::Stdout;
+    vm.push(shared(ValueData::Writer(writer).into()))
 }
 
 fn flush_stdout() -> Result<()> {

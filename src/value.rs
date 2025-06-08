@@ -96,9 +96,10 @@ impl From<TardiIoError> for Error {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum TardiWriter {
-    // TODO: Stdout,
+    #[default]
+    Stdout,
     // TODO: Stderr,
     File {
         name: String,
@@ -118,32 +119,48 @@ impl TardiWriter {
     }
 
     pub fn get_path(&self) -> Option<String> {
-        let TardiWriter::File { name, .. } = self;
-        Some(name.clone())
+        let name = match self {
+            TardiWriter::Stdout => "<stdout>".to_string(),
+            TardiWriter::File { name, .. } => name.clone(),
+        };
+        Some(name)
     }
 }
 
 impl fmt::Display for TardiWriter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let TardiWriter::File { name, .. } = self;
+        let name = self.get_path().unwrap_or_else(|| "<unknown>".to_string());
         write!(f, "<writer: {:?}>", name)
     }
 }
 
 impl Write for TardiWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let TardiWriter::File { ref mut writer, .. } = self;
-        writer.borrow_mut().write(buf)
+        match self {
+            TardiWriter::Stdout => {
+                let stdout = io::stdout();
+                let mut stdout = stdout.lock();
+                stdout.write(buf)
+            }
+            TardiWriter::File { ref mut writer, .. } => writer.borrow_mut().write(buf),
+        }
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        let TardiWriter::File { ref mut writer, .. } = self;
-        writer.borrow_mut().flush()
+        match self {
+            TardiWriter::Stdout => {
+                let stdout = io::stdout();
+                let mut stdout = stdout.lock();
+                stdout.flush()
+            }
+            TardiWriter::File { ref mut writer, .. } => writer.borrow_mut().flush(),
+        }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum TardiReader {
+    #[default]
     Stdin,
     File {
         name: String,

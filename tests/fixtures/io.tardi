@@ -158,3 +158,6 @@ enl
 
 "io/.s"
 13 42 76 .s
+
+"<stdout>"
+{ "line alpha" "line beta" "line gamma" } <stdout> write-lines
