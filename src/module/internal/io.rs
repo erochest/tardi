@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
-use std::{fs, io};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{fs, io};
 
 use crate::compiler::Compiler;
-use crate::error::{Result};
+use crate::error::Result;
 use crate::error::VMError;
 use crate::module::Module;
 use crate::shared::shared;
@@ -143,7 +143,7 @@ fn close(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     // TODO: propagate errors
     if let Some(writer) = file_value.data.as_writer_mut() {
         writer.flush()?;
-    } else if let Some(_) = file_value.data.as_reader_mut() {
+    } else if file_value.data.as_reader_mut().is_some() {
         // No need to close reader. We need to drop it, but that's hard
         // to do between Shared<_> and the stack.
     } else {
@@ -278,10 +278,9 @@ fn read_line(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let reader = vm.pop()?;
     let reader_repr = reader.borrow().to_repr();
     let mut reader = reader.borrow_mut();
-    let reader = reader
-        .data
-        .as_reader_mut()
-        .ok_or_else(|| VMError::TypeMismatch(format!("read-line must be a reader: {}", reader_repr)))?;
+    let reader = reader.data.as_reader_mut().ok_or_else(|| {
+        VMError::TypeMismatch(format!("read-line must be a reader: {}", reader_repr))
+    })?;
 
     let content = reader.read_line()?;
 
@@ -294,10 +293,9 @@ fn read_lines(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let reader = vm.pop()?;
     let reader_repr = reader.borrow().to_repr();
     let mut reader = reader.borrow_mut();
-    let reader = reader
-        .data
-        .as_reader_mut()
-        .ok_or_else(|| VMError::TypeMismatch(format!("read-lines must be a reader: {}", reader_repr)))?;
+    let reader = reader.data.as_reader_mut().ok_or_else(|| {
+        VMError::TypeMismatch(format!("read-lines must be a reader: {}", reader_repr))
+    })?;
 
     if reader.is_consumed() {
         push_false(vm)?;
