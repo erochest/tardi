@@ -25,6 +25,7 @@ init:
     mkdir tmp
 
 install:
+    # TODO: clean out the `std/` directory before installing
     cargo install --path .
     -mkdir -p "{{clean(join(data_directory(), 'tardi', 'std'))}}"
     -cp -r std "{{clean(join(data_directory(), 'tardi', 'std'))}}"
@@ -40,4 +41,5 @@ lint:
     jj commit -m "cargo clippy fmt"
 
 tasks:
+    # TODO: this doesn't play nicely with pwsh
     rg --ignore-case "\\bxxx\\b|\\btodo\\b" src tests
