@@ -259,6 +259,12 @@ impl ModuleManager {
         }
 
         for path in self.paths.iter() {
+            log::debug!(
+                "finding module {} (context {:?}) in {}",
+                module,
+                context,
+                path.display()
+            );
             let target = path.join(module);
             let target = target.with_extension("tardi");
             if target.exists() {
@@ -293,6 +299,12 @@ impl ModuleManager {
 
         let target = target.unwrap();
         for path in self.paths.iter() {
+            log::debug!(
+                "checking for module {} ({}) in {}",
+                target_module,
+                source_module_path.display(),
+                path.display()
+            );
             if let Ok(suffix) = target.strip_prefix(path) {
                 if let Some(name) = suffix.file_stem() {
                     let name = name.to_string_lossy();
