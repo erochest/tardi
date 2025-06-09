@@ -25,8 +25,9 @@ init:
 
 install:
     cargo install --path .
-    mkdir -p {{data_directory()}}
-    cp -r std {{data_directory()}}/std
+    # TODO: these paths are broken on windows
+    mkdir -p {{clean(data_directory())}}
+    cp -r std {{clean(join(data_directory(), 'std'))}}
 
 update:
     jj git fetch
