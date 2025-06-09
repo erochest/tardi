@@ -48,7 +48,7 @@ pub fn run_file(path: &Path, _config: Config, print_stack: bool) -> Result<()> {
 // TODO: hints
 // TODO: multilines (via rustyline::validate)
 pub fn repl(config: Config) -> Result<()> {
-    let mut tardi = Tardi::default();
+    let mut tardi = Tardi::from(&config);
 
     let rl_config = config.clone().into();
     let history = FileHistory::new();

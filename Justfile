@@ -1,3 +1,4 @@
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 check:
     cargo check --tests
@@ -25,9 +26,8 @@ init:
 
 install:
     cargo install --path .
-    # TODO: these paths are broken on windows
-    mkdir -p "{{clean(join(data_directory(), 'tardi', 'std'))}}"
-    cp -r std "{{clean(join(data_directory(), 'tardi', 'std'))}}"
+    -mkdir -p "{{clean(join(data_directory(), 'tardi', 'std'))}}"
+    -cp -r std "{{clean(join(data_directory(), 'tardi', 'std'))}}"
 
 update:
     jj git fetch

@@ -343,8 +343,8 @@ impl From<Config> for ModuleManager {
 }
 
 impl From<&Config> for ModuleManager {
-    fn from(_config: &Config) -> Self {
-        todo!("Loader::from<&Config>")
+    fn from(config: &Config) -> Self {
+        ModuleManager::new(&config.module_path)
     }
 }
 
