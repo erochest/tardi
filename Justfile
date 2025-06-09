@@ -25,6 +25,8 @@ init:
 
 install:
     cargo install --path .
+    mkdir -p {{data_directory()}}
+    cp -r std {{data_directory()}}/std
 
 update:
     jj git fetch
