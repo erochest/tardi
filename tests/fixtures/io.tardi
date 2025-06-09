@@ -3,12 +3,12 @@ uses: std/fs
 uses: std/io
 uses: std/vectors
 
-// "io/write-file"
-// """
-// Hello, world!
-// Goodbye, cruel world!
-// """ "tmp/temporary-file.txt" write-file
-// 
+"io/write-file"
+"""
+Hello, world!
+Goodbye, cruel world!
+""" "tmp/temporary-file.txt" write-file
+
 // "io/read-file"
 // "tmp/temporary-file.txt" read-file
 // 
