@@ -48,8 +48,15 @@ impl Default for ReplConfig {
 
 impl Default for Config {
     fn default() -> Self {
+        let project_dirs = ProjectDirs::from("", "", "Tardi");
+        let global_module_path = project_dirs.as_ref().map(|pd| pd.data_dir());
+
         let current_dir = env::current_dir().unwrap();
-        let paths = vec![current_dir];
+
+        let mut paths = vec![current_dir];
+        if let Some(global_module_path) = global_module_path {
+            paths.insert(0, global_module_path.to_path_buf());
+        }
         Config {
             repl: ReplConfig::default(),
             module_path: paths,
@@ -64,7 +71,6 @@ impl Config {
 
     pub fn figment() -> Figment {
         use figment::providers::Env;
-
         Figment::from(Config::default()).merge(Env::prefixed("TARDI_"))
     }
 }
@@ -79,11 +85,16 @@ impl From<Config> for rustyline::Config {
 
 impl Provider for Config {
     fn metadata(&self) -> Metadata {
-        Metadata::named("Tardi Configuration")
+        Metadata::named("Tardi Library Configuration")
     }
 
     fn data(&self) -> std::result::Result<Map<Profile, Dict>, figment::Error> {
         figment::providers::Serialized::defaults(Config::default()).data()
+    }
+
+    // TODO: make repl and script profiles?
+    fn profile(&self) -> Option<Profile> {
+        None
     }
 }
 
@@ -108,7 +119,7 @@ pub fn read_config_sources(config_file: &Option<&Path>) -> Result<Config> {
         .map(|path| path.to_path_buf())
         .or_else(|| {
             project_dirs
-                .clone()
+                .as_ref()
                 .map(|pd| pd.config_dir().join("tardi.toml").to_owned())
         });
 
@@ -124,11 +135,12 @@ pub fn read_config_sources(config_file: &Option<&Path>) -> Result<Config> {
 
     // extract the configuration
     let mut config: Config = figment.extract()?;
+    log::debug!("configuration read: {:#?}", config);
 
     // patch the history_file
     config.repl.history_file = config.repl.history_file.or_else(|| {
         project_dirs
-            .clone()
+            .as_ref()
             .map(|pd| pd.data_local_dir().join("repl-history.txt").to_path_buf())
     });
 
