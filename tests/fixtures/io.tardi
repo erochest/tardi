@@ -3,6 +3,8 @@ uses: std/fs
 uses: std/io
 uses: std/vectors
 
+"tmp/" ensure-dir drop
+
 "io/write-file"
 """
 Hello, world!
