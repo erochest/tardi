@@ -88,7 +88,7 @@ impl Tardi {
     }
 
     pub fn compile_str(&mut self, module_name: &str, input: &str) -> Result<Shared<Environment>> {
-        log::debug!("Tardi::compile_str -- {} : {}", module_name, input);
+        log::trace!("Tardi::compile_str -- {} : {}", module_name, input);
         self.compiler.compile_internal(
             &mut self.executor,
             self.environment.clone(),
@@ -105,7 +105,7 @@ impl Tardi {
     }
 
     pub fn execute(&mut self) -> Result<()> {
-        log::debug!("environment:\n{:?}", self.environment.borrow());
+        log::trace!("environment:\n{:?}", self.environment.borrow());
         self.executor
             .run(self.environment.clone(), &mut self.compiler)
     }

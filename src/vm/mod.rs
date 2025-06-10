@@ -493,7 +493,7 @@ impl VM {
     fn debug_op(&self) {
         let env_loc = EnvLoc::new(self.environment.clone().unwrap(), self.ip);
         let debugged = format!("{:?}", env_loc);
-        log::debug!("IP: {}", debugged.trim_end());
+        log::trace!("IP: {}", debugged.trim_end());
     }
 
     fn debug_stacks(&self) {
@@ -509,7 +509,7 @@ impl VM {
             .map(|v| format!("[{}]", v.borrow()))
             .collect::<Vec<_>>()
             .join(" ");
-        log::debug!("DATA  : {}\tRETURN: {}", stack_repr, rstack_repr);
+        log::trace!("DATA  : {}\tRETURN: {}", stack_repr, rstack_repr);
     }
 }
 

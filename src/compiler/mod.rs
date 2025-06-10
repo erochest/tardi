@@ -389,7 +389,7 @@ impl Compiler {
             lambda.words.pop();
         }
 
-        log::debug!(
+        log::trace!(
             "Compiler::end_function: {} - {} ({:?})",
             ip,
             length,

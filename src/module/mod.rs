@@ -247,7 +247,7 @@ impl ModuleManager {
     }
 
     pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {
-        log::debug!("finding module '{}' in context {:?}", module, context);
+        log::trace!("finding module '{}' in context {:?}", module, context);
         if module.starts_with("./") || module.starts_with("../") {
             if let Some(context) = context {
                 return self
@@ -259,7 +259,7 @@ impl ModuleManager {
         }
 
         for path in self.paths.iter() {
-            log::debug!(
+            log::trace!(
                 "finding module {} (context {:?}) in {}",
                 module,
                 context,
@@ -269,6 +269,12 @@ impl ModuleManager {
             let target = target.with_extension("tardi");
             if target.exists() {
                 let target = target.canonicalize()?;
+                log::debug!(
+                    "found module {} from {:?} at {}",
+                    module,
+                    context,
+                    target.display()
+                );
                 return Ok(Some((module.to_string(), target)));
             }
         }
@@ -299,7 +305,7 @@ impl ModuleManager {
 
         let target = target.unwrap();
         for path in self.paths.iter() {
-            log::debug!(
+            log::trace!(
                 "checking for module {} ({}) in {}",
                 target_module,
                 source_module_path.display(),
@@ -309,6 +315,12 @@ impl ModuleManager {
                 if let Some(name) = suffix.file_stem() {
                     let name = name.to_string_lossy();
                     let name = name.replace("\\", "/");
+                    log::debug!(
+                        "found module {} from {} at {}",
+                        target_module,
+                        source_module_path.display(),
+                        target.display()
+                    );
                     return Ok(Some((name, target)));
                 }
             }
