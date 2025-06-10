@@ -11,154 +11,154 @@ Hello, world!
 Goodbye, cruel world!
 """ "tmp/temporary-file.txt" write-file
 
-// "io/read-file"
-// "tmp/temporary-file.txt" read-file
-// 
-// "fs/rm"
-// "tmp/temporary-file.txt" rm
-// 
-// "fs/exists?"
-// "tmp/test-exists.txt" dup exists? swap
-// "something something" over write-file drop
-// dup exists?
-// swap rm drop
-// 
-// /// call the lambda with the filename and then delete the filename, if it exists.
-// /// filename lambda --
-// : clean-file
-//     over >r apply r>
-//     dup exists?
-//     [ rm ] when
-//     drop ;
-// 
-// "io/<writer>"
-// "tmp/another-temporary.txt" <writer>
-// 
-// "io/file-path>>"
-// over file-path>>
-// 
-// "io/close"
-// reach close
-// pick rm
-// 
-// "tmp/temporary-three.txt"
-// [ <writer> dup close ] clean-file
-// 
-// "fs/truncate"
-// "tmp/test-truncate.txt"
-// [
-//     "this has some content\n" over write-file drop
-//     dup truncate
-//     swap read-file drop
-// ] clean-file
-// 
-// "io/write"
-// "tmp/test-write.txt"
-// [
-//     dup <writer>
-//     "some text to write" over write
-//     swap close drop
-//     swap read-file drop
-// ] clean-file
-// 
-// "io/write-line"
-// /// writer content -- result-flag writer
-// : (write-line)   over write-line swap ;
-// "tmp/test-write-line.txt"
-// [
-//     dup <writer>
-//     { "first line" "second line" "third line" }
-//     [ (write-line) ] each
-//     close drop
-//     rotd swap
-//     read-file drop
-// ] clean-file
-// 
-// "io/write-lines"
-// "tmp/test-write-lines.txt"
-// [
-//     dup <writer>
-//     { "first line" "second line" "third line" } over
-//     write-lines swap
-//     close drop swap
-//     read-file drop
-// ] clean-file
-// 
-// "io/flush"
-// // Not sure how to test this really.
-// 
-// // TODO: worth having in std/io?
-// /// path lambda --
-// : with-reader
-//         [ <reader> ] dip
-//         over >r
-//         apply
-//         r> close drop ;
-// 
-// "tmp/test-all-reads.txt"
-// [
-//     "line 1\nline 2\nline 3\n" over write-file drop
-//     "io/<reader>" "io/read" rot
-//     [ [ read ] with-reader ] keep
-//     "io/read-line" swap
-//     [ [ read-line ] with-reader ] keep
-//     "io/read-lines" swap
-//     [ read-lines ] with-reader
-// ] clean-file
-// 
-// "fs/ensure-dir"
-// "tmp/ensure-dir" ensure-dir
-// "tmp/ensure-dir" ensure-dir
-// 
-// "fs/rmdir"
-// "tmp/ensure-dir" rmdir
-// "tmp/ensure-dir" rmdir
-// 
-// "fs/touch"
-// "tmp/test-touch.txt" dup exists?
-// over touch
-// pick exists?
-// rotd swap rm drop
-// 
-// "fs/ls"
-// "tmp/" ls
-// 
-// "io/print"
-// 42 print
-// 13 print
-// 
-// "io/nl"
-// nl
-// 
-// "io/println"
-// "Hello, " print
-// "world" print
-// nl
-// "goodbye cruel world" println
-// "again" println
-// 
-// "io/eprint"
-// 42 eprint
-// 13 eprint
-// 
-// "io/enl"
-// enl
-// 
-// "io/eprintln"
-// "Hello, " eprint
-// "world" eprint
-// enl
-// "goodbye cruel world" eprintln
-// "again" eprintln
-// 
-// "io/."
-// 13 42 76 . . .
-// 
-// "io/.s"
-// 13 42 76 .s
-// 
-// "<stdout>"
-// { "line alpha" "line beta" "line gamma" } <stdout> write-lines
-// 
-// "<stderr>"
-// { "line delta" "line epsilon" "line zeta" } <stderr> write-lines
+"io/read-file"
+"tmp/temporary-file.txt" read-file
+
+"fs/rm"
+"tmp/temporary-file.txt" rm
+
+"fs/exists?"
+"tmp/test-exists.txt" dup exists? swap
+"something something" over write-file drop
+dup exists?
+swap rm drop
+
+/// call the lambda with the filename and then delete the filename, if it exists.
+/// filename lambda --
+: clean-file
+    over >r apply r>
+    dup exists?
+    [ rm ] when
+    drop ;
+
+"io/<writer>"
+"tmp/another-temporary.txt" <writer>
+
+"io/file-path>>"
+over file-path>>
+
+"io/close"
+reach close
+pick rm
+
+"tmp/temporary-three.txt"
+[ <writer> dup close ] clean-file
+
+"fs/truncate"
+"tmp/test-truncate.txt"
+[
+    "this has some content\n" over write-file drop
+    dup truncate
+    swap read-file drop
+] clean-file
+
+"io/write"
+"tmp/test-write.txt"
+[
+    dup <writer>
+    "some text to write" over write
+    swap close drop
+    swap read-file drop
+] clean-file
+
+"io/write-line"
+/// writer content -- result-flag writer
+: (write-line)   over write-line swap ;
+"tmp/test-write-line.txt"
+[
+    dup <writer>
+    { "first line" "second line" "third line" }
+    [ (write-line) ] each
+    close drop
+    rotd swap
+    read-file drop
+] clean-file
+
+"io/write-lines"
+"tmp/test-write-lines.txt"
+[
+    dup <writer>
+    { "first line" "second line" "third line" } over
+    write-lines swap
+    close drop swap
+    read-file drop
+] clean-file
+
+"io/flush"
+// Not sure how to test this really.
+
+// TODO: worth having in std/io?
+/// path lambda --
+: with-reader
+        [ <reader> ] dip
+        over >r
+        apply
+        r> close drop ;
+
+"tmp/test-all-reads.txt"
+[
+    "line 1\nline 2\nline 3\n" over write-file drop
+    "io/<reader>" "io/read" rot
+    [ [ read ] with-reader ] keep
+    "io/read-line" swap
+    [ [ read-line ] with-reader ] keep
+    "io/read-lines" swap
+    [ read-lines ] with-reader
+] clean-file
+
+"fs/ensure-dir"
+"tmp/ensure-dir" ensure-dir
+"tmp/ensure-dir" ensure-dir
+
+"fs/rmdir"
+"tmp/ensure-dir" rmdir
+"tmp/ensure-dir" rmdir
+
+"fs/touch"
+"tmp/test-touch.txt" dup exists?
+over touch
+pick exists?
+rotd swap rm drop
+
+"fs/ls"
+"tmp/" ls
+
+"io/print"
+42 print
+13 print
+
+"io/nl"
+nl
+
+"io/println"
+"Hello, " print
+"world" print
+nl
+"goodbye cruel world" println
+"again" println
+
+"io/eprint"
+42 eprint
+13 eprint
+
+"io/enl"
+enl
+
+"io/eprintln"
+"Hello, " eprint
+"world" eprint
+enl
+"goodbye cruel world" eprintln
+"again" eprintln
+
+"io/."
+13 42 76 . . .
+
+"io/.s"
+13 42 76 .s
+
+"<stdout>"
+{ "line alpha" "line beta" "line gamma" } <stdout> write-lines
+
+"<stderr>"
+{ "line delta" "line epsilon" "line zeta" } <stderr> write-lines
