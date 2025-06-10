@@ -1,0 +1,19 @@
+
+# `module_path` defaults to the current directory and the location of `std`.
+# Any directories you provide here will be added to this list.
+#module_path = []
+
+# Configuration options for the REPL are in the `[repl]` section
+#[repl]
+
+# `edit_mode` can be `"Emacs"` or `"Vi"`
+#edit_mode = "Vi"
+
+# `history_file` is the location of the file containing previous commands and
+# expressions you've given the REPL.
+# If not given, it defaults to a `repl-history.txt` file in the application's
+# local data directory:
+# - linux: $HOME/.local/share/tardi
+# - MacOS: $HOME/Library/Application Support/Tardi
+# - Windows: %USERPROFILE%\AppData\Local\Tardi\data
+#history_file = "file-path"
