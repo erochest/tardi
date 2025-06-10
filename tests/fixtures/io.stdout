@@ -73,7 +73,7 @@ line 3
 #t
 #t
 "fs/ls"
-{ ".do-not-delete" }
+{ }
 "io/print"
 "io/nl"
 "io/println"
