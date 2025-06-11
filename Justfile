@@ -1,4 +1,4 @@
-set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
+# set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 check:
     cargo check --tests
@@ -43,3 +43,6 @@ lint:
 tasks:
     # TODO: this doesn't play nicely with pwsh
     rg --ignore-case "\\bxxx\\b|\\btodo\\b" src tests
+
+update-todos:
+    just tasks > ./todos.txt
