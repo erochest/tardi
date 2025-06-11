@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
@@ -52,6 +53,9 @@ impl PartialEq for Value {
 // bridges across layers
 // TODO: Have a Value member for doc comments so we can grab those in macros
 // TODO: cache common values like small numbers, booleans, and empty collections.
+// XXX: need some way to freeze these values for hashmap keys. one option might
+// be to have frozen versions of members that have interior mutability. will
+// need to make sure they have Eq, PartialEq, and Hash the same though
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
 pub enum ValueData {
@@ -62,6 +66,7 @@ pub enum ValueData {
     String(String),
     // TODO: rename to Vector
     List(Vec<SharedValue>),
+    HashMap(HashMap<ValueData, ValueData>),
     Function(Lambda),
     Address(usize),
     Word(String),
@@ -139,14 +144,14 @@ impl Write for TardiWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self {
             TardiWriter::Stdout => {
-                        let stdout = io::stdout();
-                        let mut stdout = stdout.lock();
-                        stdout.write(buf)
-                    }
+                let stdout = io::stdout();
+                let mut stdout = stdout.lock();
+                stdout.write(buf)
+            }
             TardiWriter::Stderr => {
-                        let stderr = io::stderr();
-                        let mut stderr = stderr.lock();
-                        stderr.write(buf)
+                let stderr = io::stderr();
+                let mut stderr = stderr.lock();
+                stderr.write(buf)
             }
             TardiWriter::File { ref mut writer, .. } => writer.borrow_mut().write(buf),
         }
@@ -703,6 +708,13 @@ impl fmt::Display for ValueData {
                 }
                 write!(f, " }}")
             }
+            ValueData::HashMap(hash_map) => {
+                write!(f, "H{{")?;
+                for (k, v) in hash_map.iter() {
+                    write!(f, " {{ {} {} }}", k, v)?;
+                }
+                write!(f, " }}")
+            }
             ValueData::String(s) => write!(f, "{}", s),
             ValueData::Function(lambda) => write!(f, "{}", lambda),
             ValueData::Address(addr) => write!(f, "<@{}>", addr),
@@ -767,6 +779,7 @@ impl PartialEq for ValueData {
     }
 }
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for ValueData {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
@@ -794,6 +807,7 @@ impl PartialOrd for ValueData {
                     other => other,
                 }
             }
+            // TODO: compare hashmaps
             (ValueData::String(a), ValueData::String(b)) => a.partial_cmp(b),
             (ValueData::Function(a), ValueData::Function(b)) => a.partial_cmp(b), // Functions cannot be ordered
             (ValueData::Word(a), ValueData::Word(b)) => a.partial_cmp(b),

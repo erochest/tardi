@@ -15,6 +15,7 @@ use internal::vectors::VECTORS;
 use lazy_static::lazy_static;
 
 use crate::compiler::error::{CompilerError, CompilerResult};
+use crate::module::internal::hashmaps::HASHMAPS;
 use crate::shared::Shared;
 use crate::value::lambda::Lambda;
 use crate::{config::Config, error::Result};
@@ -24,10 +25,11 @@ pub mod internal;
 lazy_static! {
     static ref INTERNAL_MODULES: HashSet<String> = vec![
         FS.to_string(),
-        KERNEL.to_string(),
-        SANDBOX.to_string(),
+        HASHMAPS.to_string(),
         INTERNALS.to_string(),
         IO.to_string(),
+        KERNEL.to_string(),
+        SANDBOX.to_string(),
         SCANNING.to_string(),
         STRINGS.to_string(),
         VECTORS.to_string(),

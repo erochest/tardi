@@ -161,6 +161,7 @@ impl Compiler {
             | ValueData::Boolean(_)
             | ValueData::Char(_)
             | ValueData::List(_)
+            | ValueData::HashMap(_)
             | ValueData::String(_)
             | ValueData::Address(_)
             | ValueData::Literal(_)

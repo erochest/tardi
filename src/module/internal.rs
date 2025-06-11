@@ -11,6 +11,7 @@ use vectors::{VectorsBuilder, VECTORS};
 
 use crate::compiler::error::CompilerError;
 use crate::error::Result;
+use crate::module::internal::hashmaps::{HashMapsBuilder, HASHMAPS};
 use crate::shared::{shared, Shared};
 use crate::value::lambda::{Lambda, OpFn};
 use crate::vm::VM;
@@ -18,6 +19,7 @@ use crate::vm::VM;
 use super::{Module, ModuleManager};
 
 pub mod fs;
+pub mod hashmaps;
 pub mod internals;
 pub mod io;
 pub mod kernel;
@@ -33,9 +35,10 @@ pub fn define_module(
 ) -> Result<Module> {
     let builder: Box<dyn InternalBuilder> = match name {
         FS => Box::new(FsModule),
-        KERNEL => Box::new(KernelModule),
+        HASHMAPS => Box::new(HashMapsBuilder),
         INTERNALS => Box::new(InternalsModule),
         IO => Box::new(IoModule),
+        KERNEL => Box::new(KernelModule),
         SANDBOX => Box::new(SandboxBuilder),
         SCANNING => Box::new(ScanningBuilder),
         STRINGS => Box::new(StringsBuilder),
