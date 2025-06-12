@@ -1,2 +1,2 @@
 uses: std/_hashmaps
-exports: <hashmap> ;
+exports: <hashmap> >hashmap ;

@@ -2,12 +2,16 @@
 uses: std/hashmaps
 uses: std/io
 
+// <hashmap>
 <hashmap> .
 
-// TODO: >hashmap
+// >hashmap
+{ { 'a' 1 } { 'b' 2 } { 'c' 3 } } >hashmap .
+
 // TODO: H{ { k v } }
 // TODO: >string    ( hashmap -- string )
 
+// TODO: length     ( hashmap -- len )
 // TODO: keys       ( hashmap -- vector )
 // TODO: values     ( hashmap -- vector )
 // TODO: contains?  ( key hashmap -- ?  )

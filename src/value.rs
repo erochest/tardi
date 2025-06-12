@@ -3,11 +3,12 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs::{File, OpenOptions};
+use std::hash::Hash;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::ops::{Add, Div, Mul, Sub};
 use std::path::Path;
 use std::rc::Rc;
-use std::{fmt, io};
+use std::{error, fmt, io};
 
 use lambda::Lambda;
 
@@ -49,6 +50,14 @@ impl PartialEq for Value {
     }
 }
 
+impl Hash for Value {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.data.hash(state);
+        // We don't include lexeme and pos in the hash calculation
+        // because they don't affect equality in PartialEq
+    }
+}
+
 // -- they're more closely tied to `Environment` and they're part of what
 // bridges across layers
 // TODO: Have a Value member for doc comments so we can grab those in macros
@@ -66,7 +75,7 @@ pub enum ValueData {
     String(String),
     // TODO: rename to Vector
     List(Vec<SharedValue>),
-    HashMap(HashMap<ValueData, ValueData>),
+    HashMap(HashMap<ValueData, SharedValue>),
     Function(Lambda),
     Address(usize),
     Word(String),
@@ -93,7 +102,7 @@ impl fmt::Display for TardiIoError {
     }
 }
 
-impl std::error::Error for TardiIoError {}
+impl error::Error for TardiIoError {}
 
 impl From<TardiIoError> for Error {
     fn from(value: TardiIoError) -> Self {
@@ -113,6 +122,38 @@ pub enum TardiWriter {
         writer: Shared<BufWriter<File>>,
     },
     // TODO: add for empty, network, and pipes
+}
+
+impl Hash for TardiWriter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            TardiWriter::Stdout => {
+                "stdout".hash(state);
+            }
+            TardiWriter::Stderr => {
+                "stderr".hash(state);
+            }
+            TardiWriter::File { name, .. } => {
+                "file".hash(state);
+                name.hash(state);
+            }
+        }
+    }
+}
+
+impl Eq for TardiWriter {}
+
+impl PartialEq for TardiWriter {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (TardiWriter::Stdout, TardiWriter::Stdout) => true,
+            (TardiWriter::Stderr, TardiWriter::Stderr) => true,
+            (TardiWriter::File { name: name1, .. }, TardiWriter::File { name: name2, .. }) => {
+                name1 == name2
+            }
+            _ => false,
+        }
+    }
 }
 
 impl TardiWriter {
@@ -183,6 +224,34 @@ pub enum TardiReader {
         reader: Shared<Option<BufReader<File>>>,
     },
     // TODO: add for empty, network, and pipes
+}
+
+impl Hash for TardiReader {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            TardiReader::Stdin => {
+                "stdin".hash(state);
+            }
+            TardiReader::File { name, .. } => {
+                "file".hash(state);
+                name.hash(state);
+            }
+        }
+    }
+}
+
+impl Eq for TardiReader {}
+
+impl PartialEq for TardiReader {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (TardiReader::Stdin, TardiReader::Stdin) => true,
+            (TardiReader::File { name: name1, .. }, TardiReader::File { name: name2, .. }) => {
+                name1 == name2
+            }
+            _ => false,
+        }
+    }
 }
 
 impl TardiReader {
@@ -346,7 +415,7 @@ impl ValueData {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct Pos {
     /// Line number in source (1-based)
     pub line: usize,
@@ -711,7 +780,7 @@ impl fmt::Display for ValueData {
             ValueData::HashMap(hash_map) => {
                 write!(f, "H{{")?;
                 for (k, v) in hash_map.iter() {
-                    write!(f, " {{ {} {} }}", k, v)?;
+                    write!(f, " {{ {} {} }}", k, v.borrow())?;
                 }
                 write!(f, " }}")
             }
@@ -823,6 +892,47 @@ impl PartialOrd for ValueData {
             ) => (m1, w1).partial_cmp(&(m2, w2)),
 
             _ => None,
+        }
+    }
+}
+
+impl Hash for ValueData {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            ValueData::Integer(n) => n.hash(state),
+            ValueData::Float(f) => f.to_bits().hash(state),
+            ValueData::Boolean(b) => b.hash(state),
+            ValueData::Char(c) => c.hash(state),
+            ValueData::String(s) => s.hash(state),
+            ValueData::List(list) => {
+                for item in list {
+                    item.borrow().hash(state);
+                }
+            }
+            ValueData::HashMap(map) => {
+                let mut map = map.iter().collect::<Vec<_>>();
+                map.sort_by_key(|p| p.0);
+                for (k, v) in map {
+                    k.hash(state);
+                    v.borrow().hash(state);
+                }
+            }
+            ValueData::Function(lambda) => lambda.hash(state),
+            ValueData::Address(addr) => addr.hash(state),
+            ValueData::Word(word) => word.hash(state),
+            ValueData::Symbol { module, word } => {
+                module.hash(state);
+                word.hash(state);
+            }
+            ValueData::Macro => "MACRO".hash(state),
+            ValueData::Literal(value) => value.hash(state),
+            ValueData::Return(address, breakpoint) => {
+                address.hash(state);
+                breakpoint.hash(state);
+            }
+            ValueData::Writer(writer) => writer.hash(state),
+            ValueData::Reader(reader) => reader.hash(state),
+            ValueData::EndOfInput => "EOI".hash(state),
         }
     }
 }

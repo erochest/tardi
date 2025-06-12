@@ -1,13 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::compiler::Compiler;
-use crate::error::Result;
+use crate::error::{Result, VMError};
 
 use crate::module::{
     internal::{push_op, InternalBuilder},
     Module,
 };
-use crate::shared::shared;
+use crate::shared::{shared, unshare_clone};
 use crate::value::ValueData;
 use crate::vm::VM;
 
@@ -24,6 +24,7 @@ impl InternalBuilder for HashMapsBuilder {
         let mut index = HashMap::new();
 
         push_op(op_table, &mut index, "<hashmap>", hashmap);
+        push_op(op_table, &mut index, ">hashmap", to_hashmap);
 
         Module {
             imported: HashMap::new(),
@@ -40,7 +41,34 @@ fn hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let hashmap = HashMap::new();
     let value_data = ValueData::HashMap(hashmap);
 
-    vm.push(shared(value_data.into()))?;
+    vm.push(shared(value_data.into()))
+}
 
-    Ok(())
+// <hashmap> ( vector-of-pairs -- hashmap )
+fn to_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let vector = vm.pop()?;
+    let vector = vector.borrow();
+    let vector = vector
+        .as_list()
+        .ok_or_else(|| VMError::TypeMismatch(">hashmap expects a vector".to_string()))?;
+
+    let mut hashmap = HashMap::new();
+    for pair in vector.iter() {
+        let pair = pair.borrow();
+        let pair = pair.as_list().ok_or_else(|| {
+            VMError::TypeMismatch(">hashmap expects a vector of vector pairs".to_string())
+        })?;
+        let key = pair
+            .first()
+            .ok_or_else(|| VMError::TypeMismatch("vector pair too short".to_string()))?;
+        let key = unshare_clone(key.clone());
+        let value = pair
+            .get(1)
+            .ok_or_else(|| VMError::TypeMismatch("vector pair too short".to_string()))?;
+
+        hashmap.insert(key.data, value.clone());
+    }
+
+    let value_data = ValueData::HashMap(hashmap);
+    vm.push(shared(value_data.into()))
 }

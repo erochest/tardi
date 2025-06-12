@@ -7,7 +7,7 @@ use crate::{Compiler, VM};
 pub type OpFn = fn(&mut VM, &mut Compiler) -> Result<()>;
 
 /// Function structure for user-defined functions and lambdas
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Hash)]
 pub struct Lambda {
     // TODO: this needs to include the module as well somehow
     /// Optional name (None for lambdas)
@@ -202,6 +202,19 @@ impl PartialEq for Callable {
             (Callable::BuiltIn { function: a }, Callable::BuiltIn { function: b }) => ptr::eq(a, b),
             (Callable::Compiled { ip: a, .. }, Callable::Compiled { ip: b, .. }) => a == b,
             _ => false,
+        }
+    }
+}
+
+impl std::hash::Hash for Callable {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Callable::BuiltIn { function } => {
+                std::ptr::hash(function, state);
+            }
+            Callable::Compiled { ip, .. } => {
+                ip.hash(state);
+            }
         }
     }
 }
