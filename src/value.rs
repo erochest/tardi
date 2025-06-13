@@ -825,6 +825,12 @@ impl PartialEq for ValueData {
                         .zip(b.iter())
                         .all(|(x, y)| *x.borrow() == *y.borrow())
             }
+            (ValueData::HashMap(hm1), ValueData::HashMap(hm2)) => {
+                hm1.len() == hm2.len()
+                    && hm1
+                        .iter()
+                        .all(|(k, v)| hm2.get(k).is_some_and(|v2| v.borrow().eq(&v2.borrow())))
+            }
             (ValueData::Function(a), ValueData::Function(b)) => a == b,
             (ValueData::Address(a), ValueData::Address(b)) => a == b,
             (ValueData::Word(a), ValueData::Word(b)) => a == b,

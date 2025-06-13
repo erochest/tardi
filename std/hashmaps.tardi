@@ -1,2 +1,9 @@
 uses: std/_hashmaps
-exports: <hashmap> >hashmap ;
+uses: std/scanning
+uses: std/vectors
+
+exports: <hashmap> >hashmap H{ ;
+
+/// hashmap literals:
+/// H{ { "key1" 4 } { "key2" 5 } }
+MACRO: H{ } scan-object-list >hashmap over vectors/push! ;

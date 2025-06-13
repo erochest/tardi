@@ -8,7 +8,10 @@ uses: std/io
 // >hashmap
 { { 'a' 1 } { 'b' 2 } { 'c' 3 } } >hashmap .
 
-// TODO: H{ { k v } }
+H{ { 'a' 4 } { 'b' 5 } { 'c' 6 } }
+{ { 'a' 4 } { 'b' 5 } { 'c' 6 } } >hashmap
+== .
+
 // TODO: >string    ( hashmap -- string )
 
 // TODO: length     ( hashmap -- len )
@@ -20,4 +23,3 @@ uses: std/io
 // TODO: set!       ( key value hashmap -- )
 // TODO: each       ( lambda:( k v -- ) hashmap -- )
 // TODO: map        ( lambda:( v -- v' ) hashmap -- hashmap )
-// TODO: ==         ( hashmap hashmap -- ? )
