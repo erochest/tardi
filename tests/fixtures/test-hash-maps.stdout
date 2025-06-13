@@ -1,3 +1,4 @@
-H{ }
-H{ { 'a' 1 } { 'b' 2 } { 'c' 3 } }
-#t
+<hashmap> : H{ }
+>hashmap : #t
+H{ : #t
+== : #f

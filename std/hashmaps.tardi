@@ -2,7 +2,7 @@ uses: std/_hashmaps
 uses: std/scanning
 uses: std/vectors
 
-exports: <hashmap> >hashmap H{ ;
+exports: <hashmap> >hashmap H{ is-hashmap? ;
 
 /// hashmap literals:
 /// H{ { "key1" 4 } { "key2" 5 } }

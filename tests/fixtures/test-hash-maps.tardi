@@ -2,15 +2,21 @@
 uses: std/hashmaps
 uses: std/io
 
-// <hashmap>
+"<hashmap> : " print
 <hashmap> .
 
-// >hashmap
-{ { 'a' 1 } { 'b' 2 } { 'c' 3 } } >hashmap .
+">hashmap : " print
+{ { 'a' 1 } { 'b' 2 } { 'c' 3 } } >hashmap
+is-hashmap? .
 
+"H{ : " print
 H{ { 'a' 4 } { 'b' 5 } { 'c' 6 } }
 { { 'a' 4 } { 'b' 5 } { 'c' 6 } } >hashmap
 == .
+
+"== : " print
+H{ { 'a' 4 } { 'b' 5 } { 'c' 6 } }
+H{ { 'a' 4 } { 'b' 5 }  } == .
 
 // TODO: >string    ( hashmap -- string )
 

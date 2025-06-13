@@ -25,6 +25,7 @@ impl InternalBuilder for HashMapsBuilder {
 
         push_op(op_table, &mut index, "<hashmap>", hashmap);
         push_op(op_table, &mut index, ">hashmap", to_hashmap);
+        push_op(op_table, &mut index, "is-hashmap?", is_hashmap);
 
         Module {
             imported: HashMap::new(),
@@ -71,4 +72,12 @@ fn to_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     let value_data = ValueData::HashMap(hashmap);
     vm.push(shared(value_data.into()))
+}
+
+// is-hashmap? ( object -- ? )
+fn is_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let object = vm.pop()?;
+    let object = object.borrow();
+    let result = object.data.is_hash_map();
+    vm.push(shared(result.into()))
 }

@@ -413,6 +413,13 @@ impl ValueData {
             None
         }
     }
+
+    /// Returns `true` if the value data is [`HashMap`].
+    ///
+    /// [`HashMap`]: ValueData::HashMap
+    pub fn is_hash_map(&self) -> bool {
+        matches!(self, Self::HashMap(..))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
