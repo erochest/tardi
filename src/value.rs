@@ -802,7 +802,9 @@ impl fmt::Display for ValueData {
             }
             ValueData::HashMap(hash_map) => {
                 write!(f, "H{{")?;
-                for (k, v) in hash_map.iter() {
+                let mut pairs = hash_map.iter().collect::<Vec<_>>();
+                pairs.sort();
+                for (k, v) in pairs.iter() {
                     write!(f, " {{ {} {} }}", k.to_repr(), v.borrow().to_repr())?;
                 }
                 write!(f, " }}")

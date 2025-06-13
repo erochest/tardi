@@ -2,7 +2,8 @@
 >hashmap : #t
 H{ : #t
 == : #f
->string : "H{ { \"surname\" \"McMillan\" } { \"given-name\" \"Trillian\" } }"
+>string : "H{ { \"given-name\" \"Trillian\" } { \"surname\" \"McMillan\" } }"
 length : 0
 1
 4
+>vector : { { 1 2 } { 2 3 } { 3 4 } { 4 5 } }

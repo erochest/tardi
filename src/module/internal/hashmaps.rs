@@ -8,7 +8,7 @@ use crate::module::{
     Module,
 };
 use crate::shared::{shared, unshare_clone};
-use crate::value::ValueData;
+use crate::value::{Value, ValueData};
 use crate::vm::VM;
 
 pub const HASHMAPS: &str = "std/_hashmaps";
@@ -25,6 +25,7 @@ impl InternalBuilder for HashMapsBuilder {
 
         push_op(op_table, &mut index, "<hashmap>", hashmap);
         push_op(op_table, &mut index, ">hashmap", to_hashmap);
+        push_op(op_table, &mut index, ">vector", to_vector);
         push_op(op_table, &mut index, "is-hashmap?", is_hashmap);
         push_op(op_table, &mut index, "length", length);
 
@@ -46,7 +47,7 @@ fn hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(value_data.into()))
 }
 
-// <hashmap> ( vector-of-pairs -- hashmap )
+// >hashmap ( vector-of-pairs -- hashmap )
 fn to_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let vector = vm.pop()?;
     let vector = vector.borrow();
@@ -73,6 +74,22 @@ fn to_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     let value_data = ValueData::HashMap(hashmap);
     vm.push(shared(value_data.into()))
+}
+
+// >vector ( hashmap -- vector-of-pairs )
+fn to_vector(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let object = vm.pop()?;
+    let object = object.borrow();
+    let hashmap = object
+        .data
+        .as_hash_map()
+        .ok_or_else(|| VMError::TypeMismatch("hashmaps/>vector expects a hashmap".to_string()))?;
+
+    let vector = hashmap
+        .iter()
+        .map(|(k, v)| Value::from(vec![shared(Value::new(k.clone())), v.clone()]))
+        .collect::<Vec<_>>();
+    vm.push(shared(Value::from(vector)))
 }
 
 // is-hashmap? ( object -- ? )

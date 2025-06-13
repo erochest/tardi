@@ -2,6 +2,7 @@
 uses: std/hashmaps
 uses: std/io
 uses: std/strings
+uses: std/vectors
 
 "<hashmap> : " print
 <hashmap> .
@@ -26,6 +27,11 @@ H{ { "given-name" "Trillian" } { "surname" "McMillan" } } strings/>string .
 H{ } hashmaps/length .
 H{ { 1 2 } } hashmaps/length .
 H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } hashmaps/length .
+
+">vector : " print
+H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } >vector
+dup sort!
+.
 
 // TODO: keys       ( hashmap -- vector )
 // TODO: values     ( hashmap -- vector )
