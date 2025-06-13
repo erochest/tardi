@@ -1,6 +1,7 @@
 
 uses: std/hashmaps
 uses: std/io
+uses: std/strings
 
 "<hashmap> : " print
 <hashmap> .
@@ -18,7 +19,8 @@ H{ { 'a' 4 } { 'b' 5 } { 'c' 6 } }
 H{ { 'a' 4 } { 'b' 5 } { 'c' 6 } }
 H{ { 'a' 4 } { 'b' 5 }  } == .
 
-// TODO: >string    ( hashmap -- string )
+">string : " print
+H{ { "given-name" "Trillian" } { "surname" "McMillan" } } strings/>string .
 
 // TODO: length     ( hashmap -- len )
 // TODO: keys       ( hashmap -- vector )

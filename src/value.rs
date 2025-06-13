@@ -372,6 +372,14 @@ impl Read for TardiReader {
 }
 
 impl ValueData {
+    pub fn to_repr(&self) -> String {
+        if let ValueData::String(ref s) = self {
+            format!("\"{}\"", s.replace("\\", "\\\\").replace("\"", "\\\""))
+        } else {
+            self.to_string()
+        }
+    }
+
     pub fn get_word(&self) -> Option<&str> {
         if let ValueData::Word(ref w) = self {
             Some(w)
@@ -481,7 +489,7 @@ impl Value {
 
     pub fn to_repr(&self) -> String {
         if let ValueData::String(ref s) = self.data {
-            format!("\"{}\"", s.replace("\"", "\\\""))
+            format!("\"{}\"", s.replace("\\", "\\\\").replace("\"", "\\\""))
         } else {
             self.data.to_string()
         }
@@ -787,7 +795,7 @@ impl fmt::Display for ValueData {
             ValueData::HashMap(hash_map) => {
                 write!(f, "H{{")?;
                 for (k, v) in hash_map.iter() {
-                    write!(f, " {{ {} {} }}", k, v.borrow())?;
+                    write!(f, " {{ {} {} }}", k.to_repr(), v.borrow().to_repr())?;
                 }
                 write!(f, " }}")
             }

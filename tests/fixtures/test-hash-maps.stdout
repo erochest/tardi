@@ -2,3 +2,4 @@
 >hashmap : #t
 H{ : #t
 == : #f
+>string : "H{ { \"surname\" \"McMillan\" } { \"given-name\" \"Trillian\" } }"
