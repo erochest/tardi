@@ -33,7 +33,11 @@ H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } >vector
 dup sort!
 .
 
-// TODO: keys       ( hashmap -- vector )
+"keys : " print
+H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } keys
+dup sort!
+.
+
 // TODO: values     ( hashmap -- vector )
 // TODO: contains?  ( key hashmap -- ?  )
 // TODO: get        ( key hashmap -- value )
