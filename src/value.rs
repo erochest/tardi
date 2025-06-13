@@ -428,6 +428,14 @@ impl ValueData {
     pub fn is_hash_map(&self) -> bool {
         matches!(self, Self::HashMap(..))
     }
+
+    pub fn as_hash_map(&self) -> Option<&HashMap<ValueData, SharedValue>> {
+        if let Self::HashMap(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]

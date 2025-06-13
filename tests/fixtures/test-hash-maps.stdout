@@ -3,3 +3,6 @@
 H{ : #t
 == : #f
 >string : "H{ { \"surname\" \"McMillan\" } { \"given-name\" \"Trillian\" } }"
+length : 0
+1
+4

@@ -22,7 +22,11 @@ H{ { 'a' 4 } { 'b' 5 }  } == .
 ">string : " print
 H{ { "given-name" "Trillian" } { "surname" "McMillan" } } strings/>string .
 
-// TODO: length     ( hashmap -- len )
+"length : " print
+H{ } hashmaps/length .
+H{ { 1 2 } } hashmaps/length .
+H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } hashmaps/length .
+
 // TODO: keys       ( hashmap -- vector )
 // TODO: values     ( hashmap -- vector )
 // TODO: contains?  ( key hashmap -- ?  )

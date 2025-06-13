@@ -26,6 +26,7 @@ impl InternalBuilder for HashMapsBuilder {
         push_op(op_table, &mut index, "<hashmap>", hashmap);
         push_op(op_table, &mut index, ">hashmap", to_hashmap);
         push_op(op_table, &mut index, "is-hashmap?", is_hashmap);
+        push_op(op_table, &mut index, "length", length);
 
         Module {
             imported: HashMap::new(),
@@ -80,4 +81,16 @@ fn is_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let object = object.borrow();
     let result = object.data.is_hash_map();
     vm.push(shared(result.into()))
+}
+
+// length ( hashmap -- int )
+fn length(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let object = vm.pop()?;
+    let object = object.borrow();
+    let hashmap = object
+        .data
+        .as_hash_map()
+        .ok_or_else(|| VMError::TypeMismatch("hashmaps/length expects a hashmap".to_string()))?;
+
+    vm.push(shared((hashmap.len() as i64).into()))
 }
