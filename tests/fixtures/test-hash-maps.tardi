@@ -69,4 +69,7 @@ dup sort!
 [ 2 * ] hashmaps/map
 >vector dup sort! .
 
-// TODO: empty?
+"empty? :" println
+H{ } hashmaps/empty? .
+H{ { 1 2 } } hashmaps/empty? .
+H{ { 1 2 } { 2 4 } { 5 6 } } hashmaps/empty? .
