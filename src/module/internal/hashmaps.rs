@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::compiler::Compiler;
 use crate::error::{Result, VMError};
 
+use crate::module::internal::{push_false, push_true};
 use crate::module::{
     internal::{push_op, InternalBuilder},
     Module,
@@ -28,6 +29,7 @@ impl InternalBuilder for HashMapsBuilder {
         push_op(op_table, &mut index, ">vector", to_vector);
         push_op(op_table, &mut index, "is-hashmap?", is_hashmap);
         push_op(op_table, &mut index, "length", length);
+        push_op(op_table, &mut index, "get", get);
 
         Module {
             imported: HashMap::new(),
@@ -110,4 +112,29 @@ fn length(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
         .ok_or_else(|| VMError::TypeMismatch("hashmaps/length expects a hashmap".to_string()))?;
 
     vm.push(shared((hashmap.len() as i64).into()))
+}
+
+// get ( hashmap -- int )
+fn get(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let popped = vm.pop()?;
+    let popped = popped.borrow();
+    let hashmap = popped.data.as_hash_map().ok_or_else(|| {
+        VMError::TypeMismatch(format!(
+            "hashmaps/get expects a hashmap: {}",
+            popped.to_repr()
+        ))
+    })?;
+    let popped = vm.pop()?;
+    let key = popped.borrow();
+    let key = &key.data;
+
+    let value = hashmap.get(key);
+
+    if let Some(value) = value {
+        vm.push(value.clone())?;
+        push_true(vm)
+    } else {
+        push_false(vm)?;
+        push_false(vm)
+    }
 }
