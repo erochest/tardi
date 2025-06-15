@@ -276,11 +276,11 @@ fn join(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
 /// sort! ( vector -- )
 fn sort(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    let list = vm.pop()?;
-    let mut list = list.borrow_mut();
-    let list = list
-        .as_list_mut()
-        .ok_or_else(|| VMError::TypeMismatch("subvector list".to_string()))?;
+    let popped = vm.pop()?;
+    let mut list = popped.borrow_mut();
+    let list = list.as_list_mut().ok_or_else(|| {
+        VMError::TypeMismatch(format!("sort list: {}", popped.borrow().to_repr()))
+    })?;
 
     list.sort();
 
