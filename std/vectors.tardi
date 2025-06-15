@@ -1,6 +1,8 @@
 
 uses: std/_vectors
 
+// TODO: >pair
+
 exports:
     <vector> concat each empty? first fourth in? index-of? join last length map
     nth pop! pop-left! push! push-left! reduce second set-nth! sort! subvector

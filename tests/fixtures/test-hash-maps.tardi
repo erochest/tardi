@@ -65,5 +65,8 @@ dup sort!
 "  values: " print .
 "  keys  : " print .
 
-// TODO: map        ( lambda:( v -- v' ) hashmap -- hashmap )
+"map : " print
+[ 2 * ] hashmaps/map
+>vector dup sort! .
+
 // TODO: empty?
