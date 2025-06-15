@@ -31,6 +31,7 @@ impl InternalBuilder for HashMapsBuilder {
         push_op(op_table, &mut index, "length", length);
         push_op(op_table, &mut index, "get", get);
         push_op(op_table, &mut index, "add!", add);
+        push_op(op_table, &mut index, "set!", set);
 
         Module {
             imported: HashMap::new(),
@@ -161,6 +162,28 @@ fn add(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     let pair = vm.pop()?;
     let (key, value) = parse_vector_pair("add!", &pair)?;
+    let key = key.borrow().data.clone();
+
+    let _ = hashmap.insert(key, value);
+
+    Ok(())
+}
+
+// set! ( key value hashmap -- )
+fn set(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
+    let popped = vm.pop()?;
+    let mut hashmap = popped.borrow_mut();
+    let hashmap = hashmap.data.as_hash_map_mut().ok_or_else(|| {
+        VMError::TypeMismatch(format!(
+            "hashmaps/add! expects a hashmap: {}",
+            popped.borrow().to_repr()
+        ))
+    })?;
+
+    let value = vm.pop()?;
+    let value = value.clone();
+
+    let key = vm.pop()?;
     let key = key.borrow().data.clone();
 
     let _ = hashmap.insert(key, value);

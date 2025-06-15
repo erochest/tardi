@@ -38,7 +38,6 @@ dup keys dup sort! .
 "values : " print
 dup values dup sort! .
 
-
 "in? : " print
 1 over hashmaps/in? .
 9 over hashmaps/in? .
@@ -50,8 +49,11 @@ dup values dup sort! .
 "add! : " print
 H{ { 'a' 1 } { 'b' 2 } { 'd' 4 } { 'e' 5 } }
 { 'c' 3 } over add!
+dup >vector dup sort! .
+
+"set! : " print
+'d' 9 pick set!
 >vector dup sort! .
 
-// TODO: set!       ( key value hashmap -- )
 // TODO: each       ( lambda:( k v -- ) hashmap -- )
 // TODO: map        ( lambda:( v -- v' ) hashmap -- hashmap )
