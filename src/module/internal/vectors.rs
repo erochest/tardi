@@ -191,11 +191,11 @@ fn length(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
 /// in? ( item vector -- ? )
 fn is_in(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    let list = vm.pop()?;
-    let list = list.borrow();
+    let popped = vm.pop()?;
+    let list = popped.borrow();
     let list = list
         .as_list()
-        .ok_or_else(|| VMError::TypeMismatch("in? list".to_string()))?;
+        .ok_or_else(|| VMError::TypeMismatch(format!("in? list: {}", popped.borrow().to_repr())))?;
     let item = vm.pop()?;
 
     let is_in = list.contains(&item);
