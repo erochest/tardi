@@ -436,6 +436,14 @@ impl ValueData {
             None
         }
     }
+
+    pub fn as_hash_map_mut(&mut self) -> Option<&mut HashMap<ValueData, SharedValue>> {
+        if let Self::HashMap(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]

@@ -26,35 +26,32 @@ H{ { "given-name" "Trillian" } { "surname" "McMillan" } } strings/>string .
 "length : " print
 H{ } hashmaps/length .
 H{ { 1 2 } } hashmaps/length .
-H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } hashmaps/length .
+H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } }
+dup hashmaps/length .
 
 ">vector : " print
-H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } >vector
-dup sort!
-.
+dup >vector dup sort! .
 
 "keys : " print
-H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } keys
-dup sort!
-.
+dup keys dup sort! .
 
 "values : " print
-H{ { 1 2 } { 2 3 } { 3 4 } { 4 5 } } values
-dup sort!
-.
+dup values dup sort! .
 
 
 "in? : " print
-H{ { 1 2 } { 2 3 } { 4 5 } { 5 6 } }
 1 over hashmaps/in? .
-3 swap hashmaps/in? .
+9 over hashmaps/in? .
 
 "get : " print
-H{ { 1 2 } { 2 3 } { 4 5 } { 5 6 } }
 2 over get . .
-3 swap get . .
+9 over get . .
 
-// TODO: add!       ( pair hashmap -- )
+"add! : " print
+H{ { 'a' 1 } { 'b' 2 } { 'd' 4 } { 'e' 5 } }
+{ 'c' 3 } over add!
+>vector dup sort! .
+
 // TODO: set!       ( key value hashmap -- )
 // TODO: each       ( lambda:( k v -- ) hashmap -- )
 // TODO: map        ( lambda:( v -- v' ) hashmap -- hashmap )
