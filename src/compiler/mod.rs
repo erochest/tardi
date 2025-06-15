@@ -18,8 +18,9 @@ use crate::error::{Error, Result};
 use crate::scanner::error::ScannerError;
 use crate::scanner::Source;
 use crate::shared::{shared, unshare_clone, Shared};
+use crate::value::data::ValueData;
 use crate::value::lambda::{Callable, Lambda};
-use crate::value::{Value, ValueData, ValueVec};
+use crate::value::{Value, ValueVec};
 use crate::vm::OpCode;
 use crate::{Scanner, VM};
 

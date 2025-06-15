@@ -8,8 +8,9 @@ use crate::error::Result;
 use crate::module::internal::kernel::KERNEL;
 use crate::module::internal::sandbox::SANDBOX;
 use crate::shared::{shared, Shared};
+use crate::value::data::ValueData;
 use crate::value::lambda::Lambda;
-use crate::value::{Value, ValueData};
+use crate::value::Value;
 use crate::vm::VM;
 
 pub trait Execute {
