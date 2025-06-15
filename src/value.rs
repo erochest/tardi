@@ -65,6 +65,8 @@ impl Hash for Value {
 // XXX: need some way to freeze these values for hashmap keys. one option might
 // be to have frozen versions of members that have interior mutability. will
 // need to make sure they have Eq, PartialEq, and Hash the same though
+// XXX: another way to freeze values is to have a FrozenValueData with From
+// traits for ValueData.
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
 pub enum ValueData {
