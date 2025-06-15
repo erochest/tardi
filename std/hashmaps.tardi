@@ -2,7 +2,7 @@ uses: std/scanning
 uses: std/vectors
 uses: std/_hashmaps
 
-exports: <hashmap> >hashmap >vector add! get H{ in? is-hashmap? keys length set! values ;
+exports: <hashmap> >hashmap >vector add! each get H{ in? is-hashmap? keys length set! values ;
 
 /// hashmap literals:
 /// H{ { "key1" 4 } { "key2" 5 } }
@@ -16,3 +16,14 @@ MACRO: H{ } scan-object-list >hashmap over vectors/push! ;
 
 /// ( key hashmap -- ? )
 : in?   keys vectors/in? ;
+
+// ( hashmap lambda:( k v -- ) -- )
+: each   swap >vector [ dup vectors/empty? ! ] [
+      [
+        vectors/pop!
+        [ first ] keep
+        second
+        rot
+        [ apply ] keep
+      ] keep
+    ] while 2drop ;

@@ -55,5 +55,15 @@ dup >vector dup sort! .
 'd' 9 pick set!
 >vector dup sort! .
 
-// TODO: each       ( lambda:( k v -- ) hashmap -- )
+"each :" println
+{ } { } pick [
+  pick push!
+  pick push!
+] hashmaps/each
+dup sort!
+[ dup sort! ] dip
+"  values: " print .
+"  keys  : " print .
+
 // TODO: map        ( lambda:( v -- v' ) hashmap -- hashmap )
+// TODO: empty?

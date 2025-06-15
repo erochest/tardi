@@ -178,11 +178,11 @@ fn set_nth(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
 /// length ( vector -- length )
 fn length(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    let list = vm.pop()?;
-    let list = list.borrow();
-    let list = list
-        .as_list()
-        .ok_or_else(|| VMError::TypeMismatch("length of list".to_string()))?;
+    let popped = vm.pop()?;
+    let list = popped.borrow();
+    let list = list.as_list().ok_or_else(|| {
+        VMError::TypeMismatch(format!("length of list: {}", popped.borrow().to_repr()))
+    })?;
 
     let length = list.len();
 
@@ -277,12 +277,14 @@ fn join(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 /// sort! ( vector -- )
 fn sort(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let popped = vm.pop()?;
+    // let repr = popped.borrow().to_repr();
     let mut list = popped.borrow_mut();
-    let list = list.as_list_mut().ok_or_else(|| {
-        VMError::TypeMismatch(format!("sort list: {}", popped.borrow().to_repr()))
-    })?;
-
-    list.sort();
+    if let Some(list) = list.as_list_mut() {
+        list.sort();
+    } else {
+        // return Err(VMError::TypeMismatch(format!("sort list: {}", repr)).into());
+        return Err(VMError::TypeMismatch("sort list".to_string()).into());
+    }
 
     Ok(())
 }

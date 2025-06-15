@@ -90,12 +90,14 @@ fn to_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
 // >vector ( hashmap -- vector-of-pairs )
 fn to_vector(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
-    let object = vm.pop()?;
-    let object = object.borrow();
-    let hashmap = object
-        .data
-        .as_hash_map()
-        .ok_or_else(|| VMError::TypeMismatch("hashmaps/>vector expects a hashmap".to_string()))?;
+    let popped = vm.pop()?;
+    let object = popped.borrow();
+    let hashmap = object.data.as_hash_map().ok_or_else(|| {
+        VMError::TypeMismatch(format!(
+            "hashmaps/>vector expects a hashmap: {}",
+            popped.borrow().to_repr()
+        ))
+    })?;
 
     let vector = hashmap
         .iter()
