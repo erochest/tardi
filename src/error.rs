@@ -9,6 +9,7 @@ use rustyline::error::ReadlineError;
 
 use crate::compiler::error::CompilerError;
 use crate::scanner::error::ScannerError;
+use crate::value::ValueData;
 
 pub type Result<R> = result::Result<R, Error>;
 pub type VMResult<R> = result::Result<R, VMError>;
@@ -45,6 +46,7 @@ pub enum VMError {
     InvalidWordCall(String),
     MissingEnvironment,
     MissingModule,
+    UnfreezableValue(ValueData),
     Stop,
     Break,
     Continue,
@@ -89,6 +91,7 @@ impl fmt::Display for VMError {
             VMError::InvalidWordCall(word) => write!(f, "Invalid word call: {}", word),
             VMError::MissingModule => write!(f, "No module"),
             VMError::MissingEnvironment => write!(f, "No environment"),
+            VMError::UnfreezableValue(v) => write!(f, "cannot freeze value {}", v),
             VMError::Stop => unreachable!("VMError::Stop"),
             VMError::Break => unreachable!("VMError::Break"),
             VMError::Continue => unreachable!("VMError::Continue"),

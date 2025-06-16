@@ -15,6 +15,7 @@ pub use crate::value::io::reader::TardiReader;
 pub use crate::value::io::writer::TardiWriter;
 
 pub mod data;
+pub mod frozen;
 pub mod io;
 pub mod lambda;
 

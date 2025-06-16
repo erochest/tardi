@@ -5,6 +5,7 @@ use std::hash::Hash;
 use std::ops::{Add, Div, Mul, Sub};
 
 use crate::error::{Result, VMError};
+use crate::value::frozen::FrozenValueData;
 use crate::value::lambda::Lambda;
 
 use super::{SharedValue, TardiReader, TardiWriter, Value};
@@ -13,11 +14,7 @@ use super::{SharedValue, TardiReader, TardiWriter, Value};
 // bridges across layers
 // TODO: Have a Value member for doc comments so we can grab those in macros
 // TODO: cache common values like small numbers, booleans, and empty collections.
-// XXX: need some way to freeze these values for hashmap keys. one option might
-// be to have frozen versions of members that have interior mutability. will
-// need to make sure they have Eq, PartialEq, and Hash the same though
-// XXX: another way to freeze values is to have a FrozenValueData with From
-// traits for ValueData.
+// TODO: immutable tuple type
 /// Enum representing different types of values that can be stored on the stack
 #[derive(Debug, Clone)]
 pub enum ValueData {
@@ -28,7 +25,7 @@ pub enum ValueData {
     String(String),
     // TODO: rename to Vector
     List(Vec<SharedValue>),
-    HashMap(HashMap<ValueData, SharedValue>),
+    HashMap(HashMap<FrozenValueData, SharedValue>),
     Function(Lambda),
     Address(usize),
     Word(String),
@@ -99,7 +96,7 @@ impl ValueData {
         matches!(self, Self::HashMap(..))
     }
 
-    pub fn as_hash_map(&self) -> Option<&HashMap<ValueData, SharedValue>> {
+    pub fn as_hash_map(&self) -> Option<&HashMap<FrozenValueData, SharedValue>> {
         if let Self::HashMap(v) = self {
             Some(v)
         } else {
@@ -107,7 +104,7 @@ impl ValueData {
         }
     }
 
-    pub fn as_hash_map_mut(&mut self) -> Option<&mut HashMap<ValueData, SharedValue>> {
+    pub fn as_hash_map_mut(&mut self) -> Option<&mut HashMap<FrozenValueData, SharedValue>> {
         if let Self::HashMap(v) = self {
             Some(v)
         } else {

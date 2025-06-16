@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::convert::TryInto;
 
 use crate::compiler::Compiler;
 use crate::error::{Result, VMError};
@@ -8,7 +9,8 @@ use crate::module::{
     internal::{push_op, InternalBuilder},
     Module,
 };
-use crate::shared::{shared, unshare_clone};
+use crate::shared::shared;
+use crate::value::frozen::FrozenValueData;
 use crate::value::{SharedValue, Value, ValueData};
 use crate::vm::VM;
 
@@ -19,7 +21,7 @@ pub struct HashMapsBuilder;
 impl InternalBuilder for HashMapsBuilder {
     fn define_module(
         &self,
-        module_manager: &crate::module::ModuleManager,
+        _module_manager: &crate::module::ModuleManager,
         op_table: &mut Vec<crate::shared::Shared<crate::value::lambda::Lambda>>,
     ) -> crate::module::Module {
         let mut index = HashMap::new();
@@ -51,7 +53,7 @@ fn hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     vm.push(shared(value_data.into()))
 }
 
-fn parse_vector_pair(word: &str, pair: &SharedValue) -> Result<(SharedValue, SharedValue)> {
+fn parse_vector_pair(word: &str, pair: &SharedValue) -> Result<(FrozenValueData, SharedValue)> {
     let pair = pair.borrow();
     let pair = pair.as_list().ok_or_else(|| {
         VMError::TypeMismatch(format!("{} expects a vector of vector pairs", word))
@@ -59,13 +61,17 @@ fn parse_vector_pair(word: &str, pair: &SharedValue) -> Result<(SharedValue, Sha
 
     let key = pair
         .first()
-        .ok_or_else(|| VMError::TypeMismatch("vector pair too short".to_string()))?;
+        .ok_or_else(|| VMError::TypeMismatch("vector pair too short".to_string()))?
+        .borrow()
+        .data
+        .clone()
+        .try_into()?;
 
     let value = pair
         .get(1)
         .ok_or_else(|| VMError::TypeMismatch("vector pair too short".to_string()))?;
 
-    Ok((key.clone(), value.clone()))
+    Ok((key, value.clone()))
 }
 
 // >hashmap ( vector-of-pairs -- hashmap )
@@ -79,9 +85,7 @@ fn to_hashmap(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let mut hashmap = HashMap::new();
     for pair in vector.iter() {
         let (key, value) = parse_vector_pair(">hashmap", pair)?;
-        let key = unshare_clone(key.clone());
-
-        hashmap.insert(key.data, value.clone());
+        hashmap.insert(key, value.clone());
     }
 
     let value_data = ValueData::HashMap(hashmap);
@@ -101,7 +105,7 @@ fn to_vector(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     let vector = hashmap
         .iter()
-        .map(|(k, v)| Value::from(vec![shared(Value::new(k.clone())), v.clone()]))
+        .map(|(k, v)| Value::from(vec![shared(Value::new(k.clone().into())), v.clone()]))
         .collect::<Vec<_>>();
     vm.push(shared(Value::from(vector)))
 }
@@ -139,6 +143,7 @@ fn get(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let popped = vm.pop()?;
     let key = popped.borrow();
     let key = &key.data;
+    let key = &key.clone().try_into()?;
 
     let value = hashmap.get(key);
 
@@ -164,7 +169,6 @@ fn add(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
 
     let pair = vm.pop()?;
     let (key, value) = parse_vector_pair("add!", &pair)?;
-    let key = key.borrow().data.clone();
 
     let _ = hashmap.insert(key, value);
 
@@ -186,7 +190,7 @@ fn set(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     let value = value.clone();
 
     let key = vm.pop()?;
-    let key = key.borrow().data.clone();
+    let key = key.borrow().data.clone().try_into()?;
 
     let _ = hashmap.insert(key, value);
 
