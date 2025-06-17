@@ -26,7 +26,7 @@ init:
 
 install:
     # TODO: clean out the `std/` directory before installing
-    cargo install --path .
+    cargo install --release --path .
     -mkdir -p "{{clean(join(data_directory(), 'tardi', 'std'))}}"
     -cp -r std "{{clean(join(data_directory(), 'tardi', 'std'))}}"
 

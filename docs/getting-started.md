@@ -2,6 +2,24 @@
 
 Welcome to Tardi, a stack-based concatenative programming language! This tutorial will introduce you to the fundamental concepts of stack-based programming and get you writing your first Tardi programs.
 
+## Try It Yourself!
+
+Want to follow along interactively? Start Tardi's REPL (Read-Eval-Print Loop) to try the examples as you read:
+
+```bash
+tardi --print-stack
+```
+
+This will give you a prompt where you can type Tardi commands and see the results immediately:
+
+```
+>>> 5 3 +
+ok
+8
+```
+
+Type any of the code examples from this tutorial to see them in action!
+
 ## What is a Stack-Based Language?
 
 Unlike traditional languages where you write `add(5, 3)`, stack-based languages work with a data stack where you push values and then apply operations:
@@ -33,7 +51,7 @@ Every operation in Tardi has a "stack effect" that describes what it consumes an
 // dup ( a -- a a ) - duplicates the top item
 5 dup       // Stack: 5 5
 
-// swap ( a b -- b a ) - swaps top two items  
+// swap ( a b -- b a ) - swaps top two items
 1 2 swap    // Stack: 2 1
 
 // drop ( a -- ) - removes top item
@@ -56,7 +74,7 @@ x 5 - abs sqrt
 
 // Or with intermediate steps you can see:
 10          // x = 10
-5 -         // 10 - 5 = 5  
+5 -         // 10 - 5 = 5
 dup *       // 5 * 5 = 25 (square instead of abs for this example)
 ```
 
@@ -91,7 +109,7 @@ Tardi supports various data types, all managed through the stack:
 3.14        // Float
 2 3.5 +     // Mixed arithmetic → 5.5
 
-// Booleans  
+// Booleans
 #t          // True
 #f          // False
 5 3 >       // Comparison → #t
@@ -136,7 +154,7 @@ Vectors (arrays) are created with curly braces:
 
 // Vector operations
 { 1 2 3 } 4 over push!      // Add 4 to end → { 1 2 3 4 }
-{ 1 2 3 4 } pop!            // Remove last → 4 { 1 2 3 }
+{ 1 2 3 4 } dup pop!        // Remove last → { 1 2 3 } 4
 { 1 2 3 } first             // Get first element → 1
 ```
 
@@ -148,7 +166,7 @@ Tardi uses lambdas (anonymous functions) for control flow:
 // if statement: condition true-branch false-branch if
 5 0 > [ "positive" ] [ "not positive" ] if
 
-// when statement: condition action when  
+// when statement: condition action when
 temperature 100 > [ "Water is boiling!" println ] when
 
 // Working with the result:
@@ -176,7 +194,7 @@ Stack operations let you organize data for the operations you need:
 
 3 7 sum-and-product // Result: 10 21 (sum=10, product=21)
 
-// Convert temperature from Celsius to Fahrenheit  
+// Convert temperature from Celsius to Fahrenheit
 : celsius-to-fahrenheit ( c -- f )
     9 * 5 /         // Multiply by 9, divide by 5
     32 +            // Add 32
@@ -189,13 +207,12 @@ Stack operations let you organize data for the operations you need:
 
 ### 1. Install Tardi
 
-First, build Tardi from source:
+First, build Tardi from source. If you have [just](https://just.systems/) installed, it's extra easy.
 
 ```bash
 git clone https://github.com/your-repo/tardi
 cd tardi
-cargo build --release
-cargo install --path .
+just install
 ```
 
 ### 2. Create a Script File
@@ -218,8 +235,8 @@ Create a file called `hello.tardi`:
 
 // Do some math
 : calculate-tip ( bill-amount tip-percent -- tip total )
-    over over           // Copy bill and tip%
-    * 100 /             // Calculate tip amount
+    dupd                // Copy bill
+    *                   // Calculate tip amount
     dup rot +           // Calculate total (tip + bill)
 ;
 
@@ -245,7 +262,9 @@ tardi --print-stack hello.tardi
 Start an interactive session to experiment:
 
 ```bash
-tardi  # Or: tardi repl
+tardi         # Starts the REPL (Read-Eval-Print Loop)
+# Or explicitly:
+tardi repl    # Same as above
 ```
 
 In the REPL, you can try commands immediately:
@@ -281,7 +300,7 @@ exports: square cube abs factorial even? odd? ;
     dup *
 ;
 
-// Cube a number  
+// Cube a number
 : cube ( n -- n^3 )
     dup square *
 ;
@@ -327,12 +346,12 @@ uses: std/io
 // Test our functions
 : test-math-functions
     "Testing math functions:" println
-    
+
     5 square "5² = " swap >string concat println
     3 cube "3³ = " swap >string concat println
     -7 abs "|-7| = " swap >string concat println
     5 factorial "5! = " swap >string concat println
-    
+
     4 even? [ "4 is even" ] [ "4 is odd" ] if println
     7 odd? [ "7 is odd" ] [ "7 is even" ] if println
 ;
@@ -423,7 +442,7 @@ Now that you understand the basics, explore these topics:
 ### Key Concepts to Remember
 
 - **Everything goes through the stack** - master stack manipulation
-- **Function composition** - build complex operations step by step  
+- **Function composition** - build complex operations step by step
 - **Concatenative style** - any sequence of operations can become a function
 - **Module system** - organize code with `uses:` and `exports:`
 - **Interactive development** - use the REPL to experiment
