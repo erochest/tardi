@@ -2,7 +2,7 @@
 
 Welcome to Tardi, a stack-based concatenative programming language! This tutorial will introduce you to the fundamental concepts of stack-based programming and get you writing your first Tardi programs.
 
-## Try It Yourself!
+## Try It Yourself
 
 Want to follow along interactively? Start Tardi's REPL (Read-Eval-Print Loop) to try the examples as you read:
 
@@ -59,6 +59,7 @@ Every operation in Tardi has a "stack effect" that describes what it consumes an
 ```
 
 The notation `( before -- after )` shows what the operation does:
+
 - Items before `--` are consumed from the stack
 - Items after `--` are produced on the stack
 - Rightmost items are at the top of the stack
@@ -210,7 +211,7 @@ Stack operations let you organize data for the operations you need:
 First, build Tardi from source. If you have [just](https://just.systems/) installed, it's extra easy.
 
 ```bash
-git clone https://github.com/your-repo/tardi
+git clone https://github.com/erochest/tardi
 cd tardi
 just install
 ```
@@ -366,6 +367,7 @@ tardi main.tardi
 ```
 
 Output:
+
 ```
 Testing math functions:
 5² = 25
