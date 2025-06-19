@@ -8,6 +8,8 @@ Tardi supports both functions (runtime execution) and macros (compile-time code 
 
 Functions are defined using the `:` syntax, which is implemented as a macro:
 
+TODO: stack-effect comments
+
 ```tardi
 : function-name ( stack-effect-comment )
     function-body
@@ -15,6 +17,7 @@ Functions are defined using the `:` syntax, which is implemented as a macro:
 ```
 
 The `:` macro automatically handles:
+
 - Function pre-declaration (for forward references)
 - Compilation of the function body
 - Registration in the environment
@@ -56,6 +59,7 @@ Lambdas are anonymous functions created using square brackets:
 ```
 
 Lambdas are commonly used with:
+
 - Conditional operations (`if`, `when`)
 - Loop constructs (`while`)
 - Higher-order functions (`map`, `each`, `keep`)
@@ -76,6 +80,7 @@ Lambdas are commonly used with:
 ## Function Composition and Combinators
 
 ### `apply ( ... lambda -- ... )`
+
 Executes a lambda or function with the current stack.
 
 ```tardi
@@ -85,6 +90,7 @@ Executes a lambda or function with the current stack.
 ### Stack Preservation Combinators
 
 #### `keep ( ... x lambda -- ... x' x )`
+
 Applies lambda to value but preserves the original.
 
 ```tardi
@@ -92,6 +98,7 @@ Applies lambda to value but preserves the original.
 ```
 
 #### `dip ( ... x lambda -- ... lambda-result x )`
+
 Applies lambda to stack below the top element.
 
 ```tardi
@@ -99,6 +106,7 @@ Applies lambda to stack below the top element.
 ```
 
 #### `2dip ( ... x y lambda -- ... lambda-result x y )`
+
 Applies lambda to stack below the top two elements.
 
 ```tardi
@@ -118,9 +126,12 @@ MACRO: macro-name
 ```
 
 Macros have access to:
+
 - The compilation environment
 - Scanning functions to read input tokens
 - Code generation capabilities
+
+TODO: mention the vector of already-scanned tokens
 
 #### Built-in Scanning Functions
 
@@ -133,21 +144,21 @@ Macros have access to:
 ```tardi
 // Simple macro that escapes the next token
 MACRO: \
-    dup scan-value swap push!
+    dup scan-value over push!
 ;
 
 // Lambda definition macro
 MACRO: [
     dup
     ] scan-object-list compile
-    swap push!
+    over push!
 ;
 
 // Vector literal macro
 MACRO: {
     dup
     } scan-object-list
-    swap push!
+    over push!
 ;
 
 // Function definition macro
@@ -167,13 +178,16 @@ Functions that operate on other functions:
 
 ```tardi
 : twice ( lambda -- )
-    dup apply apply
+    [ apply ] keep apply
 ;
 
 [ 2 * ] twice  // Applies the doubling function twice
 ```
 
 ### Partial Application
+
+TODO: add `curry`
+TODO: this doesn't do what it says it does
 
 ```tardi
 : add-n ( n -- lambda )
@@ -184,6 +198,8 @@ Functions that operate on other functions:
 ```
 
 ### Function Composition
+
+TODO: this also does not do what it says
 
 ```tardi
 : compose ( f g -- composed )
@@ -196,6 +212,7 @@ Functions that operate on other functions:
 ## Control Flow Functions
 
 ### `if ( condition true-lambda false-lambda -- )`
+
 Standard conditional execution.
 
 ```tardi
@@ -203,6 +220,7 @@ n 0 > [ "positive" ] [ "non-positive" ] if
 ```
 
 ### `when ( condition lambda -- )`
+
 Conditional execution without else clause.
 
 ```tardi
@@ -210,7 +228,10 @@ debug-mode [ "Debug information" println ] when
 ```
 
 ### `while ( predicate body -- )`
+
 Loop while predicate returns true.
+
+TODO: it's acting like there's a `counter` variable
 
 ```tardi
 [ counter 10 < ] [ 
@@ -249,6 +270,8 @@ Stack effects use the notation `( before -- after )`:
 ## Error Handling in Functions
 
 Functions should handle errors gracefully:
+
+TODO: passive aggressive fucking ai
 
 ```tardi
 : safe-divide ( a b -- result success? )
@@ -340,3 +363,4 @@ uses: std/hashmaps
 - Recursive functions use the return stack
 - Tail recursion is supported but not optimized
 - Macros have zero runtime cost (compile-time only)
+

@@ -5,6 +5,7 @@ Tardi's module system enables code organization, namespace management, and libra
 ## Module Structure
 
 Every Tardi module consists of:
+
 1. **Import declarations** (`uses:`) - What the module depends on
 2. **Export declarations** (`exports:`) - What the module provides
 3. **Implementation** - Functions, macros, and constants
@@ -48,6 +49,9 @@ Modules automatically import their dependencies:
 uses: std/hashmaps  // Automatically imports std/vectors
 uses: std/io        // Standalone module
 ```
+
+TODO: cover name resolution and name conflicts
+TODO: another doc page for configuration
 
 ## Export System
 
@@ -95,6 +99,7 @@ exports: square cube is-even? is-odd? factorial ;
 ### Core Module (`std/kernel`)
 
 Automatically available in all programs. Provides:
+
 - Stack operations: `dup`, `swap`, `rot`, `drop`, `clear`
 - Arithmetic: `+`, `-`, `*`, `/`
 - Comparisons: `==`, `<`, `>`, `!`
@@ -195,6 +200,7 @@ uses: geometry
 ## Module Resolution
 
 Tardi searches for modules in:
+
 1. Current directory
 2. Standard library directory (`std/`)
 3. User's data directory (`~/.local/share/tardi/std/` on Unix)
@@ -237,6 +243,8 @@ exports: debug-print save-config load-config ;
 
 ### Conditional Exports
 
+TODO: I'm not sure about this one
+
 ```tardi
 // platform-utils.tardi
 uses: std/kernel
@@ -256,6 +264,8 @@ exports: get-temp-dir path-separator ;
 ```
 
 ### Module Initialization
+
+TODO: constants
 
 ```tardi
 // logger.tardi
@@ -399,3 +409,4 @@ uses: module-a  // This creates a circular dependency
 
 debug-module-load  // Call at module start
 ```
+

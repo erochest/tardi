@@ -18,7 +18,7 @@ Tardi supports the following comparison operators:
 
 ### Scanner
 
-The scanner recognizes these operators as distinct tokens. Each operator is treated as a separate `TokenType` in the scanner implementation.
+The scanner recognizes these operators as distinct tokens. Each operator is treated as a separate type in the scanner implementation.
 
 ### Compiler
 
@@ -64,6 +64,8 @@ The VM includes error handling for type mismatches in comparison operations. If 
 ## Future Enhancements
 
 Future versions may include:
+
+TODO: check the first bullet. i think they already are implemented
 
 - Support for comparing more complex data types (e.g., strings, lists)
 - Short-circuiting boolean operations (AND, OR)

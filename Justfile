@@ -42,7 +42,7 @@ lint:
 
 tasks:
     # TODO: this doesn't play nicely with pwsh
-    rg --ignore-case "\\bxxx\\b|\\btodo\\b" src tests
+    rg --ignore-case "\\bxxx\\b|\\btodo\\b" docs src tests
 
 update-todos:
     just tasks > ./todos.txt

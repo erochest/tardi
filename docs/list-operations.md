@@ -28,6 +28,7 @@ Vector literals are implemented using the `{` macro, which expands them into app
 ## Creating Vectors Programmatically
 
 ### `<vector> ( -- vector )`
+
 Creates a new empty vector.
 
 ```tardi
@@ -39,6 +40,7 @@ Creates a new empty vector.
 ### Modification Operations
 
 #### `push! ( element vector -- vector )`
+
 Adds an element to the end of the vector (mutates in place).
 
 ```tardi
@@ -46,6 +48,7 @@ Adds an element to the end of the vector (mutates in place).
 ```
 
 #### `push-left! ( element vector -- vector )`
+
 Adds an element to the beginning of the vector (mutates in place).
 
 ```tardi
@@ -53,6 +56,7 @@ Adds an element to the beginning of the vector (mutates in place).
 ```
 
 #### `pop! ( vector -- element vector )`
+
 Removes and returns the last element from the vector.
 
 ```tardi
@@ -60,6 +64,7 @@ Removes and returns the last element from the vector.
 ```
 
 #### `pop-left! ( vector -- element vector )`
+
 Removes and returns the first element from the vector.
 
 ```tardi
@@ -67,6 +72,7 @@ Removes and returns the first element from the vector.
 ```
 
 #### `set-nth! ( index value vector -- vector )`
+
 Sets the element at the specified index (mutates in place).
 
 ```tardi
@@ -74,6 +80,7 @@ Sets the element at the specified index (mutates in place).
 ```
 
 #### `sort! ( vector -- vector )`
+
 Sorts the vector in place using natural ordering.
 
 ```tardi
@@ -83,6 +90,7 @@ Sorts the vector in place using natural ordering.
 ### Query Operations
 
 #### `length ( vector -- count )`
+
 Returns the number of elements in the vector.
 
 ```tardi
@@ -91,6 +99,7 @@ Returns the number of elements in the vector.
 ```
 
 #### `empty? ( vector -- boolean )`
+
 Tests whether the vector is empty.
 
 ```tardi
@@ -99,6 +108,7 @@ Tests whether the vector is empty.
 ```
 
 #### `nth ( index vector -- element )`
+
 Gets the element at the specified index (0-based). Returns `#f` if index is out of bounds.
 
 ```tardi
@@ -107,6 +117,7 @@ Gets the element at the specified index (0-based). Returns `#f` if index is out 
 ```
 
 #### `in? ( element vector -- boolean )`
+
 Tests whether an element exists in the vector.
 
 ```tardi
@@ -115,6 +126,7 @@ Tests whether an element exists in the vector.
 ```
 
 #### `index-of? ( element vector -- index found? )`
+
 Finds the first occurrence of an element, returning index and success flag.
 
 ```tardi
@@ -125,6 +137,7 @@ Finds the first occurrence of an element, returning index and success flag.
 ### Convenience Accessors (std/vectors)
 
 #### `first ( vector -- element )`
+
 Gets the first element of the vector.
 
 ```tardi
@@ -132,6 +145,7 @@ Gets the first element of the vector.
 ```
 
 #### `second ( vector -- element )`
+
 Gets the second element of the vector.
 
 ```tardi
@@ -139,12 +153,15 @@ Gets the second element of the vector.
 ```
 
 #### `third ( vector -- element )`
+
 Gets the third element of the vector.
 
 #### `fourth ( vector -- element )`
+
 Gets the fourth element of the vector.
 
 #### `last ( vector -- element )`
+
 Gets the last element of the vector.
 
 ```tardi
@@ -154,6 +171,7 @@ Gets the last element of the vector.
 ### Structural Operations
 
 #### `concat ( vector1 vector2 -- combined-vector )`
+
 Concatenates two vectors into a new vector.
 
 ```tardi
@@ -161,6 +179,7 @@ Concatenates two vectors into a new vector.
 ```
 
 #### `subvector ( start end vector -- subvector )`
+
 Extracts a portion of the vector from start index (inclusive) to end index (exclusive).
 
 ```tardi
@@ -168,6 +187,7 @@ Extracts a portion of the vector from start index (inclusive) to end index (excl
 ```
 
 #### `join ( separator vector -- string )`
+
 Joins vector elements into a string with the specified separator.
 
 ```tardi
@@ -178,6 +198,7 @@ Joins vector elements into a string with the specified separator.
 ## Higher-Order Functions (std/vectors)
 
 ### `each ( vector lambda -- )`
+
 Applies a function to each element of the vector.
 
 ```tardi
@@ -186,6 +207,7 @@ Applies a function to each element of the vector.
 ```
 
 ### `map ( vector lambda -- new-vector )`
+
 Creates a new vector by applying a function to each element.
 
 ```tardi
@@ -194,6 +216,7 @@ Creates a new vector by applying a function to each element.
 ```
 
 ### `reduce ( vector initial-value lambda -- result )`
+
 Reduces the vector to a single value using an accumulator function.
 
 ```tardi
@@ -313,6 +336,7 @@ process-records  // Returns: 354 (85*2 + 92*2)
 ## Common Patterns and Examples
 
 ### Data Analysis
+
 ```tardi
 // Calculate statistics
 : stats ( numbers -- min max avg )
@@ -326,6 +350,7 @@ process-records  // Returns: 354 (85*2 + 92*2)
 ```
 
 ### Text Processing
+
 ```tardi
 uses: std/hashmaps
 uses: std/strings
@@ -348,6 +373,7 @@ uses: std/strings
 ```
 
 ### Collection Operations
+
 ```tardi
 // Remove duplicates
 : unique ( vector -- unique-vector )
@@ -376,3 +402,4 @@ uses: std/strings
 { 1 2 3 } pop!         // Returns: 3 [1, 2]
 { 1 2 3 } first        // Returns: 1
 ```
+

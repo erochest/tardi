@@ -24,6 +24,7 @@ if
 ```
 
 #### Stack Effects
+
 - Consumes: condition (boolean), true-lambda, false-lambda
 - Produces: Result from executed lambda
 
@@ -44,6 +45,7 @@ temperature 0 < [ "Water is frozen!" println ] when
 ```
 
 #### Stack Effects
+
 - Consumes: condition (boolean), lambda
 - Produces: Nothing (or lambda result if executed)
 
@@ -52,6 +54,7 @@ temperature 0 < [ "Water is frozen!" println ] when
 These operations produce boolean values for use with conditionals:
 
 ### `== ( a b -- boolean )`
+
 Tests equality between two values.
 
 ```tardi
@@ -60,6 +63,7 @@ Tests equality between two values.
 ```
 
 ### `< ( a b -- boolean )`
+
 Tests if first value is less than second.
 
 ```tardi
@@ -68,6 +72,7 @@ Tests if first value is less than second.
 ```
 
 ### `> ( a b -- boolean )`
+
 Tests if first value is greater than second.
 
 ```tardi
@@ -76,6 +81,7 @@ Tests if first value is greater than second.
 ```
 
 ### `! ( boolean -- inverted-boolean )`
+
 Logical negation.
 
 ```tardi
@@ -89,6 +95,9 @@ Logical negation.
 ### `while ( predicate body -- )`
 
 Executes body repeatedly while predicate returns true. Both predicate and body are lambdas.
+
+TODO: make clear that nothing is stored between predicate and body. you need to dup yourself
+TODO: while can also use `break` and `continue` words
 
 ```tardi
 // Simple counter loop
@@ -115,6 +124,7 @@ drop  // Clean up final input
 ```
 
 #### Implementation Details
+
 - Predicate is tested before each iteration
 - Both predicate and body lambdas have access to the current stack
 - Loop exits when predicate returns `#f`
@@ -140,6 +150,7 @@ Advanced loop construct with explicit control flow.
 ```
 
 #### `break ( -- )`
+
 Exits the current loop immediately.
 
 ```tardi
@@ -151,7 +162,10 @@ Exits the current loop immediately.
 ```
 
 #### `continue ( -- )`
+
 Skips to the next iteration of the current loop.
+
+TODO: std/math/zero?
 
 ```tardi
 [
@@ -182,6 +196,8 @@ Skips to the next iteration of the current loop.
 
 ### Early Return Pattern
 
+TODO: `return` leaves the immediate lambda, not the primary one. is there a way to break from the named function? have return do that?
+
 ```tardi
 : validate-input ( input -- result )
     // Check for null/empty
@@ -199,6 +215,8 @@ Skips to the next iteration of the current loop.
 ```
 
 ### State Machine Pattern
+
+TODO: this isn't a valide `while`
 
 ```tardi
 : state-machine ( initial-state -- final-state )
@@ -252,6 +270,8 @@ Skips to the next iteration of the current loop.
 
 ### Processing Lists
 
+TODO: rest should probably be pop!
+
 ```tardi
 : process-all-items ( list -- )
     [
@@ -266,6 +286,9 @@ Skips to the next iteration of the current loop.
 ```
 
 ### Hash Map Iteration with Control Flow
+
+TODO: `over over` to `2dup`. and in other files
+TODO: i have doubts about the stack manipulation in this
 
 ```tardi
 uses: std/hashmaps
@@ -292,6 +315,8 @@ uses: std/hashmaps
 
 ### Conditional Optimization
 
+TODO: `unless`
+
 ```tardi
 // Efficient: short-circuit evaluation
 : fast-check ( x -- result )
@@ -310,6 +335,8 @@ uses: std/hashmaps
 ```
 
 ### Loop Optimization
+
+TODO: or do i want to just add `rest`?
 
 ```tardi
 // Efficient: minimize work in loop condition
@@ -398,3 +425,4 @@ valid-input? [ handle-valid-input ] [ show-error ] if
     ] if
 ;
 ```
+

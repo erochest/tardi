@@ -5,26 +5,32 @@ The return stack is a secondary stack used for temporary storage, control flow, 
 ## Basic Operations
 
 ### >r (to-r)
+
 Moves a value from the data stack to the return stack.
 
 Example:
+
 ```forth
 42 >r  // Moves 42 from data stack to return stack
 ```
 
 ### r> (r-from)
+
 Moves a value from the return stack to the data stack.
 
 Example:
+
 ```forth
 42 >r  // Move 42 to return stack
 r>     // Move 42 back to data stack
 ```
 
 ### r@ (r-fetch)
+
 Copies the top value from the return stack to the data stack without removing it from the return stack.
 
 Example:
+
 ```forth
 42 >r  // Move 42 to return stack
 r@     // Copy 42 to data stack, leaving it on return stack
@@ -36,12 +42,15 @@ r>     // Move 42 from return stack to data stack
 The return stack plays a crucial role in managing function calls and control flow:
 
 ### Function Calls
+
 When a function is called, the return address (the location to continue execution after the function completes) is automatically pushed onto the return stack.
 
 ### Return Operation
+
 The `return` operation uses the top value of the return stack to determine where to continue execution after a function call.
 
 ### Recursion
+
 The return stack enables recursive function calls by storing multiple return addresses.
 
 ## Error Handling
@@ -60,6 +69,7 @@ The return stack enables recursive function calls by storing multiple return add
 ## Advanced Usage
 
 ### Temporary Storage in Functions
+
 The return stack can be used for temporary storage within functions, allowing for more efficient use of the data stack:
 
 ```forth
@@ -71,7 +81,10 @@ The return stack can be used for temporary storage within functions, allowing fo
 ;
 ```
 
+TODO: mention that combinators like `keep` and `dip` are better alternatives that abstract away use of the return stack
+
 ### Implementing Control Structures
+
 The return stack is used internally to implement control structures like loops and conditionals. While these are typically abstracted away from the user, understanding the return stack's role can be helpful for advanced programming techniques.
 
 ## Best Practices

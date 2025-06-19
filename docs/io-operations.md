@@ -15,6 +15,7 @@ uses: std/io
 ### Writing Files
 
 #### `write-file ( content:string path:string -- success:boolean )`
+
 Writes content to a file, creating the file if it doesn't exist.
 
 ```tardi
@@ -27,6 +28,7 @@ Writes content to a file, creating the file if it doesn't exist.
 For more control over file writing, use file writers:
 
 ##### `<writer> ( path:string -- writer )`
+
 Creates a writer for the specified file path.
 
 ```tardi
@@ -34,6 +36,7 @@ Creates a writer for the specified file path.
 ```
 
 ##### `write ( content:string writer -- writer )`
+
 Writes content to a writer.
 
 ```tardi
@@ -44,6 +47,7 @@ close
 ```
 
 ##### `write-line ( content:string writer -- writer )`
+
 Writes content followed by a newline.
 
 ```tardi
@@ -54,6 +58,7 @@ close
 ```
 
 ##### `write-lines ( lines:vector writer -- writer )`
+
 Writes multiple lines from a vector.
 
 ```tardi
@@ -64,6 +69,7 @@ close
 ```
 
 ##### `flush ( writer -- writer )`
+
 Flushes the writer's buffer, ensuring data is written to disk.
 
 ```tardi
@@ -74,6 +80,7 @@ close
 ```
 
 ##### `close ( writer -- )`
+
 Closes a writer, automatically flushing any buffered content.
 
 ```tardi
@@ -85,6 +92,7 @@ close  // Automatically flushes and closes
 ### Reading Files
 
 #### `read-file ( path:string -- content:string success:boolean )`
+
 Reads the entire contents of a file as a string.
 
 ```tardi
@@ -98,6 +106,7 @@ Reads the entire contents of a file as a string.
 For more control over file reading:
 
 ##### `<reader> ( path:string -- reader )`
+
 Creates a reader for the specified file path.
 
 ```tardi
@@ -105,6 +114,7 @@ Creates a reader for the specified file path.
 ```
 
 ##### `read ( reader -- content:string reader )`
+
 Reads all remaining content from a reader.
 
 ```tardi
@@ -114,6 +124,7 @@ close
 ```
 
 ##### `read-line ( reader -- line:string reader )`
+
 Reads a single line from a reader.
 
 ```tardi
@@ -124,6 +135,7 @@ close
 ```
 
 ##### `read-lines ( reader -- lines:vector reader )`
+
 Reads all lines into a vector.
 
 ```tardi
@@ -137,6 +149,7 @@ close
 ### Standard Streams
 
 #### `<stdin> ( -- reader )`
+
 Returns a reader for standard input.
 
 ```tardi
@@ -145,6 +158,7 @@ drop  // Clean up reader
 ```
 
 #### `<stdout> ( -- writer )`
+
 Returns a writer for standard output.
 
 ```tardi
@@ -152,6 +166,7 @@ Returns a writer for standard output.
 ```
 
 #### `<stderr> ( -- writer )`
+
 Returns a writer for standard error.
 
 ```tardi
@@ -161,6 +176,7 @@ Returns a writer for standard error.
 ### Console Output Functions
 
 #### `print ( object -- )`
+
 Prints an object to standard output without a newline.
 
 ```tardi
@@ -170,6 +186,7 @@ Prints an object to standard output without a newline.
 ```
 
 #### `println ( object -- )`
+
 Prints an object to standard output followed by a newline.
 
 ```tardi
@@ -178,6 +195,7 @@ Prints an object to standard output followed by a newline.
 ```
 
 #### `nl ( -- )`
+
 Prints a newline to standard output.
 
 ```tardi
@@ -190,6 +208,7 @@ Prints a newline to standard output.
 ### Error Output Functions
 
 #### `eprint ( object -- )`
+
 Prints an object to standard error without a newline.
 
 ```tardi
@@ -197,6 +216,7 @@ Prints an object to standard error without a newline.
 ```
 
 #### `eprintln ( object -- )`
+
 Prints an object to standard error followed by a newline.
 
 ```tardi
@@ -204,6 +224,7 @@ Prints an object to standard error followed by a newline.
 ```
 
 #### `enl ( -- )`
+
 Prints a newline to standard error.
 
 ```tardi
@@ -213,15 +234,17 @@ Prints a newline to standard error.
 ## Debug Operations
 
 ### `. ( object -- )`
-Prints the representation of an object (useful for debugging).
+
+Pops a value off the stack and prints the representation of an object (useful for debugging).
 
 ```tardi
 42 .           // Prints: 42
-{ 1 2 3 } .    // Prints: [1, 2, 3]
+{ 1 2 3 } .    // Prints: { 1 2 3 }
 "hello" .      // Prints: "hello"
 ```
 
 ### `.s ( -- )`
+
 Prints the contents of the entire stack (non-destructive).
 
 ```tardi
@@ -238,6 +261,7 @@ Prints the contents of the entire stack (non-destructive).
 ## Utility Functions
 
 ### `file-path>> ( writer-or-reader -- path:string writer-or-reader )`
+
 Gets the file path from a writer or reader.
 
 ```tardi
@@ -320,3 +344,4 @@ input-loop
 - Readers are efficient for both line-by-line and bulk reading
 - Console operations automatically flush output for immediate display
 - File operations include proper error handling and resource cleanup
+

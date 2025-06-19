@@ -1,5 +1,7 @@
 # Getting Started with Tardi
 
+TODO: test all code snippets
+
 Welcome to Tardi, a stack-based concatenative programming language! This tutorial will introduce you to the fundamental concepts of stack-based programming and get you writing your first Tardi programs.
 
 ## Try It Yourself
@@ -47,6 +49,8 @@ After running this, your stack contains `420`.
 
 Every operation in Tardi has a "stack effect" that describes what it consumes and produces:
 
+TODO: stack-effect comments
+
 ```tardi
 // dup ( a -- a a ) - duplicates the top item
 5 dup       // Stack: 5 5
@@ -67,6 +71,11 @@ The notation `( before -- after )` shows what the operation does:
 ## Why Stack-Based Programming?
 
 Stack-based languages excel at **function composition**. Instead of nested function calls, you create pipelines:
+
+TODO: variables
+TODO: std/math/sqrt
+TODO: std/math/abs
+TODO: other std/math words
 
 ```tardi
 // Traditional: sqrt(abs(x - 5))
@@ -290,6 +299,8 @@ Modules let you organize and share code. Let's create a math utilities module.
 
 Create `math-utils.tardi`:
 
+TODO: %
+
 ```tardi
 // math-utils.tardi - Mathematical utility functions
 
@@ -450,6 +461,8 @@ Now that you understand the basics, explore these topics:
 - **Interactive development** - use the REPL to experiment
 
 ### Practice Exercises
+
+TODO: do practice exercises
 
 Try these challenges to solidify your understanding:
 

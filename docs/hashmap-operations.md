@@ -10,11 +10,10 @@ To use hash map operations, import the hashmaps module:
 uses: std/hashmaps
 ```
 
-This module also automatically imports `std/vectors` for related operations.
-
 ## Hash Map Literals
 
 ### `H{ ... }` - Hash Map Literal Syntax
+
 Hash maps use the `H{` `}` literal syntax with key-value pairs represented as 2-element vectors:
 
 ```tardi
@@ -26,6 +25,7 @@ Each key-value pair is a vector containing exactly two elements: `{ key value }`
 ## Creating Hash Maps
 
 ### `<hashmap> ( -- hashmap )`
+
 Creates an empty hash map.
 
 ```tardi
@@ -33,6 +33,7 @@ Creates an empty hash map.
 ```
 
 ### `>hashmap ( vector-of-pairs -- hashmap )`
+
 Converts a vector of key-value pairs into a hash map.
 
 ```tardi
@@ -43,6 +44,7 @@ Converts a vector of key-value pairs into a hash map.
 ## Converting Hash Maps
 
 ### `>vector ( hashmap -- vector-of-pairs )`
+
 Converts a hash map back to a vector of key-value pairs.
 
 ```tardi
@@ -53,6 +55,7 @@ H{ { "x" 10 } { "y" 20 } } >vector
 ## Query Operations
 
 ### `is-hashmap? ( object -- boolean )`
+
 Tests whether an object is a hash map.
 
 ```tardi
@@ -62,6 +65,7 @@ H{ { "test" 42 } } is-hashmap?  // Returns: #t
 ```
 
 ### `length ( hashmap -- count )`
+
 Returns the number of key-value pairs in the hash map.
 
 ```tardi
@@ -70,6 +74,7 @@ H{ { "a" 1 } { "b" 2 } } length  // Returns: 2
 ```
 
 ### `empty? ( hashmap -- boolean )`
+
 Tests whether a hash map is empty.
 
 ```tardi
@@ -78,6 +83,7 @@ H{ { "key" "value" } } empty?         // Returns: #f
 ```
 
 ### `get ( key hashmap -- value found? )`
+
 Retrieves a value by key, returning both the value and a success flag.
 
 ```tardi
@@ -85,10 +91,11 @@ Retrieves a value by key, returning both the value and a success flag.
 // Returns: "Bob" #t
 
 "missing" H{ { "name" "Bob" } } get
-// Returns: "" #f
+// Returns: #f #f
 ```
 
 ### `in? ( key hashmap -- boolean )`
+
 Tests whether a key exists in the hash map.
 
 ```tardi
@@ -99,6 +106,7 @@ Tests whether a key exists in the hash map.
 ## Accessing Keys and Values
 
 ### `keys ( hashmap -- vector-of-keys )`
+
 Returns a vector containing all keys from the hash map.
 
 ```tardi
@@ -107,6 +115,7 @@ H{ { "name" "Dave" } { "age" 40 } { "city" "Boston" } } keys
 ```
 
 ### `values ( hashmap -- vector-of-values )`
+
 Returns a vector containing all values from the hash map.
 
 ```tardi
@@ -116,28 +125,31 @@ H{ { "a" 100 } { "b" 200 } { "c" 300 } } values
 
 ## Modification Operations
 
-### `set! ( key value hashmap -- hashmap )`
+### `set! ( key value hashmap -- )`
+
 Sets a key-value pair in the hash map (modifies in place).
 
 ```tardi
-"name" "Eve" H{ { "age" 28 } } set!
+H{ { "age" 28 } } "name" "Eve" pick set!
 // Results in: H{ { "age" 28 } { "name" "Eve" } }
 
-"age" 29 H{ { "name" "Eve" } { "age" 28 } } set!
+H{ { "name" "Eve" } { "age" 28 } } "age" 29 pick  set!
 // Updates existing key: H{ { "name" "Eve" } { "age" 29 } }
 ```
 
-### `add! ( pair-vector hashmap -- hashmap )`
+### `add! ( pair-vector hashmap -- )`
+
 Adds a key-value pair from a 2-element vector.
 
 ```tardi
-{ "email" "eve@example.com" } H{ { "name" "Eve" } } add!
+H{ { "name" "Eve" } } { "email" "eve@example.com" } over add!
 // Results in: H{ { "name" "Eve" } { "email" "eve@example.com" } }
 ```
 
 ## Iteration Operations
 
 ### `each ( hashmap lambda -- )`
+
 Applies a function to each key-value pair. The lambda receives the key and value as separate arguments.
 
 ```tardi
@@ -153,6 +165,7 @@ H{ { "name" "Frank" } { "age" 45 } { "city" "Seattle" } }
 ```
 
 ### `map ( hashmap lambda -- hashmap' )`
+
 Creates a new hash map by applying a function to each value. The lambda receives the value and returns a new value.
 
 ```tardi
@@ -211,7 +224,7 @@ build-config
 ```tardi
 : merge-hashmaps ( hashmap1 hashmap2 -- merged-hashmap )
     swap >vector  // Convert first hashmap to vector
-    [ add! ] each  // Add each pair to second hashmap
+    [ over add! ] each  // Add each pair to second hashmap
 ;
 
 H{ { "a" 1 } { "b" 2 } }
@@ -271,6 +284,8 @@ merge-hashmaps
 
 ### Caching Results
 
+TODO: `constant:`
+
 ```tardi
 <hashmap> constant: cache
 
@@ -289,12 +304,13 @@ merge-hashmaps
 - Hash maps provide O(1) average-case lookup, insertion, and deletion
 - Keys are immutable after creation (frozen keys)
 - Iteration order is not guaranteed to be consistent
-- Hash maps are mutable structures - operations like `set!` and `add!` modify in place
+- Hash maps are mutable structures - operations like `set!` and `add!` modify in place, but consume it's place in the stack, so be sure to `dup` the hash map in some way.
 - Key comparison uses Tardi's built-in equality semantics
 
 ## Error Handling
 
 - `get` returns a boolean flag to indicate success/failure
-- Missing keys in `get` return empty string (`""`) and `#f`
+- Missing keys in `get` return `#f` twice
 - `in?` provides a direct boolean test for key existence
 - Invalid key-value pair vectors (not exactly 2 elements) may cause runtime errors
+
