@@ -24,6 +24,8 @@ impl InternalBuilder for KernelModule {
     ) -> Module {
         let mut index = HashMap::new();
 
+        // TODO: align this with the primitives in jones forth. what other primitives
+        // would i need to implement more in forth/tardi?
         push_op(op_table, &mut index, "<nop>", nop);
         push_op(op_table, &mut index, "<lit>", lit);
         push_op(op_table, &mut index, "dup", dup);

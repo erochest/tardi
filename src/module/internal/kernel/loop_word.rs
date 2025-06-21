@@ -11,6 +11,8 @@ use crate::error::{Result, VMError};
 
 use super::KERNEL;
 
+// TODO: when looking for breaks and continues, don't traverse into nested loops. i think
+// that's introducing a bug where it breaks/continues from the outer-most loop
 // TODO: `loop` and `inline` can be handled similarly
 // TODO: would i need to compile lambdas directly, though?
 pub fn loop_word(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {

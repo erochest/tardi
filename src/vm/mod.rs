@@ -403,6 +403,8 @@ impl VM {
 
     /// Returns from a function
     pub fn return_op(&mut self) -> Result<()> {
+        // TODO: add a flag to lambdas for whether they are named or not. have the return command
+        // return from the nearest named lambda.
         log::trace!("VM::return_op");
         if self.return_stack.is_empty() {
             // TODO: not wild about using `VMError::Stop` for flow control here.
