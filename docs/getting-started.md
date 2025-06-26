@@ -49,7 +49,7 @@ After running this, your stack contains `420`.
 
 Every operation in Tardi has a "stack effect" that describes what it consumes and produces:
 
-TODO: stack-effect comments
+TODO: recognize stack-effect comments
 
 ```tardi
 // dup ( a -- a a ) - duplicates the top item

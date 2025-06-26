@@ -1,1 +1,56 @@
 # tardi
+
+Tardi is a stack-based language. It's a project for me to play with implementing a simple interpreted language. Maybe it will also be compiled someday.
+
+## Status
+
+Currently it is _very_ rough.
+
+It's probably broken in many disappointing ways. There will definitely be breaking changes in its future.
+
+What's still to do?
+
+- **Garbage collection**. Right now it uses reference counting, and creating a memory leak is trivial by creating circular structures.
+- **Types**. One of the things I really want to play with is types. I haven't started that yet. When I do. Things _will_ break.
+- **Error messages**. Yep. When things don't work, you're pretty much in the dark. It sucks.
+- **Error handling**. Currently it just fails with an unhelpful message. It needs the ability to catch errors and deal with them in the program.
+- **Local variables**. Stack-based languages don't require them or lean on them the way other languages do, but they're still nice. I'd like to add them.
+- **User-defined data types**. I need to add support for traits/protocols/what-have-yous, structures, enums, and other goodies. I'm waiting for type checking and type inference.
+
+For a full list, run this from the command line:
+
+```bash
+rg --ignore-case "\\bxxx\\b|\\btodo\\b" docs src tests
+```
+
+## Getting Started
+
+If I haven't scared you off already, there's [a short quick-start tutorial](/docs/getting-started.md). I've left myself some notes about what's currently aspirational in there, and it's honestly not as much as I was thinking it might be.
+
+### Installing
+
+To build and install it, you'll need [rust](https://rustup.rs/) installed. I'm using [just](https://just.systems/) for automating simple tasks, like installation, so while not required, it will make things simpler.
+
+With `just`, you can just do:
+
+```bash
+just install
+```
+
+Without `just`, it's still as easy as 1-2-3. Kind of.
+
+```bash
+cargo install --path .
+-mkdir -p "{{clean(join(data_directory(), 'tardi', 'std'))}}"
+-cp -r std/* "{{clean(join(data_directory(), 'tardi', 'std'))}}"
+```
+
+Make sure that the cargo installation location is on your path. By default it's `~/.cargo/bin`.
+
+Now you'll need to determine what your platform's standard user data directory is. This should help:
+
+- Linux: `~/.local/share/tardi`
+- Windows: `%USERPROFILE%\AppData\Roaming\Tardi\data`
+- MacOS: `~/Library/Application Support/Tardi`
+
+Copy the `./std` directory and its contents into the location given above. If this is your first time installing Tardi, you'll probably need to create it first.
