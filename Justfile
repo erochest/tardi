@@ -1,5 +1,7 @@
 # set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
+install_dir := if os_family() == "windows" { clean(join(data_directory(), 'tardi', 'data', 'std')) } else { clean(join(data_directory(), 'tardi', 'std')) }
+
 check:
     cargo check --tests
 
@@ -26,9 +28,9 @@ init:
 
 install:
     # TODO: clean out the `std/` directory before installing
-    cargo install --release --path .
-    -mkdir -p "{{clean(join(data_directory(), 'tardi', 'std'))}}"
-    -cp -r std "{{clean(join(data_directory(), 'tardi', 'std'))}}"
+    cargo install --path .
+    -mkdir -p "{{ install_dir }}"
+    -cp -r std/* "{{ install_dir }}"
 
 update:
     jj git fetch
