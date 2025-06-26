@@ -54,3 +54,19 @@ Now you'll need to determine what your platform's standard user data directory i
 - MacOS: `~/Library/Application Support/Tardi`
 
 Copy the `./std` directory and its contents into the location given above. If this is your first time installing Tardi, you'll probably need to create it first.
+
+### Running the REPL
+
+You can run Tardi interactively by just running the command. The `--print-stack` command option in helpful: it causes Tardi to print the stack after each command:
+
+```bash
+tardi --print-stack
+```
+
+### Running a Script
+
+If you have a script or module(s) and script, you can run it by passing it to the program:
+
+```bash
+tardi hello-world.tardi
+```
