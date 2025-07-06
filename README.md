@@ -23,7 +23,7 @@ For a full list, run this from the command line:
 rg --ignore-case "\\bxxx\\b|\\btodo\\b" docs src tests
 ```
 
-Or check out the [todo.md](todo.md) file for an unordered list of things I'd like to get to.
+Or check out the [todo.txt](todo.txt) file for an unordered list of things I'd like to get to.
 
 ## Getting Started
 
