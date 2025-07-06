@@ -23,6 +23,8 @@ For a full list, run this from the command line:
 rg --ignore-case "\\bxxx\\b|\\btodo\\b" docs src tests
 ```
 
+Or check out the [todo.md](todo.md) file for an unordered list of things I'd like to get to.
+
 ## Getting Started
 
 If I haven't scared you off already, there's [a short quick-start tutorial](/docs/getting-started.md). I've left myself some notes about what's currently aspirational in there, and it's honestly not as much as I was thinking it might be.
@@ -41,19 +43,19 @@ Without `just`, it's still as easy as 1-2-3. Kind of.
 
 ```bash
 cargo install --path .
--mkdir -p "{{clean(join(data_directory(), 'tardi', 'std'))}}"
--cp -r std/* "{{clean(join(data_directory(), 'tardi', 'std'))}}"
+-mkdir -p "$TARDI_DATA_DIR"
+-cp -r std/* "$TARDI_DATA_DIR"
 ```
 
 Make sure that the cargo installation location is on your path. By default it's `~/.cargo/bin`.
 
-Now you'll need to determine what your platform's standard user data directory is. This should help:
+Now you'll need to figure out what your platform's `$TARDI_DATA_DIR` is, relative to the  standard user data directory. Values of this for common platforms are:
 
 - Linux: `~/.local/share/tardi`
 - Windows: `%USERPROFILE%\AppData\Roaming\Tardi\data`
 - MacOS: `~/Library/Application Support/Tardi`
 
-Copy the `./std` directory and its contents into the location given above. If this is your first time installing Tardi, you'll probably need to create it first.
+Copy the `./std` directory and its contents into the location given above. If this is your first time installing Tardi, you'll probably need to create that directory first.
 
 ### Running the REPL
 
