@@ -25,6 +25,25 @@ rg --ignore-case "\\bxxx\\b|\\btodo\\b" docs src tests
 
 Or check out the [todo.txt](todo.txt) file for an unordered list of things I'd like to get to.
 
+## Vision
+
+My immediate milestone is to be able to start on [Advent of Code](https://adventofcode.com/) with Tardi. I need to validate this, but we've about hit that point.
+
+Longer term, I'd like to be able to us this to explore interpreter VMs, compilers, and type systems. I'd particularly like to incorporate a [Hindley-Milner type system](https://en.wikipedia.org/wiki/Hindley%E2%80%93Milner_type_system) and an [effect system](https://en.wikipedia.org/wiki/Effect_system).
+
+With that in mind, here are some of the major items on the roadmap, in no particular order:
+
+- better error messages
+- error handling
+- GC
+- language server
+- test framework
+- type checking and inference,
+- enums, tuples, structs, protocols/traits
+- FFI
+- OS- and user-threading
+- networking
+
 ## Getting Started
 
 If I haven't scared you off already, there's [a short quick-start tutorial](/docs/getting-started.md). I've left myself some notes about what's currently aspirational in there, and it's honestly not as much as I was thinking it might be.
