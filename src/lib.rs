@@ -26,8 +26,9 @@ use crate::scanner::Scanner;
 use crate::vm::VM;
 
 /// Run a Tardi source file
-pub fn run_file(path: &Path, _config: &Config, print_stack: bool) -> Result<()> {
-    let mut tardi = Tardi::default();
+pub fn run_file(path: &Path, config: &Config, print_stack: bool) -> Result<()> {
+    // TODO: make creation and bootstrapping one function between run_file and repl
+    let mut tardi = Tardi::from(config);
     // TODO: add an option for the bootstrap dir
     tardi.bootstrap(None)?;
     tardi.execute_file(path)?;
