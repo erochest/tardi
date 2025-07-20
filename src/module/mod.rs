@@ -242,14 +242,15 @@ impl ModuleManager {
         op_table: &mut Vec<Shared<Lambda>>,
     ) -> Result<&Module> {
         let module = define_module(self, name, op_table)?;
-        log::trace!("ModuleManager::load_internal {}", name);
-        log::trace!("{:?}", module);
+        log::debug!("ModuleManager::load_internal {}", name);
+        log::debug!("{:?}", module);
         self.add_module(module);
         Ok(self.get(name).unwrap())
     }
 
     pub fn find(&self, module: &str, context: Option<&Path>) -> Result<Option<(String, PathBuf)>> {
-        log::trace!("finding module '{}' in context {:?}", module, context);
+        log::debug!("finding module '{}' in context {:?}", module, context);
+        log::debug!("module path settings: {:#?}", self.paths);
         if module.starts_with("./") || module.starts_with("../") {
             if let Some(context) = context {
                 return self
@@ -261,7 +262,7 @@ impl ModuleManager {
         }
 
         for path in self.paths.iter() {
-            log::trace!(
+            log::debug!(
                 "finding module {} (context {:?}) in {}",
                 module,
                 context,
@@ -269,6 +270,12 @@ impl ModuleManager {
             );
             let target = path.join(module);
             let target = target.with_extension("tardi");
+            log::debug!(
+                "testing for module {} from {:?} at {}",
+                module,
+                context,
+                target.display()
+            );
             if target.exists() {
                 let target = target.canonicalize()?;
                 log::debug!(
@@ -307,7 +314,7 @@ impl ModuleManager {
 
         let target = target.unwrap();
         for path in self.paths.iter() {
-            log::trace!(
+            log::debug!(
                 "checking for module {} ({}) in {}",
                 target_module,
                 source_module_path.display(),
