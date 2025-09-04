@@ -1,5 +1,5 @@
 
-uses: std/hashmaps
+uses: std/_hashmaps
 uses: std/_vectors
 
 exports:
@@ -130,6 +130,13 @@ exports:
 
 /// xs y x -- xs' y
 : deep-push!   pick push! ;
+
+/// copied from std/hashmaps to prevent an import loop
+/// hm x --
+: inc
+    swap 2dup get
+    [ 1+ ] [ drop 1 ] if
+    swap set! ;
 
 /// list -- hashmap
 : frequencies
