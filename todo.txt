@@ -1,3 +1,15 @@
+// TODO: error trapping
+// TODO: test framework
+// TODO: see
+// TODO: .s
+// TODO: .
+// TODO: config to autoload imports for repl
+// TODO: export all (but no re-exports)
+// TODO: reload
+// TODO: -e cli argument
+// TODO: or and (and short-circuiting)
+// TODO: iterate over string characters
+// TODO: char>codepoint
 documentation
 type checking and inference
 module/word parsing

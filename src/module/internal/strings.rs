@@ -10,7 +10,7 @@ use crate::vm::VM;
 
 use super::{push_op, InternalBuilder};
 
-pub const STRINGS: &str = "std/strings";
+pub const STRINGS: &str = "std/_strings";
 
 pub struct StringsBuilder;
 impl InternalBuilder for StringsBuilder {

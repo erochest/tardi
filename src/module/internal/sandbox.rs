@@ -8,6 +8,7 @@ use crate::{
 
 use super::InternalBuilder;
 
+// TODO: need to rename this. it conflicts with sandboxing a VM
 pub const SANDBOX: &str = "std/sandbox";
 
 pub struct SandboxBuilder;

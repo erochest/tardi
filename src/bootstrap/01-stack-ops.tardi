@@ -44,6 +44,9 @@
 /// u v w x y z -- z
 : 5nip    [ 5drop ] dip ;
 
+/// x y -- y x y
+: tuck    dup swapd ;
+
 // Duplicating stack elements deep in the stack
 
 /// x y -- x x y
@@ -121,3 +124,9 @@
 
 /// ...a x y z l(...a x y z -- ...b) --- ...b x y z
 : 3keep   over >r pick >r reach >r apply r> r> r> ;
+
+/// x p q --
+: bi    [ keep ] dip apply ;
+
+/// x y quot -- 
+: bi@   tuck [ apply ] 2dip apply ;

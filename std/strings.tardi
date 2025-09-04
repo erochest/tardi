@@ -1,0 +1,25 @@
+
+uses: std/_strings
+
+exports:
+    <string> >string utf>string concat nth >utf8 empty? in? starts-with?
+    ends-with? index-of? length replace-all split split-all split-at
+    split-whitespace lines string-start strip-end substring >lowercase
+    >uppercase utf8>digit parse-int ;
+
+/// utf8 -- int
+: utf8>digit
+    48 -
+    0 9 check-bounds ;
+
+/// accum n -- accum'
+: accumulate-place   swap 10 * + ;
+
+/// s -- i
+: parse-int
+    0
+    swap >utf8
+    [
+        utf8>digit
+        accumulate-place
+    ] each ;

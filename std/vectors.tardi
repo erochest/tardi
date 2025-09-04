@@ -1,12 +1,13 @@
 
+uses: std/hashmaps
 uses: std/_vectors
 
-// TODO: >pair
-
 exports:
-    <vector> concat each empty? first fourth in? index-of? join last length map
-    nth pop! pop-left! push! push-left! reduce second set-nth! sort! subvector
-    third ;
+    <vector> 2vector concat deep-push! each each2 empty? first fourth in?
+    index-of? join last length map map2 nth pop! pop-left! push! push-left!
+    reduce second set-nth! sort! subvector third sum frequencies ;
+
+: 2vector           { } tuck push-left! tuck push-left! ;    /// a b -- xs
 
 /// v -- x
 : first    0 swap nth ;
@@ -60,6 +61,29 @@ exports:
 /// vector lambda --
 : each   each-init-state each-loop each-cleanup ;
 
+: find-min-length   [ length ] bi@ min ;                     /// xs ys -- n
+: float-lists       -rot ;                                   /// q xs ys n -- q n xs ys
+: nth-both          overd nth [ dupd nth ] dip ;             /// n xs ys -- n x y
+: clean-apply       [ [ apply ] keep ] dip ;                 /// x y q n -- q n
+: arrange-apply     [ nth-both 2swap clean-apply ] 2keep ;   /// q n xs ys -- q n xs ys
+
+: each2-init        -rot 2dup find-min-length 0 swap ;       /// xs ys q -- q xs ys n l
+: each2-continue?   2dup < ;                                 /// n l -- n l ?
+: each2-apply       [ float-lists arrange-apply ] dip ;      /// q xs ys n l -- q n xs ys l
+: each2-restack     rotd ;                                   /// q n xs ys l -- q xs ys n l
+: each2-cleanup     5drop ;                                  /// q n xs ys l --
+
+/// xs ys quot --
+: each2
+    each2-init
+    [ each2-continue? ] [
+        // q xs ys n l
+        each2-apply
+        each2-restack
+        [ 1+ ] dip
+    ] while
+    each2-cleanup ;
+
 /// vector lambda -- vector' lambda vector
 : map-init   { } spin ;
 
@@ -86,8 +110,28 @@ exports:
 /// vector lambda -- vector'
 : map   map-init map-loop map-cleanup ;
 
+/// xs ys quot -- zs
+: map2
+    { } 2swap
+    [
+        reach apply
+        over push!
+    ] each2
+    nip ;
+
 /// vector init ( accum item -- accum ) -- accum
 : reduce
     rot
     [ swap [ apply ] keep ] each 
     drop ;
+
+/// xs -- s
+: sum   0 [ + ] reduce ;
+
+/// xs y x -- xs' y
+: deep-push!   pick push! ;
+
+/// list -- hashmap
+: frequencies
+    <hashmap>
+    [ dupd inc ] reduce ;

@@ -12,7 +12,10 @@
 
 /// `when` is `if` without the `else`.
 /// ? if-true --
-: when   [ ] if ;
+: when     [ ] if ;
+
+/// ? quot --
+: unless   [ ] swap if ;
 
 /// ..s lambda x -- ..s' lambda x
 : deep-apply   dupd [ apply ] 2dip ;
