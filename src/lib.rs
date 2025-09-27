@@ -51,6 +51,8 @@ pub fn run_file(path: &Path, config: &Config, print_stack: bool) -> Result<()> {
 pub fn repl(config: &Config) -> Result<()> {
     let mut tardi = Tardi::from(config);
 
+    println!("Tardi v{}", env!("CARGO_PKG_VERSION"));
+
     let rl_config = config.clone().into();
     let history = FileHistory::new();
     let mut readline = DefaultEditor::with_history(rl_config, history)?;
