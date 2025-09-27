@@ -252,13 +252,18 @@ impl ModuleManager {
         log::debug!("finding module '{}' in context {:?}", module, context);
         log::debug!("module path settings: {:#?}", self.paths);
         if module.starts_with("./") || module.starts_with("../") {
-            if let Some(context) = context {
-                return self
-                    .find_abs_module(context, module)
-                    .map_err(|err| err.into());
+            return if let Some(context) = context {
+                self.find_abs_module(context, module)
+                    .map_err(|err| err.into())
+            } else if let Ok(path) = env::current_dir() {
+                // Because path won't live outside this branch, we have to use it now
+                let mut path = path.clone();
+                path.push("stub.tardi");
+                self.find_abs_module(path.as_path(), module)
+                    .map_err(|err| err.into())
             } else {
-                return Err(CompilerError::ModuleNotFound(module.to_string()).into());
-            }
+                Err(CompilerError::ModuleNotFound(module.to_string()).into())
+            };
         }
 
         for path in self.paths.iter() {
