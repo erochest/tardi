@@ -1,4 +1,6 @@
 
+uses: std/math
+uses: std/vectors
 uses: std/_strings
 
 exports:

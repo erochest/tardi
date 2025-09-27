@@ -1,6 +1,7 @@
 
 uses: std/_hashmaps
 uses: std/_vectors
+uses: std/math
 
 exports:
     <vector> 2vector concat deep-push! each each2 empty? first fourth in?

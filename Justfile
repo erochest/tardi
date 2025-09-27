@@ -32,6 +32,8 @@ install:
     -mkdir -p "{{ install_dir }}"
     -cp -r std/* "{{ install_dir }}"
 
+# TODO: uninstall
+
 update:
     jj git fetch
     jj new main

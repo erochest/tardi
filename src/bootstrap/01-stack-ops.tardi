@@ -44,9 +44,6 @@
 /// u v w x y z -- z
 : 5nip    [ 5drop ] dip ;
 
-/// x y -- y x y
-: tuck    dup swapd ;
-
 // Duplicating stack elements deep in the stack
 
 /// x y -- x x y
@@ -62,6 +59,9 @@
 
 /// x y z -- x y x z
 : overd    [ over ] dip ;
+
+/// x y -- y x y
+: tuck    dup swapd ;
 
 /// x y z -- y z x
 // : rot   swapd swap ;
