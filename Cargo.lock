@@ -832,7 +832,12 @@ dependencies = [
  "log",
  "pretty_assertions",
  "spectral",
+ "tardi-core",
 ]
+
+[[package]]
+name = "tardi-core"
+version = "0.1.0"
 
 [[package]]
 name = "termtree"
