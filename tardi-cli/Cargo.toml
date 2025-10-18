@@ -2,28 +2,28 @@
 name = "tardi-cli"
 version = "0.1.0"
 authors = ["Eric Rochester <erochest@gmail.com>"]
-edition = "2018"
+edition = "2024"
 
 [[bin]]
 name = "tardi-next"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "*", features = ["derive"] }
-clap-verbosity-flag = "*"
-confy = "*"
-env_logger = "*"
-human-panic = "*"
-log = "*"
+clap = { version = "4.5.0", features = ["derive"] }
+clap-verbosity-flag = "3.0.0"
+confy = "1.0.0"
+env_logger = "0.11.0"
+human-panic = "2.0.0"
+log = "0.4.0"
 tardi-core = { path = "../tardi-core/" }
 
 [dev-dependencies]
-assert_cmd = "*"
+assert_cmd = "2.0.0"
 # assert_fs = "*"
 # dir-diff = "*"
 # duct = "*"
 # predicates = "*"
-pretty_assertions = "*"
+pretty_assertions = "1.4.0"
 # rexpect = "*"
-spectral = "*"
+spectral = "0.6.0"
 # tempfile = "*"
