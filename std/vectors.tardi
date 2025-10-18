@@ -4,10 +4,12 @@ uses: std/_vectors
 uses: std/math
 
 exports:
-    <vector> 2vector concat deep-push! each each2 empty? first fourth in?
+    <vector> 1vector 2vector concat deep-push! each each2 empty? first first2 fourth in?
     index-of? join last length map map2 nth pop! pop-left! push! push-left!
-    reduce second set-nth! sort! subvector third sum frequencies ;
+    reduce second set-nth! sort! subvector third sum frequencies window-pairs 
+    all? filter partition [..) [0..) in-bounds? remove-at ;
 
+: 1vector   { } [ push! ] keep ;       /// x -- {x}
 : 2vector           { } tuck push-left! tuck push-left! ;    /// a b -- xs
 
 /// v -- x
@@ -18,6 +20,8 @@ exports:
 : third    2 swap nth ;
 /// v -- x
 : fourth   3 swap nth ;
+
+: first2    [ first ] [ second ] bi ;   /// {xy} -- x y
 
 /// v -- x
 : last     [ length 1 - ] keep nth ;
@@ -143,3 +147,64 @@ exports:
 : frequencies
     <hashmap>
     [ dupd inc ] reduce ;
+
+: window/setup    #f { } rot ;           /// v -- ? accum v
+: window/first?   swapd over #f? ;       /// prev accum x -- accum prev i ?
+: window/store    nip swap ;             /// accum prev current -- current accum 
+: window/pair     2vector over push! ;   /// accum prev current -- accum
+
+/// vector -- vector/vector
+: window-pairs
+    window/setup
+    [
+        window/first? [
+            window/store
+        ] [
+            [ window/pair ] keep
+            swap
+        ] if
+    ] each
+    nip ;
+
+: all?              swap #t [ pick apply and ] reduce nip ;
+
+: filter?    [ pick apply ] keep swap ;      /// pred accum i -- pred accum i ?
+: push-if!   [ over push! ] [ drop ] if ;    /// xs x ?       -- xs'
+: (filter)   [ filter? push-if! ] reduce ;   /// p xs accum -- p accum
+: filter     swap { } (filter) nip ;         /// xs p -- xs'
+
+: partition/setup       swap { } { } 2vector ;              /// xs p -- p xs a
+: partition/test        [ pick apply ] keep swap ;          /// p x i -- p x i ?
+: partition/get-accum   [ second ] [ first ] if ;           /// a ? -- a'
+: partition/clean       nip first2 ;                        /// p a -- ts fs
+: partition/store       overd partition/get-accum push! ;   /// a i ? -- a'
+
+/// p xs a -- p a'
+: (partition)           [ partition/test partition/store ] reduce ;
+
+/// xs p -- trues falses
+: partition             partition/setup (partition) partition/clean ;
+
+: more?       2dup > ;                /// a max current -- a max current ?
+: store       [ pick push! ] keep ;   /// accum m current -- accum' m current
+
+/// from to -- vector
+: [..)
+    { } spin
+    [ more? ] [ store 1+ ] while
+    2drop ;
+
+: [0..)   0 swap [..) ;   /// n -- vector
+
+: in-bounds?   2dup 0 rot length 1- check-bounds #f? ! ;   /// v i -- v i ?
+
+: preslice   0 spin subvector ;                  /// v i -- v'
+: postslice   swap [ length ] keep subvector ;   /// v i -- v'
+
+/// vector i -- vector'
+: remove-at
+    in-bounds?
+    [
+        [ preslice ] [ 1+ postslice ] 2bi
+        concat
+    ] [ drop ] if ;

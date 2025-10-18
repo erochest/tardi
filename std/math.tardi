@@ -1,11 +1,13 @@
 
 exports:
-    1+ abs check-bounds min ;
+    1+ 1- abs check-bounds min ;
 
 : min               [ < ] 2keep ? ;                          /// x y -- xy
 : abs               dup 0 < [ -1 * ] when ;                  /// x -- x'
 : 1+                1 + ;                                    /// n -- n'
+: 1-   1 - ;   /// n -- n'
 
+/// checks that min <= n <= max
 /// n min max -- n/#f
 : check-bounds
     pick < [
@@ -15,3 +17,4 @@ exports:
             drop #f
         ] when
     ] if ;
+

@@ -10,6 +10,8 @@
 /// == 0 [ "zero" ] [ "non-zero" ] if
 : if   ? apply ;
 
+: #f?   #f == ;   /// x -- ?
+
 /// `when` is `if` without the `else`.
 /// ? if-true --
 : when     [ ] if ;
@@ -33,3 +35,8 @@
     while-continue? [ while-cleanup break ] when
     swap deep-apply swap
     ] loop ;
+
+: and               [ [ #t ] [ #f ] if ] [ drop #f ] if ;
+: or                [ drop #t ] [ [ #t ] [ #f ] if ] if ;
+: positive?         0 > ;
+: negative?         0 < ;

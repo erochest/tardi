@@ -20,6 +20,7 @@ MACRO: [
         ] scan-object-list compile
         swap push! ;
 
+// BUG: { { } { } } the inner vectors are actually the same :(
 /// vectors
 /// { 1 2 3 }
 MACRO: {

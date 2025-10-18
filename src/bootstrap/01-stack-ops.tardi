@@ -128,5 +128,22 @@
 /// x p q --
 : bi    [ keep ] dip apply ;
 
+: 2bi    [ 2keep ] dip apply ;
+
 /// x y quot -- 
 : bi@   tuck [ apply ] 2dip apply ;
+
+: tri1   [ apply ] 2dip ;       /// x q _ _ -- x'
+: tri2   -rot [ apply ] dip ;   /// q _ x   -- x'
+: tri3   swap apply ;           /// q x     -- x'
+
+/// x p q r --
+: tri
+    reach >r
+    tri1
+    r@ tri2
+    r> tri3 ;
+
+: pickd   [ pick ] dip ;   /// w x y z -- w x y w z
+
+: 2dropd   [ 2drop ] dip ;   /// x y z -- z
