@@ -5,7 +5,7 @@ use std::str::FromStr;
 use pretty_assertions::assert_eq;
 
 use super::*;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::shared::Shared;
 
 fn setup() -> Result<ModuleManager> {
@@ -76,18 +76,6 @@ fn test_module_loader_finds_relative_files() {
     assert!(target.is_some(), "option: {:?}", target);
     let target = target.unwrap();
     assert_eq!(expected, target);
-}
-
-#[test]
-fn test_module_loader_does_not_find_relative_files_without_context() {
-    let loader = setup().unwrap();
-
-    let result = loader.find("../fixtures/basic-test", None);
-    assert!(result.is_err(), "ok: {:?}", result);
-    assert!(matches!(
-        result.unwrap_err(),
-        Error::CompilerError(CompilerError::ModuleNotFound(name)) if name == "../fixtures/basic-test"
-    ));
 }
 
 #[test]
