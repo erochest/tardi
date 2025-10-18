@@ -861,6 +861,9 @@ version = "0.1.0"
 [[package]]
 name = "tardi-scanner"
 version = "0.1.0"
+dependencies = [
+ "tardi-core",
+]
 
 [[package]]
 name = "termtree"

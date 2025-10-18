@@ -1,14 +1,21 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use tardi_core::value::Value;
+
+#[derive(Debug)]
+pub struct Scanner {}
+
+impl Scanner {
+    pub fn from_string(_input: &str) -> Self {
+        Self {}
+    }
+}
+
+impl Iterator for Scanner {
+    type Item = Value;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+mod tests;
