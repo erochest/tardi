@@ -4,7 +4,7 @@ use assert_cmd::prelude::*;
 
 #[test]
 fn test_run() {
-    Command::cargo_bin(env!["CARGO_PKG_NAME"])
+    Command::cargo_bin("tardi-next")
         .unwrap()
         .arg("--help")
         .assert()
