@@ -1,7 +1,11 @@
 #[derive(Debug)]
 pub struct Value {
+    /// The text of the value.
+    /// TODO: Keeping this may be expensive.
     pub text: String,
+    /// The byte position of start of the input token.
     pub index: Option<usize>,
+    /// The length of the token in bytes.
     pub length: Option<usize>,
 }
 
