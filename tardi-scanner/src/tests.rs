@@ -25,3 +25,25 @@ fn test_scanner_includes_position() {
         .join(",");
     assert_str_eq!("0,2,5", output);
 }
+
+#[test]
+fn test_scanner_includes_length() {
+    let scanner = Scanner::from_string("a bb ccc");
+    let output = scanner
+        .map(|v| v.length.map(|i| i.to_string()).unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join(",");
+    assert_str_eq!("1,2,3", output);
+}
+
+#[test]
+fn test_scanner_scans_strings() {
+    let scanner = Scanner::from_string(r#" "one" "two words" "three words full" "#);
+    let output = scanner
+        .map(|v| v.length.map(|i| i.to_string()).unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join(",");
+    assert_str_eq!("one,two words,three words full", output);
+}
+
+// TODO: string with quotes

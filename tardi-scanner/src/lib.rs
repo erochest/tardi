@@ -28,12 +28,16 @@ impl<'a> Scanner<'a> {
 
     fn read_word(&mut self) -> Option<Value> {
         let start = self.last.map(|(i, _)| i).unwrap_or_default();
+        let mut length = 0;
         let mut buffer = String::new();
 
         loop {
             match self.last {
                 Some((_, c)) if c.is_whitespace() => break,
-                Some((_, c)) => buffer.push(c),
+                Some((_, c)) => {
+                    buffer.push(c);
+                    length += c.len_utf8();
+                }
                 None => break,
             }
             self.last = self.chars.next();
@@ -42,7 +46,7 @@ impl<'a> Scanner<'a> {
         if buffer.is_empty() {
             None
         } else {
-            Some(Value::new(buffer, start))
+            Some(Value::new(buffer, start, length))
         }
     }
 }
