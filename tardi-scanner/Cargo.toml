@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 tardi-core = { path = "../tardi-core/" }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"

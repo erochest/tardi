@@ -862,6 +862,7 @@ version = "0.1.0"
 name = "tardi-scanner"
 version = "0.1.0"
 dependencies = [
+ "pretty_assertions",
  "tardi-core",
 ]
 
