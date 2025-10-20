@@ -1,16 +1,16 @@
-use std::str::Chars;
+use std::str::CharIndices;
 
 use tardi_core::value::Value;
 
 #[derive(Debug)]
 pub struct Scanner<'a> {
-    last: Option<char>,
-    chars: Chars<'a>,
+    last: Option<(usize, char)>,
+    chars: CharIndices<'a>,
 }
 
 impl<'a> Scanner<'a> {
     pub fn from_string(input: &'a str) -> Self {
-        let mut chars = input.chars();
+        let mut chars = input.char_indices();
         let last = chars.next();
         Self { last, chars }
     }
@@ -18,7 +18,7 @@ impl<'a> Scanner<'a> {
     fn skip_whitespace(&mut self) {
         loop {
             match self.last {
-                Some(c) if !c.is_whitespace() => break,
+                Some((_, c)) if !c.is_whitespace() => break,
                 None => break,
                 _ => {}
             }
@@ -27,12 +27,13 @@ impl<'a> Scanner<'a> {
     }
 
     fn read_word(&mut self) -> Option<Value> {
+        let start = self.last.map(|(i, _)| i).unwrap_or_default();
         let mut buffer = String::new();
 
         loop {
             match self.last {
-                Some(c) if c.is_whitespace() => break,
-                Some(c) => buffer.push(c),
+                Some((_, c)) if c.is_whitespace() => break,
+                Some((_, c)) => buffer.push(c),
                 None => break,
             }
             self.last = self.chars.next();
@@ -41,7 +42,7 @@ impl<'a> Scanner<'a> {
         if buffer.is_empty() {
             None
         } else {
-            Some(Value::new(buffer))
+            Some(Value::new(buffer, start))
         }
     }
 }
