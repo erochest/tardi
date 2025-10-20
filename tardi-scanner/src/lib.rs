@@ -49,6 +49,42 @@ impl<'a> Scanner<'a> {
             Some(Value::new(buffer, start, length))
         }
     }
+
+    fn read_string(&mut self) -> Option<Value> {
+        let mut buffer = String::new();
+        let start = self.last.map(|(i, _)| i).unwrap_or_default();
+        let mut length = self.last.map(|(_, c)| c.len_utf8()).unwrap_or_default();
+
+        if let Some((_, c)) = self.last {
+            buffer.push(c);
+        }
+
+        loop {
+            self.last = self.chars.next();
+            match self.last {
+                Some((_, c)) if c == '"' => {
+                    length += c.len_utf8();
+                    buffer.push(c);
+                    self.last = self.chars.next();
+                    break;
+                }
+                Some((_, c)) => {
+                    length += c.len_utf8();
+                    buffer.push(c);
+                }
+                None => {
+                    // TODO:: error
+                    break;
+                }
+            }
+        }
+
+        if buffer.is_empty() {
+            None
+        } else {
+            Some(Value::new(buffer, start, length))
+        }
+    }
 }
 
 impl<'a> Iterator for Scanner<'a> {
@@ -56,7 +92,10 @@ impl<'a> Iterator for Scanner<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.skip_whitespace();
-        self.read_word()
+        match self.last {
+            Some((_, '"')) => self.read_string(),
+            _ => self.read_word(),
+        }
     }
 }
 
