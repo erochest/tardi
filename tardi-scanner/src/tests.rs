@@ -59,4 +59,19 @@ fn test_scanner_scans_strings() {
     assert_eq!(Some(18), output[3].length);
 }
 
-// TODO: string with quotes
+#[test]
+fn test_scanner_scan_strings_with_quotes() {
+    let scanner = Scanner::from_string(
+        r#"
+        "I say, \"old man,\"" he chuckled. "\"Jolly\" good time."
+        The clerk squinted at the other man, sucked in his teeth, and
+        spat back, "\"no.\" It isn't."
+        "#,
+    );
+    let output = scanner.collect::<Vec<_>>();
+
+    assert_eq!(19, output.len());
+    assert_str_eq!("\"I say, \\\"old man,\\\"\"", output[0].text);
+    assert_str_eq!("\"\\\"Jolly\\\" good time.\"", output[3].text);
+    assert_str_eq!("\"\\\"no.\\\" It isn't.\"", output[18].text);
+}

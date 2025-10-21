@@ -22,7 +22,7 @@ impl<'a> Scanner<'a> {
                 None => break,
                 _ => {}
             }
-            self.last = self.chars.next();
+            self.read_char();
         }
     }
 
@@ -40,7 +40,7 @@ impl<'a> Scanner<'a> {
                 }
                 None => break,
             }
-            self.last = self.chars.next();
+            self.read_char();
         }
 
         if buffer.is_empty() {
@@ -48,6 +48,22 @@ impl<'a> Scanner<'a> {
         } else {
             Some(Value::new(buffer, start, length))
         }
+    }
+
+    fn read_char(&mut self) -> &Option<(usize, char)> {
+        self.last = self.chars.next();
+        &self.last
+    }
+
+    fn push(&mut self, c: char, buffer: &mut String) -> usize {
+        buffer.push(c);
+        c.len_utf8()
+    }
+
+    fn push_read(&mut self, c: char, buffer: &mut String) -> usize {
+        let length = self.push(c, buffer);
+        self.read_char();
+        length
     }
 
     fn read_string(&mut self) -> Option<Value> {
@@ -60,17 +76,23 @@ impl<'a> Scanner<'a> {
         }
 
         loop {
-            self.last = self.chars.next();
+            self.read_char();
             match self.last {
                 Some((_, c)) if c == '"' => {
-                    length += c.len_utf8();
-                    buffer.push(c);
-                    self.last = self.chars.next();
+                    length += self.push_read(c, &mut buffer);
                     break;
                 }
+                Some((_, c)) if c == '\\' => {
+                    // \ " s
+                    length += self.push_read(c, &mut buffer);
+                    if let Some((_, c1)) = self.last {
+                        length += self.push(c1, &mut buffer);
+                    } else {
+                        // TODO: error
+                    }
+                }
                 Some((_, c)) => {
-                    length += c.len_utf8();
-                    buffer.push(c);
+                    length += self.push(c, &mut buffer);
                 }
                 None => {
                     // TODO:: error
