@@ -19,6 +19,7 @@ tardi-core = { path = "../tardi-core/" }
 
 [dev-dependencies]
 assert_cmd = "2.0.0"
+datatest-stable = "0.3.3"
 # assert_fs = "*"
 # dir-diff = "*"
 # duct = "*"
@@ -27,3 +28,7 @@ pretty_assertions = "1.4.0"
 # rexpect = "*"
 spectral = "0.6.0"
 # tempfile = "*"
+
+[[test]]
+name = "test_main"
+harness = false
