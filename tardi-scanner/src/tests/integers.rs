@@ -142,7 +142,6 @@ fn test_scans_negative_integers() {
 }
 
 #[test]
-#[ignore]
 fn test_scans_positive_signs() {
     let scanner = Scanner::from_string("+1 +20 +350 +4255 +50101");
     let values = scanner.collect::<Vec<_>>();
@@ -153,9 +152,7 @@ fn test_scans_positive_signs() {
     assert_isize(50101, &values[4]);
 }
 
-// TODO: placeholders: 1_000_000 1,000,001
 #[test]
-#[ignore]
 fn test_scans_delimited_integers() {
     let scanner = Scanner::from_string("1_000_000 1,000,001");
     let values = scanner.collect::<Vec<_>>();

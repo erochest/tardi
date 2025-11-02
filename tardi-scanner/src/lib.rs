@@ -46,8 +46,9 @@ impl<'a> Scanner<'a> {
         if buffer.is_empty() {
             return None;
         }
+        // TODO: look ahead on '-' and '+'
         if let Some(c) = buffer.chars().next()
-            && c.is_ascii_digit()
+            && (c.is_ascii_digit() || c == '-' || c == '+')
             && let Some(number_data) = self.parse_number(&buffer)
         {
             return Some(Value::new(number_data, buffer, start, length));
@@ -127,7 +128,11 @@ impl<'a> Scanner<'a> {
     }
 
     fn parse_number(&self, buffer: &str) -> Option<ValueData> {
-        buffer.parse().ok().map(ValueData::Isize)
+        buffer
+            .parse()
+            .ok()
+            .or_else(|| buffer.replace("_", "").replace(",", "").parse().ok())
+            .map(ValueData::Isize)
     }
 }
 
