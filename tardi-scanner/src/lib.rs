@@ -1,6 +1,6 @@
 use std::str::CharIndices;
 
-use tardi_core::value::Value;
+use tardi_core::value::{Value, ValueData};
 
 #[derive(Debug)]
 pub struct Scanner<'a> {
@@ -46,7 +46,12 @@ impl<'a> Scanner<'a> {
         if buffer.is_empty() {
             None
         } else {
-            Some(Value::new(buffer, start, length))
+            Some(Value::new(
+                ValueData::Word(buffer.clone()),
+                buffer,
+                start,
+                length,
+            ))
         }
     }
 
@@ -68,6 +73,7 @@ impl<'a> Scanner<'a> {
 
     fn read_string(&mut self) -> Option<Value> {
         let mut buffer = String::new();
+        let mut value_data = String::new();
         let start = self.last.map(|(i, _)| i).unwrap_or_default();
         let mut length = self.last.map(|(_, c)| c.len_utf8()).unwrap_or_default();
 
@@ -86,12 +92,14 @@ impl<'a> Scanner<'a> {
                     // \ " s
                     length += self.push_read(c, &mut buffer);
                     if let Some((_, c1)) = self.last {
+                        value_data.push(c1);
                         length += self.push(c1, &mut buffer);
                     } else {
                         // TODO: error
                     }
                 }
                 Some((_, c)) => {
+                    value_data.push(c);
                     length += self.push(c, &mut buffer);
                 }
                 None => {
@@ -104,7 +112,12 @@ impl<'a> Scanner<'a> {
         if buffer.is_empty() {
             None
         } else {
-            Some(Value::new(buffer, start, length))
+            Some(Value::new(
+                ValueData::String(value_data),
+                buffer,
+                start,
+                length,
+            ))
         }
     }
 }
