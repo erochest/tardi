@@ -29,5 +29,6 @@ fn test_scanner_includes_length() {
     assert_str_eq!("1,2,3", output);
 }
 
+mod integers;
 mod strings;
 mod words;

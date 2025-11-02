@@ -44,15 +44,20 @@ impl<'a> Scanner<'a> {
         }
 
         if buffer.is_empty() {
-            None
-        } else {
-            Some(Value::new(
-                ValueData::Word(buffer.clone()),
-                buffer,
-                start,
-                length,
-            ))
+            return None;
         }
+        if let Some(c) = buffer.chars().next()
+            && c.is_ascii_digit()
+            && let Some(number_data) = self.parse_number(&buffer)
+        {
+            return Some(Value::new(number_data, buffer, start, length));
+        }
+        Some(Value::new(
+            ValueData::Word(buffer.clone()),
+            buffer,
+            start,
+            length,
+        ))
     }
 
     fn read_char(&mut self) -> &Option<(usize, char)> {
@@ -119,6 +124,10 @@ impl<'a> Scanner<'a> {
                 length,
             ))
         }
+    }
+
+    fn parse_number(&self, buffer: &str) -> Option<ValueData> {
+        buffer.parse().ok().map(ValueData::Isize)
     }
 }
 
