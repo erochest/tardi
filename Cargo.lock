@@ -880,6 +880,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "tardi-compiler"
+version = "0.1.0"
+
+[[package]]
 name = "tardi-core"
 version = "0.1.0"
 

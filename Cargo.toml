@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = ["tardi-cli", "tardi-core", "tardi-scanner"]
+members = ["tardi-cli", "tardi-compiler", "tardi-core", "tardi-scanner"]
