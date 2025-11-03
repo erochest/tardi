@@ -128,11 +128,18 @@ impl<'a> Scanner<'a> {
     }
 
     fn parse_number(&self, buffer: &str) -> Option<ValueData> {
-        buffer
-            .parse()
-            .ok()
-            .or_else(|| buffer.replace("_", "").replace(",", "").parse().ok())
-            .map(ValueData::Isize)
+        let parsed = if buffer.starts_with("0x") || buffer.starts_with("0X") {
+            isize::from_str_radix(&buffer[2..], 16)
+        } else if buffer.starts_with("0o") || buffer.starts_with("0O") {
+            isize::from_str_radix(&buffer[2..], 8)
+        } else if buffer.starts_with("0b") || buffer.starts_with("0B") {
+            isize::from_str_radix(&buffer[2..], 2)
+        } else {
+            buffer
+                .parse()
+                .or_else(|_| buffer.replace("_", "").replace(",", "").parse())
+        };
+        parsed.ok().map(ValueData::Isize)
     }
 }
 

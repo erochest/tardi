@@ -53,7 +53,11 @@ fn assert_i128(expected: i128, value: &Value) {
     }
 }
 fn assert_isize(expected: isize, value: &Value) {
-    assert!(matches!(value.data, ValueData::Isize(_)));
+    assert!(
+        matches!(value.data, ValueData::Isize(_)),
+        "value.data not isize {:?}",
+        value.data
+    );
     if let ValueData::Isize(ref actual) = value.data {
         assert_eq!(&expected, actual);
     }
@@ -160,9 +164,7 @@ fn test_scans_delimited_integers() {
     assert_isize(1000001, &values[1]);
 }
 
-// TODO: hexadecimal: 0x66 0xff
 #[test]
-#[ignore]
 fn test_scans_hexadecimal_integers() {
     let scanner = Scanner::from_string("0x66 0xff");
     let values = scanner.collect::<Vec<_>>();
@@ -170,9 +172,7 @@ fn test_scans_hexadecimal_integers() {
     assert_isize(255, &values[1]);
 }
 
-// TODO: octal: 0o66 0o32
 #[test]
-#[ignore]
 fn test_scans_octal_integers() {
     let scanner = Scanner::from_string("0o66 0o32");
     let values = scanner.collect::<Vec<_>>();
@@ -180,9 +180,7 @@ fn test_scans_octal_integers() {
     assert_isize(26, &values[1]);
 }
 
-// TODO: binary: 0b10 0b1111
 #[test]
-#[ignore]
 fn test_scans_binary_integers() {
     let scanner = Scanner::from_string("0b10 0b1111");
     let values = scanner.collect::<Vec<_>>();
