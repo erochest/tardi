@@ -1,5 +1,5 @@
-use std::str::{CharIndices, FromStr};
 use std::num::ParseIntError;
+use std::str::{CharIndices, FromStr};
 
 use tardi_core::value::{Value, ValueData};
 
@@ -131,21 +131,45 @@ impl<'a> Scanner<'a> {
     fn parse_full_number(&self, buffer: &str) -> Option<ValueData> {
         if let Some((numeric, type_code)) = buffer.split_once(':') {
             return match type_code {
-                "i8" | "I8" => self.parse_signed_number(numeric).map(|i| ValueData::I8(i as i8)),
-                "i16" | "I16" => self.parse_signed_number(numeric).map(|i| ValueData::I16(i as i16)),
-                "i32" | "I32" => self.parse_signed_number(numeric).map(|i| ValueData::I32(i as i32)),
-                "i64" | "I64" => self.parse_signed_number(numeric).map(|i| ValueData::I64(i as i64)),
-                "i128" | "I128" => self.parse_signed_number(numeric).map(|i| ValueData::I128(i as i128)),
-                "isize" | "Isize" => self.parse_signed_number(numeric).map(|i| ValueData::Isize(i as isize)),
-                "u8" | "U8" => self.parse_signed_number(numeric).map(|i| ValueData::U8(i as u8)),
-                "u16" | "U16" => self.parse_signed_number(numeric).map(|i| ValueData::U16(i as u16)),
-                "u32" | "U32" => self.parse_signed_number(numeric).map(|i| ValueData::U32(i as u32)),
-                "u64" | "U64" => self.parse_signed_number(numeric).map(|i| ValueData::U64(i as u64)),
-                "u128" | "U128" => self.parse_signed_number(numeric).map(|i| ValueData::U128(i as u128)),
-                "usize" | "Usize" => self.parse_signed_number(numeric).map(|i| ValueData::Usize(i as usize)),
+                "i8" | "I8" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::I8(i as i8)),
+                "i16" | "I16" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::I16(i as i16)),
+                "i32" | "I32" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::I32(i as i32)),
+                "i64" | "I64" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::I64(i as i64)),
+                "i128" | "I128" => self.parse_signed_number(numeric).map(ValueData::I128),
+                "isize" | "Isize" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::Isize(i as isize)),
+                "u8" | "U8" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::U8(i as u8)),
+                "u16" | "U16" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::U16(i as u16)),
+                "u32" | "U32" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::U32(i as u32)),
+                "u64" | "U64" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::U64(i as u64)),
+                "u128" | "U128" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::U128(i as u128)),
+                "usize" | "Usize" => self
+                    .parse_signed_number(numeric)
+                    .map(|i| ValueData::Usize(i as usize)),
                 // TODO: this should probably be an error
-                _ => self.parse_signed_number(buffer).map(|i| ValueData::Isize(i as isize)),
-            }
+                _ => self
+                    .parse_signed_number(buffer)
+                    .map(|i| ValueData::Isize(i as isize)),
+            };
         }
         let parsed = self.parse_signed_number(buffer);
         parsed.map(|i| ValueData::Isize(i as isize))
