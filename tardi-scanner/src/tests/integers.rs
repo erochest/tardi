@@ -188,9 +188,7 @@ fn test_scans_binary_integers() {
     assert_isize(15, &values[1]);
 }
 
-// TODO: type markers, positive, negative, and placeholders: 1:u8 20:u32 4524:usize -1:i8 -20:i32 -4524:i64 1_000_000:i64 1,000,001:u64
 #[test]
-#[ignore]
 fn test_scans_typed_numbers() {
     let scanner = Scanner::from_string(
         "1:u8 20:u32 4524:usize -1:i8 -20:i32 -4524:i64 1_000_000:i64 1,000,001:u64",
