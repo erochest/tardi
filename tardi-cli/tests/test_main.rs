@@ -6,7 +6,7 @@ use assert_cmd::prelude::*;
 use pretty_assertions::assert_eq;
 
 fn test_tardi_file(tardi_file: &Path) -> datatest_stable::Result<()> {
-    let output = Command::cargo_bin(env!["CARGO_PKG_NAME"])
+    let output = Command::cargo_bin("tardi-next")
         .unwrap()
         .arg("--print-stack")
         // TODO: some way to make the next line optional
