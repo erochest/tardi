@@ -1,3 +1,4 @@
+pub mod env;
 pub mod error;
 pub mod module;
 pub mod op_code;

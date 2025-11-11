@@ -1,11 +1,13 @@
+use tardi_core::env::Environment;
 use tardi_core::error::Result;
 use tardi_core::module::Module;
 use tardi_core::op_code::OpCode;
 
-pub fn initialize() -> Result<Module> {
-    let mut module = Module::default();
-    module.instructions.push(OpCode::CreateEnvironment);
-    Ok(module)
+pub fn initialize<'a>() -> Result<Environment<'a>> {
+    let mut env = Environment::default();
+    env.create_module("tardi/kernel");
+    // TODO: populate tardi/kernel
+    Ok(env)
 }
 
 #[cfg(test)]
