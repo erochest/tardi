@@ -1,8 +1,6 @@
 // TODO: error trapping
 // TODO: test framework
 // TODO: see
-// TODO: .s
-// TODO: .
 // TODO: config to autoload imports for repl
 // TODO: export all (but no re-exports)
 // TODO: reload
