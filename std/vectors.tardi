@@ -7,7 +7,8 @@ exports:
     <vector> 1vector 2vector concat deep-push! each each2 empty? first first2 fourth in?
     index-of? join last length map map2 nth pop! pop-left! push! push-left!
     reduce second set-nth! sort! subvector third sum frequencies window-pairs 
-    all? any? filter partition [..] [..) [0..) in-bounds? remove-at lastn ;
+    all? any? max filter partition [..] [..) [0..) in-bounds? remove-at lastn 
+    split-at ;
 
 : 1vector   { } [ push! ] keep ;       /// x -- {x}
 : 2vector           { } tuck push-left! tuck push-left! ;    /// a b -- xs
@@ -243,6 +244,8 @@ exports:
 : invalid-start-index   0 <= ;    /// i -- ?
 : cleanup-indexes       2drop ;   /// to from --
 
+: max   dup first [ math/max ] reduce ;   /// xs -- x
+
 /// xs n -- xs'
 : lastn
     indexes-from-end
@@ -250,3 +253,6 @@ exports:
         spin subvector
     ] if ;
 
+: split-prefix   0 -rot subvector ;                      /// i xs -- pref
+: split-post     [ length ] keep subvector ;             /// i xs -- post
+: split-at       [ split-prefix ] [ split-post ] 2bi ;   /// i xs -- xs1 xs2

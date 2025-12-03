@@ -1207,7 +1207,7 @@ dependencies = [
 
 [[package]]
 name = "tardi"
-version = "0.4.11"
+version = "0.4.12"
 dependencies = [
  "assert_cmd",
  "assert_fs",

@@ -1,7 +1,9 @@
 
 exports:
-    1+ 1- abs check-bounds min zero? ;
+    1+ 1- abs check-bounds max min zero? ;
 
+
+: max               [ > ] 2keep ? ;                          /// x y -- xy
 : min               [ < ] 2keep ? ;                          /// x y -- xy
 : abs               dup 0 < [ -1 * ] when ;                  /// x -- x'
 : 1+                1 + ;                                    /// n -- n'
