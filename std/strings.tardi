@@ -7,7 +7,8 @@ exports:
     <string> >string utf>string concat nth >utf8 empty? in? starts-with?
     ends-with? index-of? length replace-all split split-all split-at
     split-whitespace lines strip-start strip-end substring >lowercase
-    >uppercase utf8>digit parse-int utf8>string ;
+    >uppercase utf8>digit parse-int utf8>string chunk-on repeat-string
+    pad0 ;
 
 /// utf8 -- int
 : utf8>digit
@@ -25,3 +26,46 @@ exports:
         utf8>digit
         accumulate-place
     ] each ;
+
+/// str|#f -- ?
+: at-end?
+    [
+        dup #f ==
+        dup [ nip ] when
+    ] [ empty? ] || ;
+
+/// str n -- vector/str
+: chunk-on
+    { } -rot
+    [ over at-end? ! ] [
+        [
+            split-at
+            [ over push! ] dip
+        ] keep
+    ] while
+    2drop ;
+
+: repeat-test    dup 0 > ;
+: repeat-iter     1 - ;
+: repeat-extend   dupd concat ;
+
+/// times string -- string
+/// repeats a string times times
+: repeat-string
+    "" rot
+    [ repeat-test ] [
+      [ repeat-extend ] dip
+      repeat-iter
+    ] while
+    drop nip ;
+
+/// string width -- string
+/// this pads a string with '0' to be width
+: pad0
+    over length -
+    dup 0 > [
+        "0" repeat-string
+        swap concat
+    ] [
+        drop
+    ] if ;

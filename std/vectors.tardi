@@ -7,7 +7,7 @@ exports:
     <vector> 1vector 2vector concat deep-push! each each2 empty? first first2 fourth in?
     index-of? join last length map map2 nth pop! pop-left! push! push-left!
     reduce second set-nth! sort! subvector third sum frequencies window-pairs 
-    all? filter partition [..) [0..) in-bounds? remove-at ;
+    all? any? filter partition [..] [..) [0..) in-bounds? remove-at lastn ;
 
 : 1vector   { } [ push! ] keep ;       /// x -- {x}
 : 2vector           { } tuck push-left! tuck push-left! ;    /// a b -- xs
@@ -166,7 +166,25 @@ exports:
     ] each
     nip ;
 
-: all?              swap #t [ pick apply and ] reduce nip ;
+/// vector predicate -- ?
+: all?
+    swap #t
+    [
+        -rot
+        [ [ apply ] keep ] dip
+        rot and
+    ] reduce
+    nip ;
+
+/// vector predicate -- ?
+: any?
+    swap #f
+    [
+        -rot
+        [ [ apply ] keep ] dip
+        rot or
+    ] reduce
+    nip ;
 
 : filter?    [ pick apply ] keep swap ;      /// pred accum i -- pred accum i ?
 : push-if!   [ over push! ] [ drop ] if ;    /// xs x ?       -- xs'
@@ -185,13 +203,21 @@ exports:
 /// xs p -- trues falses
 : partition             partition/setup (partition) partition/clean ;
 
-: more?       2dup > ;                /// a max current -- a max current ?
+: more]?      2dup >= ;               /// a max current -- a max current ?
 : store       [ pick push! ] keep ;   /// accum m current -- accum' m current
+
+/// from to -- vector
+: [..]
+    { } spin
+    [ more]? ] [ store 1+ ] while
+    2drop ;
+
+: more)?       2dup > ;                /// a max current -- a max current ?
 
 /// from to -- vector
 : [..)
     { } spin
-    [ more? ] [ store 1+ ] while
+    [ more)? ] [ store 1+ ] while
     2drop ;
 
 : [0..)   0 swap [..) ;   /// n -- vector
@@ -208,3 +234,19 @@ exports:
         [ preslice ] [ 1+ postslice ] 2bi
         concat
     ] [ drop ] if ;
+
+/// vector n -- vector to from
+: indexes-from-end
+    over length
+    swap dupd - ;
+
+: invalid-start-index   0 <= ;    /// i -- ?
+: cleanup-indexes       2drop ;   /// to from --
+
+/// xs n -- xs'
+: lastn
+    indexes-from-end
+    dup invalid-start-index [ cleanup-indexes ] [
+        spin subvector
+    ] if ;
+

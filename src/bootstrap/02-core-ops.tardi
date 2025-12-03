@@ -40,3 +40,12 @@
 : or                [ drop #t ] [ [ #t ] [ #f ] if ] if ;
 : positive?         0 > ;
 : negative?         0 < ;
+
+/// lambda1 lambda2 -- ?
+: ||
+    [ apply ] dip swap
+    [
+        drop #t
+    ] [
+        apply
+    ] if ;
