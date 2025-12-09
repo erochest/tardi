@@ -4,14 +4,21 @@ uses: std/_vectors
 uses: std/math
 
 exports:
-    <vector> 1vector 2vector concat deep-push! each each2 empty? first first2 fourth in?
-    index-of? join last length map map2 nth pop! pop-left! push! push-left!
-    reduce second set-nth! sort! subvector third sum frequencies window-pairs 
-    all? any? max filter partition [..] [..) [0..) in-bounds? remove-at lastn 
-    split-at ;
+    <vector> 1vector 2vector 3vector concat deep-push! each each2 empty?
+    first first2 fourth in? index-of? join last length map map2 nth pop!
+    pop-left! push! push-left! reduce second set-nth! sort! subvector third
+    sum frequencies window-pairs all? any? max filter partition [..] [..) [0..)
+    in-bounds? remove-at lastn split-at count combine flatten ;
 
-: 1vector   { } [ push! ] keep ;       /// x -- {x}
-: 2vector           { } tuck push-left! tuck push-left! ;    /// a b -- xs
+: 1vector   { } [ push! ] keep ;                     /// x -- {x}
+: 2vector   { } tuck push-left! tuck push-left! ;    /// a b -- xs
+
+/// a b c -- xs
+: 3vector
+  <vector>
+  tuck push-left!
+  tuck push-left!
+  tuck push-left! ;
 
 /// v -- x
 : first    0 swap nth ;
@@ -187,10 +194,18 @@ exports:
     ] reduce
     nip ;
 
-: filter?    [ pick apply ] keep swap ;      /// pred accum i -- pred accum i ?
-: push-if!   [ over push! ] [ drop ] if ;    /// xs x ?       -- xs'
-: (filter)   [ filter? push-if! ] reduce ;   /// p xs accum -- p accum
-: filter     swap { } (filter) nip ;         /// xs p -- xs'
+// TODO: there are some patterns here that could be factored
+// - rotd swap
+// - swap [ x ] dip swap (is there a dipd?)
+: clean-apply   swap [ swap [ apply ] keep ] dip ;   /// pred accum i -- ? pred accum
+: filter?       [ clean-apply ] keep rotd swap ;     /// pred accum i -- pred accum i ?
+: push-if!      [ over push! ] [ drop ] if ;         /// xs x ?       -- xs'
+: (filter)      [ filter? push-if! ] reduce ;        /// p xs accum -- p accum
+: filter        swap { } (filter) nip ;              /// xs p -- xs'
+
+// TODO: don't create a vector in between
+/// xs predicate -- int
+: count   filter vectors/length ;
 
 : partition/setup       swap { } { } 2vector ;              /// xs p -- p xs a
 : partition/test        [ pick apply ] keep swap ;          /// p x i -- p x i ?
@@ -256,3 +271,17 @@ exports:
 : split-prefix   0 -rot subvector ;                      /// i xs -- pref
 : split-post     [ length ] keep subvector ;             /// i xs -- post
 : split-at       [ split-prefix ] [ split-post ] 2bi ;   /// i xs -- xs1 xs2
+
+/// vector/vector -- vector
+: flatten   { } [ concat ] reduce ;
+
+/// ys x -- ys xys
+: combine-spread   over [ dupd 2vector ] map nip ;
+/// xs ys -- xys
+/// { 1 2 3 } { 4 5 6 } combine
+/// { { 1 4 } { 1 5 } { 1 6 } { 2 4 } ... }
+: combine
+  swap
+  [ combine-spread ] map
+  nip
+  flatten ;
