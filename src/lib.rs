@@ -1,5 +1,6 @@
 //! Tardi environmentming language implementation
 
+pub mod analysis;
 pub mod ast;
 pub mod compiler;
 pub mod config;
