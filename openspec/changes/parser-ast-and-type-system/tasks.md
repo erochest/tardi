@@ -1,21 +1,21 @@
 ## 1. AST Data Structures
 
-- [ ] 1.1 Define `Span` and `SourceId` types in `src/ast/span.rs`
-- [ ] 1.2 Define `AstNode` wrapper struct with `kind`, `span`, and `type_info: Option<TypeInfo>` fields
-- [ ] 1.3 Define `Node` enum variants: `Literal`, `Word`, `Quotation`, `Definition`, `Program`
-- [ ] 1.4 Define `TypeInfo` placeholder struct (to be filled by type checker)
-- [ ] 1.5 Implement recursive traversal / fold over `AstNode`
-- [ ] 1.6 Write unit tests for AST construction and traversal
+- [x] 1.1 Define `Span` and `SourceId` types in `src/ast/span.rs`
+- [x] 1.2 Define `AstNode` wrapper struct with `kind`, `span`, and `type_info: Option<TypeInfo>` fields
+- [x] 1.3 Define `Node` enum variants: `Literal`, `Word`, `Quotation`, `Definition`, `Program`
+- [x] 1.4 Define `TypeInfo` placeholder struct (to be filled by type checker)
+- [x] 1.5 Implement recursive traversal / fold over `AstNode`
+- [x] 1.6 Write unit tests for AST construction and traversal
 
 ## 2. Type Representation
 
-- [ ] 2.1 Define `StackType` with row variables and concrete types (`int`, `float`, `bool`, `str`, `char`)
-- [ ] 2.2 Define `TypeSig` struct: input row, output row, effect set
-- [ ] 2.3 Define `EffectSet` as a set of lowercase effect labels
-- [ ] 2.4 Implement effect set union operation
-- [ ] 2.5 Implement row variable unification
-- [ ] 2.6 Implement type signature parsing from string `"( S a -- S b | io )"`
-- [ ] 2.7 Write unit tests for type representation, unification, and effect union
+- [x] 2.1 Define `StackType` with row variables and concrete types (`int`, `float`, `bool`, `str`, `char`)
+- [x] 2.2 Define `TypeSig` struct: input row, output row, effect set
+- [x] 2.3 Define `EffectSet` as a set of lowercase effect labels
+- [x] 2.4 Implement effect set union operation
+- [x] 2.5 Implement row variable unification
+- [x] 2.6 Implement type signature parsing from string `"( S a -- S b | io )"`
+- [x] 2.7 Write unit tests for type representation, unification, and effect union
 
 ## 3. Parser
 

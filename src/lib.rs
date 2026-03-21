@@ -1,13 +1,16 @@
 //! Tardi environmentming language implementation
 
+pub mod ast;
 pub mod compiler;
 pub mod config;
 pub mod core;
 pub mod env;
 pub mod error;
 pub mod module;
+pub mod parser;
 pub mod scanner;
 pub mod shared;
+pub mod types;
 pub mod value;
 pub mod vm;
 

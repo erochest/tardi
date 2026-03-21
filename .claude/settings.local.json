@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(openspec instructions:*)"
+      "Bash(openspec instructions:*)",
+      "Bash(cargo check:*)"
     ]
   }
 }
