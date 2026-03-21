@@ -10,6 +10,7 @@ pub mod module;
 pub mod parser;
 pub mod scanner;
 pub mod shared;
+pub mod typechecker;
 pub mod types;
 pub mod value;
 pub mod vm;

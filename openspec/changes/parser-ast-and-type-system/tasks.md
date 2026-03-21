@@ -32,17 +32,17 @@
 
 ## 4. Type Checker
 
-- [ ] 4.1 Create `src/typechecker/mod.rs` with `TypeChecker` struct and type environment
-- [ ] 4.2 Implement word lookup: resolve `Word` nodes to their declared `TypeSig`
-- [ ] 4.3 Implement sequence type composition (compose two `TypeSig`s)
-- [ ] 4.4 Implement quotation type inference (infer type of `Quotation` node body)
-- [ ] 4.5 Implement definition checking (infer body type, unify with annotation)
-- [ ] 4.6 Implement effect propagation checking (caller declares superset of callee effects)
-- [ ] 4.7 Annotate each `AstNode` with its inferred `TypeInfo` after successful check
-- [ ] 4.8 Implement error reporting with spans for type mismatches and missing effects
-- [ ] 4.9 Handle forward references (pre-declaration mechanism for mutual recursion)
-- [ ] 4.10 Write unit tests for each checking rule
-- [ ] 4.11 Write integration tests checking complete word definitions
+- [x] 4.1 Create `src/typechecker/mod.rs` with `TypeChecker` struct and type environment
+- [x] 4.2 Implement word lookup: resolve `Word` nodes to their declared `TypeSig`
+- [x] 4.3 Implement sequence type composition (compose two `TypeSig`s)
+- [x] 4.4 Implement quotation type inference (infer type of `Quotation` node body)
+- [x] 4.5 Implement definition checking (infer body type, unify with annotation)
+- [x] 4.6 Implement effect propagation checking (caller declares superset of callee effects)
+- [x] 4.7 Annotate each `AstNode` with its inferred `TypeInfo` after successful check
+- [x] 4.8 Implement error reporting with spans for type mismatches and missing effects
+- [x] 4.9 Handle forward references (pre-declaration mechanism for mutual recursion)
+- [x] 4.10 Write unit tests for each checking rule
+- [x] 4.11 Write integration tests checking complete word definitions
 
 ## 5. Pipeline Integration
 

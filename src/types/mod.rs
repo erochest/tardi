@@ -226,10 +226,27 @@ impl TypeSig {
     /// Requires that `self.output` unifies with `next.input`.
     /// Returns an error describing the mismatch if they don't.
     pub fn compose(&self, next: &TypeSig) -> Result<TypeSig, UnificationError> {
-        let output = unify_rows(&self.output, &next.input)?;
-        // After unification the "used-up" part of output matches next.input.
-        // The composed output is next.output with self's row var substituted in.
-        let composed_output = substitute_row(&next.output, &self.output.var, &output);
+        // Verify that the stacks are compatible at the join point.
+        unify_rows(&self.output, &next.input)?;
+
+        // Compute the "remaining base": the part of self.output that next.input
+        // does NOT consume.  next.input.types[..b_len] are consumed; any types in
+        // self.output that appear *below* them (i.e., the first a_len - b_len) are
+        // still on the stack when next finishes.
+        let a_len = self.output.types.len();
+        let b_len = next.input.types.len();
+        let remaining_base = Row {
+            var: self.output.var.clone(),
+            types: if a_len > b_len {
+                self.output.types[..a_len - b_len].to_vec()
+            } else {
+                vec![]
+            },
+        };
+
+        // Substitute next.input's row variable in next.output with the remaining
+        // base, giving the composed output row.
+        let composed_output = substitute_row(&next.output, &next.input.var, &remaining_base);
         let effects = self.effects.union(&next.effects);
         Ok(TypeSig::new(self.input.clone(), composed_output, effects))
     }
