@@ -28,11 +28,22 @@ pub enum NodeKind {
     /// An anonymous quotation `[ ... ]`.
     Quotation(Vec<AstNode>),
 
+    /// A vector/list literal `{ ... }`.
+    /// Items are parsed as AST nodes (may include quotations, words, etc.).
+    Vector(Vec<AstNode>),
+
     /// A named word definition `: name ( sig ) body ;`.
     Definition {
         name: String,
         type_sig: TypeSig,
         body: Vec<AstNode>,
+    },
+
+    /// A macro definition `MACRO: name body ;`.
+    /// The body is kept as raw tokens for the compiler to compile and register.
+    MacroDefinition {
+        name: String,
+        body: Vec<Value>,
     },
 
     /// The top-level sequence of nodes in a source unit.
@@ -55,8 +66,11 @@ impl AstNode {
     /// Returns direct child nodes (one level deep).
     pub fn children(&self) -> Vec<&AstNode> {
         match &self.kind {
-            NodeKind::Literal(_) | NodeKind::Word { .. } => vec![],
+            NodeKind::Literal(_)
+            | NodeKind::Word { .. }
+            | NodeKind::MacroDefinition { .. } => vec![],
             NodeKind::Quotation(nodes) => nodes.iter().collect(),
+            NodeKind::Vector(nodes) => nodes.iter().collect(),
             NodeKind::Definition { body, .. } => body.iter().collect(),
             NodeKind::Program(nodes) => nodes.iter().collect(),
         }

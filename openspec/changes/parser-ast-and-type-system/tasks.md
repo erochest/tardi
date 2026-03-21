@@ -19,16 +19,16 @@
 
 ## 3. Parser
 
-- [ ] 3.1 Create `src/parser/mod.rs` with `Parser` struct consuming `Vec<Value>`
-- [ ] 3.2 Implement parsing of literal tokens into `Literal` nodes (int, float, bool, str, char)
-- [ ] 3.3 Implement parsing of `Word` and `Symbol` tokens into `Word` nodes
-- [ ] 3.4 Implement parsing of `[ ... ]` delimiters into `Quotation` nodes
-- [ ] 3.5 Implement parsing of type signatures `( inputs -- outputs | effects )`
-- [ ] 3.6 Implement parsing of `: name ( sig ) body ;` definitions into `Definition` nodes
-- [ ] 3.7 Implement top-level parsing into `Program` node
-- [ ] 3.8 Implement error types with spans for all malformed token sequences
-- [ ] 3.9 Write unit tests for each node type including error cases
-- [ ] 3.10 Write integration tests parsing complete Tardi snippets
+- [x] 3.1 Create `src/parser/mod.rs` with `Parser` struct consuming `Vec<Value>`
+- [x] 3.2 Implement parsing of literal tokens into `Literal` nodes (int, float, bool, str, char)
+- [x] 3.3 Implement parsing of `Word` and `Symbol` tokens into `Word` nodes
+- [x] 3.4 Implement parsing of `[ ... ]` delimiters into `Quotation` nodes
+- [x] 3.5 Implement parsing of type signatures `( inputs -- outputs | effects )`
+- [x] 3.6 Implement parsing of `: name ( sig ) body ;` definitions into `Definition` nodes
+- [x] 3.7 Implement top-level parsing into `Program` node
+- [x] 3.8 Implement error types with spans for all malformed token sequences
+- [x] 3.9 Write unit tests for each node type including error cases
+- [x] 3.10 Write integration tests parsing complete Tardi snippets
 
 ## 4. Type Checker
 
