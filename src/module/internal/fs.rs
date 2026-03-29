@@ -7,7 +7,7 @@ use crate::shared::shared;
 use crate::vm::VM;
 use crate::{compiler::Compiler, error::VMError};
 
-use super::{push_false, push_op, push_true, InternalBuilder};
+use super::{push_false, push_op_typed, push_true, InternalBuilder};
 
 pub const FS: &str = "std/fs";
 
@@ -20,13 +20,13 @@ impl InternalBuilder for FsModule {
     ) -> crate::module::Module {
         let mut index = HashMap::new();
 
-        push_op(op_table, &mut index, "rm", rm);
-        push_op(op_table, &mut index, "truncate", truncate);
-        push_op(op_table, &mut index, "exists?", does_file_exist);
-        push_op(op_table, &mut index, "rmdir", rmdir);
-        push_op(op_table, &mut index, "ensure-dir", ensure_dir);
-        push_op(op_table, &mut index, "touch", touch);
-        push_op(op_table, &mut index, "ls", ls);
+        push_op_typed(op_table, &mut index, "rm",         rm,              "( S str -- S bool | io )");
+        push_op_typed(op_table, &mut index, "truncate",   truncate,        "( S str -- S bool | io )");
+        push_op_typed(op_table, &mut index, "exists?",    does_file_exist, "( S str -- S bool | io )");
+        push_op_typed(op_table, &mut index, "rmdir",      rmdir,           "( S str -- S bool | io )");
+        push_op_typed(op_table, &mut index, "ensure-dir", ensure_dir,      "( S str -- S bool | io )");
+        push_op_typed(op_table, &mut index, "touch",      touch,           "( S str -- S bool | io )");
+        push_op_typed(op_table, &mut index, "ls",         ls,              "( S str -- S vec | io )");
 
         Module {
             imported: HashMap::new(),

@@ -408,6 +408,7 @@ impl Compiler {
                 length,
                 is_loop: false,
             },
+            type_sig: None,
         })
     }
 
@@ -515,6 +516,38 @@ impl Compiler {
             .ok_or(ScannerError::UnexpectedEndOfInput)?;
         let word = word?;
         Ok(word)
+    }
+
+    /// Optionally consume a type-signature token sequence `( ... )` from the
+    /// current scanner.
+    ///
+    /// If the very next token in the stream is `(`, the entire `( ... )`
+    /// sequence up to and including the matching `)` is consumed and discarded.
+    /// Otherwise the scanner position is restored (the token is "unread") and
+    /// the caller sees no change.
+    ///
+    /// Returns `true` if a signature was consumed, `false` otherwise.
+    pub fn try_consume_type_sig(&mut self) -> Result<bool> {
+        // Save scanner position so we can roll back if the next token is not `(`.
+        let saved = match self.current_scanner() {
+            Some(s) => s.save_position(),
+            None => return Ok(false),
+        };
+
+        match self.scan_value() {
+            Some(Ok(val)) if val.data == ValueData::Word("(".to_string()) => {
+                // Found an opening paren — consume until the matching `)`.
+                self.scan_value_list(&ValueData::Word(")".to_string()))?;
+                Ok(true)
+            }
+            // Anything else: restore and report no sig consumed.
+            _ => {
+                if let Some(scanner) = self.current_scanner_mut() {
+                    scanner.restore_position(saved);
+                }
+                Ok(false)
+            }
+        }
     }
 
     pub fn scan_value_list(&mut self, delimiter: &ValueData) -> CompilerResult<Vec<Value>> {

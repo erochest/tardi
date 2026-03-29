@@ -9,7 +9,7 @@ use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData, ValueVec};
 use crate::vm::VM;
 
-use super::{push_macro, push_op, InternalBuilder};
+use super::{push_macro, push_op, push_op_typed, InternalBuilder};
 
 mod loop_word;
 
@@ -28,36 +28,42 @@ impl InternalBuilder for KernelModule {
         // would i need to implement more in forth/tardi?
         push_op(op_table, &mut index, "<nop>", nop);
         push_op(op_table, &mut index, "<lit>", lit);
-        push_op(op_table, &mut index, "dup", dup);
-        push_op(op_table, &mut index, "swap", swap);
-        push_op(op_table, &mut index, "rot", rot);
-        push_op(op_table, &mut index, "drop", drop_op);
-        push_op(op_table, &mut index, "clear", clear);
-        push_op(op_table, &mut index, "stack-size", stack_size);
-        push_op(op_table, &mut index, "+", add);
-        push_op(op_table, &mut index, "-", subtract);
-        push_op(op_table, &mut index, "*", multiply);
-        push_op(op_table, &mut index, "/", divide);
-        push_op(op_table, &mut index, "==", equal);
-        push_op(op_table, &mut index, "<", less);
-        push_op(op_table, &mut index, ">", greater);
-        push_op(op_table, &mut index, "!", not);
-        push_op(op_table, &mut index, "?", question);
-        push_op(op_table, &mut index, ">r", to_r);
-        push_op(op_table, &mut index, "r>", r_from);
-        push_op(op_table, &mut index, "r@", r_fetch);
-        push_op(op_table, &mut index, "apply", apply);
-        push_op(op_table, &mut index, "return", return_op);
+        // Stack ops (6.2)
+        push_op_typed(op_table, &mut index, "dup",        dup,        "( S a -- S a a )");
+        push_op_typed(op_table, &mut index, "swap",       swap,       "( S a b -- S b a )");
+        push_op_typed(op_table, &mut index, "rot",        rot,        "( S a b c -- S b c a )");
+        push_op_typed(op_table, &mut index, "drop",       drop_op,    "( S a -- S )");
+        push_op_typed(op_table, &mut index, "clear",      clear,      "( S -- )");
+        push_op_typed(op_table, &mut index, "stack-size", stack_size, "( S -- S int )");
+        // Arithmetic ops (6.3)
+        push_op_typed(op_table, &mut index, "+", add,      "( S int int -- S int )");
+        push_op_typed(op_table, &mut index, "-", subtract, "( S int int -- S int )");
+        push_op_typed(op_table, &mut index, "*", multiply, "( S int int -- S int )");
+        push_op_typed(op_table, &mut index, "/", divide,   "( S int int -- S int )");
+        // Comparison ops (6.4)
+        push_op_typed(op_table, &mut index, "==", equal,   "( S a a -- S bool )");
+        push_op_typed(op_table, &mut index, "<",  less,    "( S int int -- S bool )");
+        push_op_typed(op_table, &mut index, ">",  greater, "( S int int -- S bool )");
+        push_op_typed(op_table, &mut index, "!",  not,     "( S bool -- S bool )");
+        push_op_typed(op_table, &mut index, "?",  question,"( S bool -- S bool )");
+        // Return stack ops (6.6)
+        push_op_typed(op_table, &mut index, ">r", to_r,    "( S a -- S )");
+        push_op_typed(op_table, &mut index, "r>", r_from,  "( S -- S a )");
+        push_op_typed(op_table, &mut index, "r@", r_fetch, "( S -- S a )");
+        // Control flow ops (6.5)
+        push_op_typed(op_table, &mut index, "apply",    apply,     "( S a -- S | effect )");
+        push_op_typed(op_table, &mut index, "return",   return_op, "( S -- S )");
         push_op(op_table, &mut index, "stop", stop);
-        push_op(op_table, &mut index, "bye", bye);
-        push_op(op_table, &mut index, "jump", jump);
+        push_op(op_table, &mut index, "bye",  bye);
+        push_op(op_table, &mut index, "jump",       jump);
         push_op(op_table, &mut index, "jump-stack", jump_stack);
-        push_op(op_table, &mut index, "lit", lit_stack);
+        push_op(op_table, &mut index, "lit",     lit_stack);
         push_op(op_table, &mut index, "compile", compile);
-        push_op(op_table, &mut index, "break", break_word);
-        push_op(op_table, &mut index, "continue", continue_word);
-        push_macro(op_table, &mut index, "loop", loop_word::loop_word);
-        push_macro(op_table, &mut index, "uses:", use_module);
+        push_op_typed(op_table, &mut index, "break",    break_word,    "( S -- S )");
+        push_op_typed(op_table, &mut index, "continue", continue_word, "( S -- S )");
+        // Macros (6.12 partial)
+        push_macro(op_table, &mut index, "loop",     loop_word::loop_word);
+        push_macro(op_table, &mut index, "uses:",    use_module);
         push_macro(op_table, &mut index, "exports:", export_list);
 
         Module {

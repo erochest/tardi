@@ -10,58 +10,53 @@ exports:
     sum frequencies window-pairs all? any? max filter partition [..] [..) [0..)
     in-bounds? remove-at lastn split-at count combine flatten ;
 
-: 1vector   { } [ push! ] keep ;                     /// x -- {x}
-: 2vector   { } tuck push-left! tuck push-left! ;    /// a b -- xs
+: 1vector   ( S a -- S vec )       { } [ push! ] keep ;
+: 2vector   ( S a b -- S vec )     { } tuck push-left! tuck push-left! ;
 
 /// a b c -- xs
-: 3vector
+: 3vector   ( S a b c -- S vec )
   <vector>
   tuck push-left!
   tuck push-left!
   tuck push-left! ;
 
 /// v -- x
-: first    0 swap nth ;
+: first    ( S vec -- S a )   0 swap nth ;
 /// v -- x
-: second   1 swap nth ;
+: second   ( S vec -- S a )   1 swap nth ;
 /// v -- x
-: third    2 swap nth ;
+: third    ( S vec -- S a )   2 swap nth ;
 /// v -- x
-: fourth   3 swap nth ;
+: fourth   ( S vec -- S a )   3 swap nth ;
 
-: first2    [ first ] [ second ] bi ;   /// {xy} -- x y
+: first2    ( S vec -- S a b )  [ first ] [ second ] bi ;
 
 /// v -- x
-: last     [ length 1 - ] keep nth ;
+: last     ( S vec -- S a )  [ length 1 - ] keep nth ;
 
 /// v -- ?
-: empty?   length 0 == ;
-
-// TODO: tardi (and others) often have lots of small, private, helper words.
-// maybe we could facilitate that by having a way to make them private and
-// scope them to only be visible inside a small set of other words, primarily
-// one other word.
+: empty?   ( S vec -- S bool )  length 0 == ;
 
 /// vector l -- l vector max index
-: each-init-index-limit   swap dup length 0 ;
+: each-init-index-limit   ( S vec a -- S a vec int int )  swap dup length 0 ;
 
 /// vector lambda -- lambda vector max index
-: each-init-state   each-init-index-limit ;
+: each-init-state   ( S vec a -- S a vec int int )  each-init-index-limit ;
 
 /// max index -- max index ?
-: each-more?   2dup > ;
+: each-more?   ( S int int -- S int int bool )  2dup > ;
 
 /// vector m index -- item vector m index
-: each-get-item   -rot [ [ nth ] 2keep ] dip rot ;
+: each-get-item   ( S vec int int -- S a vec int int )  -rot [ [ nth ] 2keep ] dip rot ;
 
 /// lambda item v m i -- lambda v m i
-: each-clear-apply   [ swap [ apply ] keep ] 3dip ;
+: each-clear-apply   ( S a b c d e -- S b c d | effect )  [ swap [ apply ] keep ] 3dip ;
 
 /// i -- i'
-: each-next   1 + ;
+: each-next   ( S int -- S int )  1 + ;
 
 /// lambda vector max index -- lambda vector max index'
-: each-loop
+: each-loop   ( S a vec int int -- S a vec int int )
     [ each-more? ] [
         each-get-item
         each-clear-apply
@@ -69,25 +64,25 @@ exports:
     ] while ;
 
 /// l v m i --
-: each-cleanup   4drop ;
+: each-cleanup   ( S a b c d -- S )  4drop ;
 
 /// vector lambda --
-: each   each-init-state each-loop each-cleanup ;
+: each   ( S vec a -- S | effect )  each-init-state each-loop each-cleanup ;
 
-: find-min-length   [ length ] bi@ min ;                     /// xs ys -- n
-: float-lists       -rot ;                                   /// q xs ys n -- q n xs ys
-: nth-both          overd nth [ dupd nth ] dip ;             /// n xs ys -- n x y
-: clean-apply       [ [ apply ] keep ] dip ;                 /// x y q n -- q n
-: arrange-apply     [ nth-both 2swap clean-apply ] 2keep ;   /// q n xs ys -- q n xs ys
+: find-min-length   ( S vec vec -- S int )  [ length ] bi@ min ;
+: float-lists       ( S a b c d -- S a d b c )  -rot ;
+: nth-both          ( S int vec vec -- S int a b )  overd nth [ dupd nth ] dip ;
+: clean-apply       ( S a b c d -- S a d | effect )  [ [ apply ] keep ] dip ;
+: arrange-apply     ( S a b c d -- S a b c d | effect )  [ nth-both 2swap clean-apply ] 2keep ;
 
-: each2-init        -rot 2dup find-min-length 0 swap ;       /// xs ys q -- q xs ys n l
-: each2-continue?   2dup < ;                                 /// n l -- n l ?
-: each2-apply       [ float-lists arrange-apply ] dip ;      /// q xs ys n l -- q n xs ys l
-: each2-restack     rotd ;                                   /// q n xs ys l -- q xs ys n l
-: each2-cleanup     5drop ;                                  /// q n xs ys l --
+: each2-init        ( S vec vec a -- S a vec vec int int )  -rot 2dup find-min-length 0 swap ;
+: each2-continue?   ( S int int -- S int int bool )  2dup < ;
+: each2-apply       ( S a b c d e -- S a b c d e | effect )  [ float-lists arrange-apply ] dip ;
+: each2-restack     ( S a b c d e -- S a c d b e )  rotd ;
+: each2-cleanup     ( S a b c d e -- S )  5drop ;
 
 /// xs ys quot --
-: each2
+: each2   ( S vec vec a -- S | effect )
     each2-init
     [ each2-continue? ] [
         // q xs ys n l
@@ -98,19 +93,19 @@ exports:
     each2-cleanup ;
 
 /// vector lambda -- vector' lambda vector
-: map-init   { } spin ;
+: map-init   ( S vec a -- S vec a vec )  { } spin ;
 
 /// vector' lambda item -- item lambda vector'
-: map-init-step   spin ;
+: map-init-step   ( S vec a b -- S b a vec )  spin ;
 
 /// item lambda vector' -- item' lambda vector'
-: map-clear-apply   [ [ apply ] keep ] dip ;
+: map-clear-apply   ( S a b vec -- S a' b vec | effect )  [ [ apply ] keep ] dip ;
 
 /// item l vector' -- vector' l
-: map-push!   swap [ [ push! ] keep ] dip ;
+: map-push!   ( S a b vec -- S vec b )  swap [ [ push! ] keep ] dip ;
 
 /// vector' lambda vector -- vector' lambda
-: map-loop
+: map-loop   ( S vec a vec -- S vec a | effect )
     [
         map-init-step
         map-clear-apply
@@ -118,13 +113,13 @@ exports:
     ] each ;
 
 /// lambda --
-: map-cleanup   drop ;
+: map-cleanup   ( S a vec -- S vec )  drop ;
 
 /// vector lambda -- vector'
-: map   map-init map-loop map-cleanup ;
+: map   ( S vec a -- S vec | effect )  map-init map-loop map-cleanup ;
 
 /// xs ys quot -- zs
-: map2
+: map2   ( S vec vec a -- S vec | effect )
     { } 2swap
     [
         reach apply
@@ -133,36 +128,36 @@ exports:
     nip ;
 
 /// vector init ( accum item -- accum ) -- accum
-: reduce
+: reduce   ( S vec a b -- S a | effect )
     rot
-    [ swap [ apply ] keep ] each 
+    [ swap [ apply ] keep ] each
     drop ;
 
 /// xs -- s
-: sum   0 [ + ] reduce ;
+: sum   ( S vec -- S int )  0 [ + ] reduce ;
 
 /// xs y x -- xs' y
-: deep-push!   pick push! ;
+: deep-push!   ( S vec a b -- S vec a )  pick push! ;
 
 /// copied from std/hashmaps to prevent an import loop
 /// hm x --
-: inc
+: inc   ( S hashmap a -- S hashmap )
     swap 2dup get
     [ 1+ ] [ drop 1 ] if
     swap set! ;
 
 /// list -- hashmap
-: frequencies
+: frequencies   ( S vec -- S hashmap )
     <hashmap>
     [ dupd inc ] reduce ;
 
-: window/setup    #f { } rot ;           /// v -- ? accum v
-: window/first?   swapd over #f? ;       /// prev accum x -- accum prev i ?
-: window/store    nip swap ;             /// accum prev current -- current accum 
-: window/pair     2vector over push! ;   /// accum prev current -- accum
+: window/setup    ( S vec -- S bool vec vec )  #f { } rot ;
+: window/first?   ( S bool vec a -- S vec bool a bool )  swapd over #f? ;
+: window/store    ( S vec bool a -- S a vec )  nip swap ;
+: window/pair     ( S vec bool a -- S vec )    2vector over push! ;
 
 /// vector -- vector/vector
-: window-pairs
+: window-pairs   ( S vec -- S vec )
     window/setup
     [
         window/first? [
@@ -175,7 +170,7 @@ exports:
     nip ;
 
 /// vector predicate -- ?
-: all?
+: all?   ( S vec a -- S bool | effect )
     swap #t
     [
         -rot
@@ -185,7 +180,7 @@ exports:
     nip ;
 
 /// vector predicate -- ?
-: any?
+: any?   ( S vec a -- S bool | effect )
     swap #f
     [
         -rot
@@ -194,57 +189,53 @@ exports:
     ] reduce
     nip ;
 
-// TODO: there are some patterns here that could be factored
-// - rotd swap
-// - swap [ x ] dip swap (is there a dipd?)
-: clean-apply   swap [ swap [ apply ] keep ] dip ;   /// pred accum i -- ? pred accum
-: filter?       [ clean-apply ] keep rotd swap ;     /// pred accum i -- pred accum i ?
-: push-if!      [ over push! ] [ drop ] if ;         /// xs x ?       -- xs'
-: (filter)      [ filter? push-if! ] reduce ;        /// p xs accum -- p accum
-: filter        swap { } (filter) nip ;              /// xs p -- xs'
+: clean-apply   ( S a b c -- S bool a b | effect )  swap [ swap [ apply ] keep ] dip ;
+: filter?       ( S a b c -- S a b c bool | effect )  [ clean-apply ] keep rotd swap ;
+: push-if!      ( S vec a bool -- S vec | effect )  [ over push! ] [ drop ] if ;
+: (filter)      ( S a vec b -- S a b | effect )  [ filter? push-if! ] reduce ;
+: filter        ( S vec a -- S vec | effect )  swap { } (filter) nip ;
 
-// TODO: don't create a vector in between
 /// xs predicate -- int
-: count   filter vectors/length ;
+: count   ( S vec a -- S int | effect )  filter vectors/length ;
 
-: partition/setup       swap { } { } 2vector ;              /// xs p -- p xs a
-: partition/test        [ pick apply ] keep swap ;          /// p x i -- p x i ?
-: partition/get-accum   [ second ] [ first ] if ;           /// a ? -- a'
-: partition/clean       nip first2 ;                        /// p a -- ts fs
-: partition/store       overd partition/get-accum push! ;   /// a i ? -- a'
+: partition/setup       ( S vec a -- S a vec vec )  swap { } { } 2vector ;
+: partition/test        ( S a b c -- S a b c bool | effect )  [ pick apply ] keep swap ;
+: partition/get-accum   ( S vec bool -- S vec )  [ second ] [ first ] if ;
+: partition/clean       ( S a b -- S a b )  nip first2 ;
+: partition/store       ( S vec a bool -- S vec | effect )  overd partition/get-accum push! ;
 
 /// p xs a -- p a'
-: (partition)           [ partition/test partition/store ] reduce ;
+: (partition)   ( S a vec b -- S a b | effect )  [ partition/test partition/store ] reduce ;
 
 /// xs p -- trues falses
-: partition             partition/setup (partition) partition/clean ;
+: partition   ( S vec a -- S vec vec | effect )  partition/setup (partition) partition/clean ;
 
-: more]?      2dup >= ;               /// a max current -- a max current ?
-: store       [ pick push! ] keep ;   /// accum m current -- accum' m current
+: more]?      ( S vec int int -- S vec int int bool )  2dup >= ;
+: store       ( S vec int int -- S vec int int | effect )  [ pick push! ] keep ;
 
 /// from to -- vector
-: [..]
+: [..]   ( S int int -- S vec )
     { } spin
     [ more]? ] [ store 1+ ] while
     2drop ;
 
-: more)?       2dup > ;                /// a max current -- a max current ?
+: more)?   ( S vec int int -- S vec int int bool )  2dup > ;
 
 /// from to -- vector
-: [..)
+: [..)   ( S int int -- S vec )
     { } spin
     [ more)? ] [ store 1+ ] while
     2drop ;
 
-: [0..)   0 swap [..) ;   /// n -- vector
+: [0..)   ( S int -- S vec )  0 swap [..) ;
 
-: in-bounds?   2dup 0 rot length 1- check-bounds #f? ! ;   /// v i -- v i ?
+: in-bounds?   ( S vec int -- S vec int bool )  2dup 0 rot length 1- check-bounds #f? ! ;
 
-: preslice   0 spin subvector ;                  /// v i -- v'
-: postslice   swap [ length ] keep subvector ;   /// v i -- v'
+: preslice   ( S int vec -- S vec )  0 spin subvector ;
+: postslice  ( S int vec -- S vec )  swap [ length ] keep subvector ;
 
 /// vector i -- vector'
-: remove-at
+: remove-at   ( S vec int -- S vec )
     in-bounds?
     [
         [ preslice ] [ 1+ postslice ] 2bi
@@ -252,35 +243,35 @@ exports:
     ] [ drop ] if ;
 
 /// vector n -- vector to from
-: indexes-from-end
+: indexes-from-end   ( S vec int -- S vec int int )
     over length
     swap dupd - ;
 
-: invalid-start-index   0 <= ;    /// i -- ?
-: cleanup-indexes       2drop ;   /// to from --
+: invalid-start-index   ( S int -- S bool )  0 <= ;
+: cleanup-indexes       ( S a b -- S )  2drop ;
 
-: max   dup first [ math/max ] reduce ;   /// xs -- x
+: max   ( S vec -- S a )  dup first [ math/max ] reduce ;
 
 /// xs n -- xs'
-: lastn
+: lastn   ( S vec int -- S vec )
     indexes-from-end
     dup invalid-start-index [ cleanup-indexes ] [
         spin subvector
     ] if ;
 
-: split-prefix   0 -rot subvector ;                      /// i xs -- pref
-: split-post     [ length ] keep subvector ;             /// i xs -- post
-: split-at       [ split-prefix ] [ split-post ] 2bi ;   /// i xs -- xs1 xs2
+: split-prefix   ( S int vec -- S vec )  0 -rot subvector ;
+: split-post     ( S int vec -- S vec )  [ length ] keep subvector ;
+: split-at       ( S int vec -- S vec vec )  [ split-prefix ] [ split-post ] 2bi ;
 
 /// vector/vector -- vector
-: flatten   { } [ concat ] reduce ;
+: flatten   ( S vec -- S vec )  { } [ concat ] reduce ;
 
 /// ys x -- ys xys
-: combine-spread   over [ dupd 2vector ] map nip ;
+: combine-spread   ( S vec a -- S vec vec )  over [ dupd 2vector ] map nip ;
 /// xs ys -- xys
 /// { 1 2 3 } { 4 5 6 } combine
 /// { { 1 4 } { 1 5 } { 1 6 } { 2 4 } ... }
-: combine
+: combine   ( S vec vec -- S vec )
   swap
   [ combine-spread ] map
   nip

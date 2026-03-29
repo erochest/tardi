@@ -7,7 +7,7 @@ use crate::shared::Shared;
 use crate::value::lambda::Lambda;
 use crate::vm::VM;
 
-use super::{push_op, InternalBuilder};
+use super::{push_op_typed, InternalBuilder};
 
 pub const INTERNALS: &str = "std/_internals";
 
@@ -20,13 +20,8 @@ impl InternalBuilder for InternalsModule {
     ) -> Module {
         let mut index = HashMap::new();
 
-        push_op(op_table, &mut index, "<function>", function);
-        push_op(
-            op_table,
-            &mut index,
-            "<predeclare-function>",
-            predeclare_function,
-        );
+        push_op_typed(op_table, &mut index, "<function>",            function,            "( S a -- S )");
+        push_op_typed(op_table, &mut index, "<predeclare-function>", predeclare_function, "( S a -- S )");
 
         Module {
             imported: HashMap::new(),

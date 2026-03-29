@@ -599,4 +599,225 @@ mod tests {
         // The definition itself should be annotated
         assert!(def.type_info.is_some());
     }
+
+    // ── §8.2 Type mismatch errors ──────────────────────────────────────────────
+
+    /// Declaring the wrong input arity should be an error. (8.2)
+    #[test]
+    fn type_mismatch_wrong_input_arity() {
+        let mut tc = TypeChecker::new();
+        tc.define("dup", sig("( S a -- S a a )"));
+        // Body: dup infers ( S a -- S a a ) — two outputs.
+        // Declared output only has one item → mismatch on output arity.
+        let body = vec![word_node("dup")];
+        let mut def = AstNode::new(
+            NodeKind::Definition {
+                name: "bad-arity".to_string(),
+                type_sig: sig("( S a -- S a )"), // declared: one output
+                body,
+            },
+            dummy_span(),
+        );
+        // dup produces two, declared says one → mismatch
+        assert!(tc.check_item(&mut def).is_err());
+    }
+
+    /// Declaring the wrong concrete output type should be an error. (8.2)
+    #[test]
+    fn type_mismatch_wrong_concrete_output_type() {
+        let mut tc = TypeChecker::new();
+        tc.define("+", sig("( S int int -- S int )"));
+        // Push two ints and add them → produces int.
+        // But declare output as bool → type mismatch.
+        let body = vec![
+            literal_node(ValueData::Integer(1)),
+            literal_node(ValueData::Integer(2)),
+            word_node("+"),
+        ];
+        let mut def = AstNode::new(
+            NodeKind::Definition {
+                name: "wrong-type".to_string(),
+                type_sig: sig("( S -- S bool )"), // should be int, not bool
+                body,
+            },
+            dummy_span(),
+        );
+        assert!(tc.check_item(&mut def).is_err());
+    }
+
+    // ── §8.3 Effect propagation errors ────────────────────────────────────────
+
+    /// Using a word with an io effect without declaring it is an error. (8.3)
+    #[test]
+    fn missing_effect_declaration_is_error() {
+        let mut tc = TypeChecker::new();
+        tc.define("print", sig("( S str -- S | io )"));
+        let body = vec![
+            literal_node(ValueData::String("hello".to_string())),
+            word_node("print"),
+        ];
+        let mut def = AstNode::new(
+            NodeKind::Definition {
+                name: "greet".to_string(),
+                type_sig: sig("( S -- S )"), // missing | io
+                body,
+            },
+            dummy_span(),
+        );
+        assert!(tc.check_item(&mut def).is_err());
+    }
+
+    /// A definition that propagates multiple undeclared effects. (8.3)
+    #[test]
+    fn multiple_missing_effects_are_caught() {
+        let mut tc = TypeChecker::new();
+        tc.define("read",  sig("( S reader -- S str | io )"));
+        tc.define("alloc-buf", sig("( S int -- S a | alloc )"));
+        let body = vec![
+            literal_node(ValueData::Integer(64)),
+            word_node("alloc-buf"),
+            word_node("read"),
+        ];
+        let mut def = AstNode::new(
+            NodeKind::Definition {
+                name: "buffered-read".to_string(),
+                type_sig: sig("( S reader -- S str )"), // missing | io alloc
+                body,
+            },
+            dummy_span(),
+        );
+        assert!(tc.check_item(&mut def).is_err());
+    }
+
+    /// Declaring all effects that the body uses should pass. (8.3)
+    #[test]
+    fn superset_of_effects_is_ok() {
+        let mut tc = TypeChecker::new();
+        tc.define("print", sig("( S str -- S | io )"));
+        let body = vec![
+            literal_node(ValueData::String("hi".to_string())),
+            word_node("print"),
+        ];
+        let mut def = AstNode::new(
+            NodeKind::Definition {
+                name: "greet-io".to_string(),
+                type_sig: sig("( S -- S | io )"),
+                body,
+            },
+            dummy_span(),
+        );
+        assert!(tc.check_item(&mut def).is_ok());
+    }
+
+    // ── §8.4 Undefined word errors ─────────────────────────────────────────────
+
+    /// Referencing a word that has never been defined is an error. (8.4)
+    #[test]
+    fn undefined_word_in_body_is_error() {
+        let mut tc = TypeChecker::new();
+        // No words defined — any word reference should fail.
+        let mut node = word_node("undefined-word");
+        assert!(tc.check_item(&mut node).is_err());
+    }
+
+    /// Undefined word inside a definition body produces a type error. (8.4)
+    #[test]
+    fn undefined_word_in_definition_body_is_error() {
+        let mut tc = TypeChecker::new();
+        let body = vec![word_node("does-not-exist")];
+        let mut def = AstNode::new(
+            NodeKind::Definition {
+                name: "caller".to_string(),
+                type_sig: sig("( S -- S )"),
+                body,
+            },
+            dummy_span(),
+        );
+        assert!(tc.check_item(&mut def).is_err());
+    }
+
+    /// Only undefined words error; defined words in same program succeed. (8.4)
+    #[test]
+    fn defined_word_passes_undefined_word_fails() {
+        let mut tc = TypeChecker::new();
+        tc.define("real-word", sig("( S -- S int )"));
+
+        let mut ok_node = word_node("real-word");
+        assert!(tc.check_item(&mut ok_node).is_ok());
+
+        let mut bad_node = word_node("ghost-word");
+        assert!(tc.check_item(&mut bad_node).is_err());
+    }
+
+    // ── §8.6 Quotation type inference ──────────────────────────────────────────
+
+    /// An empty quotation has type `( R -- R [ S -- S ] )`. (8.6)
+    #[test]
+    fn empty_quotation_has_identity_type() {
+        let mut tc = TypeChecker::new();
+        let mut node = AstNode::new(NodeKind::Quotation(vec![]), dummy_span());
+        let result = tc.check_item(&mut node).unwrap();
+        // Output should have one type: a Quotation type
+        assert_eq!(result.output.types.len(), 1);
+        assert!(matches!(&result.output.types[0], StackType::Quotation(_)));
+        // The inner sig should have no concrete input/output types
+        if let StackType::Quotation(inner_sig) = &result.output.types[0] {
+            assert!(inner_sig.input.types.is_empty());
+            assert!(inner_sig.output.types.is_empty());
+        }
+    }
+
+    /// A quotation containing a literal infers a push-int signature. (8.6)
+    #[test]
+    fn quotation_with_literal_infers_push_type() {
+        let mut tc = TypeChecker::new();
+        let body = vec![literal_node(ValueData::Integer(42))];
+        let mut node = AstNode::new(NodeKind::Quotation(body), dummy_span());
+        let result = tc.check_item(&mut node).unwrap();
+        assert_eq!(result.output.types.len(), 1);
+        if let StackType::Quotation(inner) = &result.output.types[0] {
+            // Inner infers ( S -- S int )
+            assert_eq!(inner.output.types.len(), 1);
+            assert_eq!(
+                inner.output.types[0],
+                StackType::Primitive(PrimitiveType::Int)
+            );
+        } else {
+            panic!("expected quotation type");
+        }
+    }
+
+    /// A quotation that calls a word with effects propagates those effects. (8.6)
+    #[test]
+    fn quotation_inherits_effects_from_body() {
+        let mut tc = TypeChecker::new();
+        tc.define("print", sig("( S str -- S | io )"));
+        let body = vec![word_node("print")];
+        let mut node = AstNode::new(NodeKind::Quotation(body), dummy_span());
+        let result = tc.check_item(&mut node).unwrap();
+        if let StackType::Quotation(inner) = &result.output.types[0] {
+            assert!(inner.effects.contains("io"), "quotation should propagate io effect");
+        } else {
+            panic!("expected quotation type");
+        }
+    }
+
+    /// Nested quotation: quotation inside a quotation is inferred correctly. (8.6)
+    #[test]
+    fn nested_quotation_type_is_inferred() {
+        let mut tc = TypeChecker::new();
+        let inner_body = vec![literal_node(ValueData::Boolean(true))];
+        let inner_quot = AstNode::new(NodeKind::Quotation(inner_body), dummy_span());
+        let outer_body = vec![inner_quot];
+        let mut outer = AstNode::new(NodeKind::Quotation(outer_body), dummy_span());
+        let result = tc.check_item(&mut outer).unwrap();
+        // Outer: ( R -- R [ S -- S [ T -- T bool ] ] )
+        assert_eq!(result.output.types.len(), 1);
+        if let StackType::Quotation(outer_inner) = &result.output.types[0] {
+            assert_eq!(outer_inner.output.types.len(), 1);
+            assert!(matches!(&outer_inner.output.types[0], StackType::Quotation(_)));
+        } else {
+            panic!("expected outer quotation type");
+        }
+    }
 }

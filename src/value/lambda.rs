@@ -1,13 +1,14 @@
 use std::{fmt, ptr};
 
 use crate::error::{Result, VMError};
+use crate::types::TypeSig;
 use crate::{Compiler, VM};
 
 /// Function pointer type for VM operations
 pub type OpFn = fn(&mut VM, &mut Compiler) -> Result<()>;
 
 /// Function structure for user-defined functions and lambdas
-#[derive(Debug, Clone, PartialEq, PartialOrd, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Lambda {
     // TODO: this needs to include the module as well somehow
     /// Optional name (None for lambdas)
@@ -17,6 +18,9 @@ pub struct Lambda {
     pub defined: bool,
 
     pub callable: Callable,
+
+    /// Optional type signature for this word (populated for annotated builtins and definitions).
+    pub type_sig: Option<TypeSig>,
 }
 
 impl Lambda {
@@ -32,6 +36,7 @@ impl Lambda {
             immediate: false,
             defined: true,
             callable,
+            type_sig: None,
         }
     }
 
@@ -43,6 +48,7 @@ impl Lambda {
             immediate: false,
             defined: true,
             callable,
+            type_sig: None,
         }
     }
 
@@ -62,6 +68,7 @@ impl Lambda {
             immediate: true,
             defined: true,
             callable,
+            type_sig: None,
         }
     }
 
@@ -78,7 +85,14 @@ impl Lambda {
             immediate: false,
             defined: false,
             callable,
+            type_sig: None,
         }
+    }
+
+    /// Builder method to attach a type signature to this lambda.
+    pub fn with_type_sig(mut self, sig: TypeSig) -> Self {
+        self.type_sig = Some(sig);
+        self
     }
 
     pub fn call(&self, vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
@@ -222,6 +236,22 @@ impl std::hash::Hash for Callable {
 impl PartialOrd for Callable {
     fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
         None
+    }
+}
+
+impl PartialOrd for Lambda {
+    fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
+        None
+    }
+}
+
+impl std::hash::Hash for Lambda {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.immediate.hash(state);
+        self.defined.hash(state);
+        self.callable.hash(state);
+        // type_sig intentionally excluded: TypeSig does not implement Hash
     }
 }
 

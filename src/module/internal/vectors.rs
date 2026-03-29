@@ -8,7 +8,7 @@ use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData};
 use crate::vm::VM;
 
-use super::{push_op, InternalBuilder};
+use super::{push_op_typed, InternalBuilder};
 
 pub const VECTORS: &str = "std/_vectors";
 
@@ -23,20 +23,20 @@ impl InternalBuilder for VectorsBuilder {
     ) -> Module {
         let mut index = HashMap::new();
 
-        push_op(op_table, &mut index, "<vector>", create_list);
-        push_op(op_table, &mut index, "push!", push);
-        push_op(op_table, &mut index, "push-left!", push_left);
-        push_op(op_table, &mut index, "concat", concat);
-        push_op(op_table, &mut index, "pop-left!", pop_left);
-        push_op(op_table, &mut index, "pop!", pop);
-        push_op(op_table, &mut index, "nth", nth);
-        push_op(op_table, &mut index, "set-nth!", set_nth);
-        push_op(op_table, &mut index, "length", length);
-        push_op(op_table, &mut index, "in?", is_in);
-        push_op(op_table, &mut index, "index-of?", index_of);
-        push_op(op_table, &mut index, "subvector", subvector);
-        push_op(op_table, &mut index, "join", join);
-        push_op(op_table, &mut index, "sort!", sort);
+        push_op_typed(op_table, &mut index, "<vector>",   create_list, "( S -- S vec )");
+        push_op_typed(op_table, &mut index, "push!",      push,        "( S a vec -- S vec )");
+        push_op_typed(op_table, &mut index, "push-left!", push_left,   "( S a vec -- S vec )");
+        push_op_typed(op_table, &mut index, "concat",     concat,      "( S vec vec -- S vec )");
+        push_op_typed(op_table, &mut index, "pop-left!",  pop_left,    "( S vec -- S a vec )");
+        push_op_typed(op_table, &mut index, "pop!",       pop,         "( S vec -- S a vec )");
+        push_op_typed(op_table, &mut index, "nth",        nth,         "( S vec int -- S a )");
+        push_op_typed(op_table, &mut index, "set-nth!",   set_nth,     "( S a int vec -- S vec )");
+        push_op_typed(op_table, &mut index, "length",     length,      "( S vec -- S int )");
+        push_op_typed(op_table, &mut index, "in?",        is_in,       "( S vec a -- S bool )");
+        push_op_typed(op_table, &mut index, "index-of?",  index_of,    "( S vec a -- S a )");
+        push_op_typed(op_table, &mut index, "subvector",  subvector,   "( S vec int int -- S vec )");
+        push_op_typed(op_table, &mut index, "join",       join,        "( S vec str -- S str )");
+        push_op_typed(op_table, &mut index, "sort!",      sort,        "( S vec -- S vec )");
 
         Module {
             imported: HashMap::new(),

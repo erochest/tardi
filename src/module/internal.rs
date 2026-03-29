@@ -13,6 +13,7 @@ use crate::compiler::error::CompilerError;
 use crate::error::Result;
 use crate::module::internal::hashmaps::{HashMapsBuilder, HASHMAPS};
 use crate::shared::{shared, Shared};
+use crate::types::TypeSig;
 use crate::value::lambda::{Lambda, OpFn};
 use crate::vm::VM;
 
@@ -76,6 +77,51 @@ fn push_macro(
     op: OpFn,
 ) {
     let lambda = Lambda::new_builtin_macro(name, op);
+    let index = op_table.len();
+    op_table.push(shared(lambda));
+    table.insert(name.to_string(), index);
+}
+
+/// Register a built-in word with an associated type signature string.
+///
+/// The `type_sig` argument is a string like `"( S a -- S a a )"`.  Parse
+/// errors are logged as warnings and the word is registered without a
+/// signature rather than panicking.
+fn push_op_typed(
+    op_table: &mut Vec<Shared<Lambda>>,
+    table: &mut HashMap<String, usize>,
+    name: &str,
+    op: OpFn,
+    type_sig: &str,
+) {
+    let sig = type_sig.parse::<TypeSig>().ok();
+    if sig.is_none() {
+        log::warn!("push_op_typed: failed to parse type sig {:?} for {:?}", type_sig, name);
+    }
+    let lambda = Lambda::new_builtin(name, op).with_type_sig(sig.unwrap_or_else(|| {
+        // Fallback: use an identity sig with no types
+        "( S -- S )".parse().unwrap()
+    }));
+    let index = op_table.len();
+    op_table.push(shared(lambda));
+    table.insert(name.to_string(), index);
+}
+
+/// Register a built-in macro with an associated type signature string.
+fn push_macro_typed(
+    op_table: &mut Vec<Shared<Lambda>>,
+    table: &mut HashMap<String, usize>,
+    name: &str,
+    op: OpFn,
+    type_sig: &str,
+) {
+    let sig = type_sig.parse::<TypeSig>().ok();
+    if sig.is_none() {
+        log::warn!("push_macro_typed: failed to parse type sig {:?} for {:?}", type_sig, name);
+    }
+    let lambda = Lambda::new_builtin_macro(name, op).with_type_sig(sig.unwrap_or_else(|| {
+        "( S -- S )".parse().unwrap()
+    }));
     let index = op_table.len();
     op_table.push(shared(lambda));
     table.insert(name.to_string(), index);

@@ -4,13 +4,13 @@
 // Stack combinators
 
 /// ...s x l -- ...s' x
-: dip   swap >r apply r> ;
+: dip   ( S a b -- S a | effect )   swap >r apply r> ;
 
 // ...s x y l -- ...s' x y
-: 2dip swap >r swap >r apply r> r> ;
+: 2dip  ( S a b c -- S a b | effect )  swap >r swap >r apply r> r> ;
 
 /// ...s x y z l -- ...s' x y z
-: 3dip   swap >r swap >r swap >r apply r> r> r> ;
+: 3dip  ( S a b c d -- S a b c | effect )  swap >r swap >r swap >r apply r> r> r> ;
 
 // TODO: Preserving combinators
 // 4dip ...s w x y z l -- ...s' w x y z
@@ -18,132 +18,133 @@
 // Dropping stack elements
 
 /// x y --
-: 2drop   drop drop ;
+: 2drop   ( S a b -- S )  drop drop ;
 
 /// x y z --
-: 3drop   drop drop drop ;
+: 3drop   ( S a b c -- S )  drop drop drop ;
 
 /// w x y z --
-: 4drop   drop drop drop drop ;
+: 4drop   ( S a b c d -- S )  drop drop drop drop ;
 
 /// v w x y z --
-: 5drop   drop drop drop drop drop ;
+: 5drop   ( S a b c d e -- S )  drop drop drop drop drop ;
 
 /// x y -- y
-: nip     [ drop ] dip ;
+: nip     ( S a b -- S b )  [ drop ] dip ;
 
 /// x y z -- z
-: 2nip    [ 2drop ] dip ;
+: 2nip    ( S a b c -- S c )  [ 2drop ] dip ;
 
 /// w x y z -- z
-: 3nip    [ 3drop ] dip ;
+: 3nip    ( S a b c d -- S d )  [ 3drop ] dip ;
 
 /// v w x y z -- z
-: 4nip    [ 4drop ] dip ;
+: 4nip    ( S a b c d e -- S e )  [ 4drop ] dip ;
 
 /// u v w x y z -- z
-: 5nip    [ 5drop ] dip ;
+: 5nip    ( S a b c d e f -- S f )  [ 5drop ] dip ;
 
 // Duplicating stack elements deep in the stack
 
 /// x y -- x x y
-: dupd     [ dup ] dip ;
+: dupd     ( S a b -- S a a b )  [ dup ] dip ;
 
 // Permuting stack elements deep in the stack
 
 /// x y z -- y x z
-: swapd    [ swap ] dip ;
+: swapd    ( S a b c -- S b a c )  [ swap ] dip ;
 
 /// x y -- x y x
-: over    dupd swap ;
+: over    ( S a b -- S a b a )  dupd swap ;
 
 /// x y z -- x y x z
-: overd    [ over ] dip ;
+: overd    ( S a b c -- S a b a c )  [ over ] dip ;
 
 /// x y -- y x y
-: tuck    dup swapd ;
+: tuck    ( S a b -- S b a b )  dup swapd ;
 
 /// x y z -- y z x
 // : rot   swapd swap ;
 
 /// x y z -- z x y
-: -rot     swap swapd ;
+: -rot     ( S a b c -- S c a b )  swap swapd ;
 
 /// x y z -- z y x
-: spin     swap rot ;
+: spin     ( S a b c -- S c b a )  swap rot ;
 
 /// w x y z -- z y x w
-: 4spin    swap [ spin ] dip -rot ;
+: 4spin    ( S a b c d -- S d c b a )  swap [ spin ] dip -rot ;
 
 /// v w x y z -- y x w v z
-: 4spind   [ 4spin ] dip ;
+: 4spind   ( S a b c d e -- S b a d c e )  [ 4spin ] dip ;
 
 /// w x y z -- x y w z
-: rotd     [ rot ] dip ;
+: rotd     ( S a b c d -- S b c a d )  [ rot ] dip ;
 
 /// w x y z -- y w x z
-: -rotd    [ -rot ] dip ;
+: -rotd    ( S a b c d -- S c a b d )  [ -rot ] dip ;
 
 /// x y z -- y z
-: nipd     [ nip ] dip  ;
+: nipd     ( S a b c -- S b c )  [ nip ] dip  ;
 
 /// w x y z -- y z
-: 2nipd    [ 2nip ] dip ;
+: 2nipd    ( S a b c d -- S c d )  [ 2nip ] dip ;
 
 /// v w x y z -- y z
-: 3nipd    [ 3nip ] dip ;
+: 3nipd    ( S a b c d e -- S d e )  [ 3nip ] dip ;
 
 // Deplicating stack elements
 
 /// x y -- x y x y
-: 2dup    dupd swap dupd swap ;
+: 2dup    ( S a b -- S a b a b )  dupd swap dupd swap ;
 
 /// x y z -- x y x y z
-: 2dupd   [ 2dup ] dip ;
+: 2dupd   ( S a b c -- S a b a b c )  [ 2dup ] dip ;
 
 /// x y z -- x y z x y z
-: 3dup    2dupd swap [ swap dupd swap ] dip swap ;
+: 3dup    ( S a b c -- S a b c a b c )  2dupd swap [ swap dupd swap ] dip swap ;
 
 /// w x y z -- y z w x
-: 2swap    -rot -rot rotd ;
+: 2swap    ( S a b c d -- S c d a b )  -rot -rot rotd ;
 
 /// x y z -- x y z x y
-: 2over    2dupd -rot ;
+: 2over    ( S a b c -- S a b c a b )  2dupd -rot ;
 
 /// x y z -- x y z x
-: pick     overd swap ;
+: pick     ( S a b c -- S a b c a )  overd swap ;
 
 /// w x y z -- w x y z w
-: reach   [ pick ] dip swap ;
+: reach   ( S a b c d -- S a b c d a )  [ pick ] dip swap ;
 
 /// ...x lambda -- ...x' x
-: keep    over >r apply r> ;
+: keep    ( S a b -- S a b a | effect )  over >r apply r> ;
 
 /// ...a x y l(...a x y -- ...b) --- ...b x y
-: 2keep   over >r pick >r apply r> r> ;
+: 2keep   ( S a b c -- S a b c a b | effect )  over >r pick >r apply r> r> ;
 
 /// ...a x y z l(...a x y z -- ...b) --- ...b x y z
-: 3keep   over >r pick >r reach >r apply r> r> r> ;
+: 3keep   ( S a b c d -- S a b c d a b c | effect )  over >r pick >r reach >r apply r> r> r> ;
 
 /// x p q --
-: bi    [ keep ] dip apply ;
+: bi    ( S a b c -- S | effect )  [ keep ] dip apply ;
 
-: 2bi    [ 2keep ] dip apply ;
+: 2bi   ( S a b c d -- S | effect )  [ 2keep ] dip apply ;
 
-/// x y quot -- 
-: bi@   tuck [ apply ] 2dip apply ;
+/// x y quot --
+: bi@   ( S a b c -- S | effect )  tuck [ apply ] 2dip apply ;
 
-: tri1   [ apply ] 2dip ;       /// x q _ _ -- x'
-: tri2   -rot [ apply ] dip ;   /// q _ x   -- x'
-: tri3   swap apply ;           /// q x     -- x'
+: tri1   ( S a b c -- S | effect )  [ apply ] 2dip ;
+: tri2   ( S a b c -- S | effect )  -rot [ apply ] dip ;
+: tri3   ( S a b -- S | effect )    swap apply ;
 
 /// x p q r --
 : tri
+    ( S a b c d -- S | effect )
     reach >r
     tri1
     r@ tri2
     r> tri3 ;
 
-: pickd   [ pick ] dip ;   /// w x y z -- w x y w z
+: pickd   ( S a b c d -- S a b c a d )  [ pick ] dip ;
 
-: 2dropd   [ 2drop ] dip ;   /// x y z -- z
+: 2dropd   ( S a b c -- S c )  [ 2drop ] dip ;

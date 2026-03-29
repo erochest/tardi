@@ -2,13 +2,13 @@
 // lambda
 2 [ 2 * ] apply
 
-// function
-: triple 3 * ;
+// function with type annotation
+: triple   ( S int -- S int )  3 * ;
 
 3 triple
 dup triple
 
-: even?   dup 0 == [ drop #t ] [ 1 - even? ! ] if ;
+: even?   ( S int -- S bool )  dup 0 == [ drop #t ] [ 1 - even? ! ] if ;
 
 0 even? "is even" "is not even" ?
 1 even? "is even" "is not even" ?

@@ -55,34 +55,34 @@
 
 ## 6. Annotate Built-in Rust Words
 
-- [ ] 6.1 Add `type_sig: Option<TypeSig>` field to the builtin word registration mechanism
-- [ ] 6.2 Annotate all stack ops: `dup`, `swap`, `rot`, `drop`, `clear`, `stack-size`
-- [ ] 6.3 Annotate arithmetic ops: `+`, `-`, `*`, `/`
-- [ ] 6.4 Annotate comparison ops: `==`, `<`, `>`, `not`
-- [ ] 6.5 Annotate control flow ops: `apply`, `return`, `jump`, `break`, `continue`
-- [ ] 6.6 Annotate return stack ops: `>r`, `r>`, `r@`
-- [ ] 6.7 Annotate I/O words in `src/module/internal/io.rs` (with `| io` effect)
-- [ ] 6.8 Annotate filesystem words in `src/module/internal/fs.rs` (with `| io` effect)
-- [ ] 6.9 Annotate string words in `src/module/internal/strings.rs`
-- [ ] 6.10 Annotate vector words in `src/module/internal/vectors.rs`
-- [ ] 6.11 Annotate hashmap words in `src/module/internal/hashmaps.rs`
-- [ ] 6.12 Annotate kernel and scanning words in `src/module/internal/kernel.rs`, `scanning.rs`
+- [x] 6.1 Add `type_sig: Option<TypeSig>` field to the builtin word registration mechanism
+- [x] 6.2 Annotate all stack ops: `dup`, `swap`, `rot`, `drop`, `clear`, `stack-size`
+- [x] 6.3 Annotate arithmetic ops: `+`, `-`, `*`, `/`
+- [x] 6.4 Annotate comparison ops: `==`, `<`, `>`, `not`
+- [x] 6.5 Annotate control flow ops: `apply`, `return`, `jump`, `break`, `continue`
+- [x] 6.6 Annotate return stack ops: `>r`, `r>`, `r@`
+- [x] 6.7 Annotate I/O words in `src/module/internal/io.rs` (with `| io` effect)
+- [x] 6.8 Annotate filesystem words in `src/module/internal/fs.rs` (with `| io` effect)
+- [x] 6.9 Annotate string words in `src/module/internal/strings.rs`
+- [x] 6.10 Annotate vector words in `src/module/internal/vectors.rs`
+- [x] 6.11 Annotate hashmap words in `src/module/internal/hashmaps.rs`
+- [x] 6.12 Annotate kernel and scanning words in `src/module/internal/kernel.rs`, `scanning.rs`
 
 ## 7. Annotate Bootstrap and Standard Library
 
-- [ ] 7.1 Add type annotations to all words in `src/bootstrap/00-core-macros.tardi`
-- [ ] 7.2 Add type annotations to all words in `src/bootstrap/01-stack-ops.tardi`
-- [ ] 7.3 Add type annotations to all words in `src/bootstrap/02-core-ops.tardi`
-- [ ] 7.4 Add type annotations to all words in `std/math.tardi`
-- [ ] 7.5 Add type annotations to all words in `std/strings.tardi`
-- [ ] 7.6 Add type annotations to all words in `std/vectors.tardi`
-- [ ] 7.7 Add type annotations to all words in `std/hashmaps.tardi`
+- [x] 7.1 Add type annotations to all words in `src/bootstrap/00-core-macros.tardi`
+- [x] 7.2 Add type annotations to all words in `src/bootstrap/01-stack-ops.tardi`
+- [x] 7.3 Add type annotations to all words in `src/bootstrap/02-core-ops.tardi`
+- [x] 7.4 Add type annotations to all words in `std/math.tardi`
+- [x] 7.5 Add type annotations to all words in `std/strings.tardi`
+- [x] 7.6 Add type annotations to all words in `std/vectors.tardi`
+- [x] 7.7 Add type annotations to all words in `std/hashmaps.tardi`
 
 ## 8. Tests and Validation
 
-- [ ] 8.1 Update existing test fixtures in `tests/fixtures/` to include type annotations on definitions
-- [ ] 8.2 Add test fixtures for type mismatch errors (wrong stack effect)
-- [ ] 8.3 Add test fixtures for effect propagation errors (missing effect declaration)
-- [ ] 8.4 Add test fixtures for undefined word errors
-- [ ] 8.5 Verify all existing `cargo nextest run` tests pass with the new pipeline
-- [ ] 8.6 Add test fixtures for quotation type inference
+- [x] 8.1 Update existing test fixtures in `tests/fixtures/` to include type annotations on definitions
+- [x] 8.2 Add test fixtures for type mismatch errors (wrong stack effect)
+- [x] 8.3 Add test fixtures for effect propagation errors (missing effect declaration)
+- [x] 8.4 Add test fixtures for undefined word errors
+- [x] 8.5 Verify all existing `cargo nextest run` tests pass with the new pipeline
+- [x] 8.6 Add test fixtures for quotation type inference

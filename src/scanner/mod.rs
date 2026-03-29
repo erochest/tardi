@@ -8,6 +8,16 @@ use std::iter::from_fn;
 use std::path::{Path, PathBuf};
 use std::{char, fs, result};
 
+/// A snapshot of the scanner's cursor position.  Used to implement
+/// speculative / look-ahead scanning via `save_position` / `restore_position`.
+#[derive(Debug, Clone, Copy)]
+pub struct ScannerPosition {
+    pub index: usize,
+    pub line: usize,
+    pub column: usize,
+    pub offset: usize,
+}
+
 #[derive(Debug, Default)]
 pub enum Source {
     #[default]
@@ -181,6 +191,27 @@ impl Scanner {
         self.source = Source::InputString;
         self.input = input.to_string();
         self.chars = input.chars().collect();
+    }
+
+    /// Save the current scanner cursor position so it can be restored later.
+    ///
+    /// This allows speculative scanning: scan a token, inspect it, and if it
+    /// is not what was expected, restore the position to "unread" the token.
+    pub fn save_position(&self) -> ScannerPosition {
+        ScannerPosition {
+            index: self.index,
+            line: self.line,
+            column: self.column,
+            offset: self.offset,
+        }
+    }
+
+    /// Restore the scanner cursor to a previously saved position.
+    pub fn restore_position(&mut self, pos: ScannerPosition) {
+        self.index = pos.index;
+        self.line = pos.line;
+        self.column = pos.column;
+        self.offset = pos.offset;
     }
 
     /// Scans and returns the next value from the input.

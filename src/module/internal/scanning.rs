@@ -9,7 +9,7 @@ use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData};
 use crate::vm::VM;
 
-use super::{push_op, InternalBuilder};
+use super::{push_op_typed, InternalBuilder};
 
 pub const SCANNING: &str = "std/scanning";
 
@@ -21,10 +21,16 @@ impl InternalBuilder for ScanningBuilder {
         op_table: &mut Vec<Shared<Lambda>>,
     ) -> Module {
         let mut index = HashMap::new();
-        push_op(op_table, &mut index, "scan-value", scan_value);
-        push_op(op_table, &mut index, "scan-value-list", scan_value_list);
-        push_op(op_table, &mut index, "scan-object-list", scan_object_list);
-        // TODO: peek-value (for things like `inline` after function declarations)
+        // These three have compiler-level effects and don't have a simple stack type.
+        // We represent them with a polymorphic signature as a conservative approximation.
+        push_op_typed(op_table, &mut index, "scan-value",        scan_value,        "( S -- S a )");
+        push_op_typed(op_table, &mut index, "scan-value-list",   scan_value_list,   "( S a -- S vec )");
+        push_op_typed(op_table, &mut index, "scan-object-list",  scan_object_list,  "( S a -- S vec )");
+        // Optionally consume a `( ... )` type-signature block from the token stream.
+        // If the next token is `(`, everything up to and including `)` is consumed
+        // and discarded.  If not, the stream is left unchanged.
+        // Stack effect: ( S -- S )  (pure scanner-level side-effect, no stack change)
+        push_op_typed(op_table, &mut index, "<consume-type-sig>", consume_type_sig, "( S -- S )");
         Module {
             imported: HashMap::new(),
             path: None,
@@ -68,5 +74,15 @@ fn scan_object_list(vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
 
     vm.push(value)?;
 
+    Ok(())
+}
+
+/// `<consume-type-sig>` ( S -- S )
+///
+/// Peeks at the next token in the source stream.  If it is `(`, scans and
+/// discards all tokens up to and including the matching `)`.  Otherwise the
+/// stream is left unchanged.  Either way, no value is pushed or popped.
+fn consume_type_sig(_vm: &mut VM, compiler: &mut Compiler) -> Result<()> {
+    compiler.try_consume_type_sig()?;
     Ok(())
 }

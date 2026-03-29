@@ -11,16 +11,16 @@ exports:
 MACRO: H{ } scan-object-list >hashmap over vectors/push! ;
 
 /// ( hashmap -- vector )
-: keys   >vector [ first ] map ;
+: keys   ( S hashmap -- S vec )  >vector [ first ] map ;
 
 /// ( hashmap -- vector )
-: values   >vector [ second ] map ;
+: values   ( S hashmap -- S vec )  >vector [ second ] map ;
 
 /// ( key hashmap -- ? )
-: in?   keys vectors/in? ;
+: in?   ( S a hashmap -- S bool )  keys vectors/in? ;
 
 // ( hashmap lambda:( k v -- ) -- )
-: each   swap >vector [ dup vectors/empty? ! ] [
+: each   ( S hashmap a -- S | effect )  swap >vector [ dup vectors/empty? ! ] [
       [
         vectors/pop!
         [ first ] keep
@@ -31,7 +31,7 @@ MACRO: H{ } scan-object-list >hashmap over vectors/push! ;
     ] while 2drop ;
 
 // ( hashmap lambda:( v -- v' ) -- hashmap' )
-: map   swap >vector [
+: map   ( S hashmap a -- S hashmap | effect )  swap >vector [
         [ second ] keep first
         [ swap [ apply ] keep ] dip
         rot
@@ -41,10 +41,10 @@ MACRO: H{ } scan-object-list >hashmap over vectors/push! ;
     >hashmap nip ;
 
 // ( hashmap -- ? )
-: empty?   _hashmaps/length 0 == ;
+: empty?   ( S hashmap -- S bool )  _hashmaps/length 0 == ;
 
 /// hm x --
-: inc
+: inc   ( S hashmap a -- S hashmap )
     swap 2dup get
     [ 1+ ] [ drop 1 ] if
     swap set! ;
