@@ -3,16 +3,16 @@ exports:
     1+ 1- abs check-bounds max min zero? ;
 
 
-: max   ( S int int -- S int )  [ > ] 2keep ? ;
-: min   ( S int int -- S int )  [ < ] 2keep ? ;
-: abs   ( S int -- S int )      dup 0 < [ -1 * ] when ;
-: 1+    ( S int -- S int )      1 + ;
-: 1-    ( S int -- S int )      1 - ;
+: max   ( int int -- int )  [ > ] 2keep ? ;
+: min   ( int int -- int )  [ < ] 2keep ? ;
+: abs   ( int -- int )      dup 0 < [ -1 * ] when ;
+: 1+    ( int -- int )      1 + ;
+: 1-    ( int -- int )      1 - ;
 
 /// checks that min <= n <= max
 /// n min max -- n/#f
 : check-bounds
-    ( S int int int -- S a )
+    ( int int int -- a )
     pick < [
         2drop #f
     ] [
@@ -22,4 +22,4 @@ exports:
     ] if ;
 
 /// n -- ?
-: zero?   ( S int -- S bool )  0 == ;
+: zero?   ( int -- bool )  0 == ;

@@ -18,103 +18,103 @@
 // Dropping stack elements
 
 /// x y --
-: 2drop   ( S a b -- S )  drop drop ;
+: 2drop   ( a b -- )  drop drop ;
 
 /// x y z --
-: 3drop   ( S a b c -- S )  drop drop drop ;
+: 3drop   ( a b c -- )  drop drop drop ;
 
 /// w x y z --
-: 4drop   ( S a b c d -- S )  drop drop drop drop ;
+: 4drop   ( a b c d -- )  drop drop drop drop ;
 
 /// v w x y z --
-: 5drop   ( S a b c d e -- S )  drop drop drop drop drop ;
+: 5drop   ( a b c d e -- )  drop drop drop drop drop ;
 
 /// x y -- y
-: nip     ( S a b -- S b )  [ drop ] dip ;
+: nip     ( a b -- b )  [ drop ] dip ;
 
 /// x y z -- z
-: 2nip    ( S a b c -- S c )  [ 2drop ] dip ;
+: 2nip    ( a b c -- c )  [ 2drop ] dip ;
 
 /// w x y z -- z
-: 3nip    ( S a b c d -- S d )  [ 3drop ] dip ;
+: 3nip    ( a b c d -- d )  [ 3drop ] dip ;
 
 /// v w x y z -- z
-: 4nip    ( S a b c d e -- S e )  [ 4drop ] dip ;
+: 4nip    ( a b c d e -- e )  [ 4drop ] dip ;
 
 /// u v w x y z -- z
-: 5nip    ( S a b c d e f -- S f )  [ 5drop ] dip ;
+: 5nip    ( a b c d e f -- f )  [ 5drop ] dip ;
 
 // Duplicating stack elements deep in the stack
 
 /// x y -- x x y
-: dupd     ( S a b -- S a a b )  [ dup ] dip ;
+: dupd     ( a b -- a a b )  [ dup ] dip ;
 
 // Permuting stack elements deep in the stack
 
 /// x y z -- y x z
-: swapd    ( S a b c -- S b a c )  [ swap ] dip ;
+: swapd    ( a b c -- b a c )  [ swap ] dip ;
 
 /// x y -- x y x
-: over    ( S a b -- S a b a )  dupd swap ;
+: over    ( a b -- a b a )  dupd swap ;
 
 /// x y z -- x y x z
-: overd    ( S a b c -- S a b a c )  [ over ] dip ;
+: overd    ( a b c -- a b a c )  [ over ] dip ;
 
 /// x y -- y x y
-: tuck    ( S a b -- S b a b )  dup swapd ;
+: tuck    ( a b -- b a b )  dup swapd ;
 
 /// x y z -- y z x
 // : rot   swapd swap ;
 
 /// x y z -- z x y
-: -rot     ( S a b c -- S c a b )  swap swapd ;
+: -rot     ( a b c -- c a b )  swap swapd ;
 
 /// x y z -- z y x
-: spin     ( S a b c -- S c b a )  swap rot ;
+: spin     ( a b c -- c b a )  swap rot ;
 
 /// w x y z -- z y x w
-: 4spin    ( S a b c d -- S d c b a )  swap [ spin ] dip -rot ;
+: 4spin    ( a b c d -- d c b a )  swap [ spin ] dip -rot ;
 
 /// v w x y z -- y x w v z
-: 4spind   ( S a b c d e -- S b a d c e )  [ 4spin ] dip ;
+: 4spind   ( a b c d e -- b a d c e )  [ 4spin ] dip ;
 
 /// w x y z -- x y w z
-: rotd     ( S a b c d -- S b c a d )  [ rot ] dip ;
+: rotd     ( a b c d -- b c a d )  [ rot ] dip ;
 
 /// w x y z -- y w x z
-: -rotd    ( S a b c d -- S c a b d )  [ -rot ] dip ;
+: -rotd    ( a b c d -- c a b d )  [ -rot ] dip ;
 
 /// x y z -- y z
-: nipd     ( S a b c -- S b c )  [ nip ] dip  ;
+: nipd     ( a b c -- b c )  [ nip ] dip  ;
 
 /// w x y z -- y z
-: 2nipd    ( S a b c d -- S c d )  [ 2nip ] dip ;
+: 2nipd    ( a b c d -- c d )  [ 2nip ] dip ;
 
 /// v w x y z -- y z
-: 3nipd    ( S a b c d e -- S d e )  [ 3nip ] dip ;
+: 3nipd    ( a b c d e -- d e )  [ 3nip ] dip ;
 
 // Deplicating stack elements
 
 /// x y -- x y x y
-: 2dup    ( S a b -- S a b a b )  dupd swap dupd swap ;
+: 2dup    ( a b -- a b a b )  dupd swap dupd swap ;
 
 /// x y z -- x y x y z
-: 2dupd   ( S a b c -- S a b a b c )  [ 2dup ] dip ;
+: 2dupd   ( a b c -- a b a b c )  [ 2dup ] dip ;
 
 /// x y z -- x y z x y z
-: 3dup    ( S a b c -- S a b c a b c )  2dupd swap [ swap dupd swap ] dip swap ;
+: 3dup    ( a b c -- a b c a b c )  2dupd swap [ swap dupd swap ] dip swap ;
 
 /// w x y z -- y z w x
-: 2swap    ( S a b c d -- S c d a b )  -rot -rot rotd ;
+: 2swap    ( a b c d -- c d a b )  -rot -rot rotd ;
 
 /// x y z -- x y z x y
-: 2over    ( S a b c -- S a b c a b )  2dupd -rot ;
+: 2over    ( a b c -- a b c a b )  2dupd -rot ;
 
 /// x y z -- x y z x
-: pick     ( S a b c -- S a b c a )  overd swap ;
+: pick     ( a b c -- a b c a )  overd swap ;
 
 /// w x y z -- w x y z w
-: reach   ( S a b c d -- S a b c d a )  [ pick ] dip swap ;
+: reach   ( a b c d -- a b c d a )  [ pick ] dip swap ;
 
 /// ...x lambda -- ...x' x
 : keep    ( S a b -- S a b a | effect )  over >r apply r> ;
@@ -145,6 +145,6 @@
     r@ tri2
     r> tri3 ;
 
-: pickd   ( S a b c d -- S a b c a d )  [ pick ] dip ;
+: pickd   ( a b c d -- a b c a d )  [ pick ] dip ;
 
-: 2dropd   ( S a b c -- S c )  [ 2drop ] dip ;
+: 2dropd   ( a b c -- c )  [ 2drop ] dip ;

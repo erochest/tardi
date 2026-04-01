@@ -21,29 +21,29 @@ impl InternalBuilder for StringsBuilder {
     ) -> Module {
         let mut index = HashMap::new();
 
-        push_op_typed(op_table, &mut index, "<string>",        create_string,    "( S -- S str )");
-        push_op_typed(op_table, &mut index, ">string",         to_string,        "( S a -- S str )");
-        push_op_typed(op_table, &mut index, "utf8>string",     utf8_to_string,   "( S vec -- S str )");
-        push_op_typed(op_table, &mut index, "concat",          string_concat,    "( S str str -- S str )");
-        push_op_typed(op_table, &mut index, "nth",             nth,              "( S str int -- S char )");
-        push_op_typed(op_table, &mut index, ">utf8",           to_utf8,          "( S str -- S vec )");
-        push_op_typed(op_table, &mut index, "empty?",          is_empty,         "( S str -- S bool )");
-        push_op_typed(op_table, &mut index, "in?",             is_in,            "( S str a -- S bool )");
-        push_op_typed(op_table, &mut index, "starts-with?",    starts_with,      "( S str str -- S bool )");
-        push_op_typed(op_table, &mut index, "ends-with?",      ends_with,        "( S str str -- S bool )");
-        push_op_typed(op_table, &mut index, "index-of?",       index_of,         "( S str str -- S a )");
-        push_op_typed(op_table, &mut index, "length",          length,           "( S str -- S int )");
-        push_op_typed(op_table, &mut index, "replace-all",     replace_all,      "( S str str str -- S str )");
-        push_op_typed(op_table, &mut index, "split",           split,            "( S str str -- S str a )");
-        push_op_typed(op_table, &mut index, "split-all",       split_all,        "( S str str -- S vec )");
-        push_op_typed(op_table, &mut index, "split-at",        split_at,         "( S str int -- S str a )");
-        push_op_typed(op_table, &mut index, "split-whitespace",split_whitespace,  "( S str -- S vec )");
-        push_op_typed(op_table, &mut index, "lines",           lines,            "( S str -- S vec )");
-        push_op_typed(op_table, &mut index, "strip-start",     strip_start,      "( S str str -- S str )");
-        push_op_typed(op_table, &mut index, "strip-end",       strip_end,        "( S str str -- S str )");
-        push_op_typed(op_table, &mut index, "substring",       substring,        "( S str int int -- S str )");
-        push_op_typed(op_table, &mut index, ">lowercase",      to_lowercase,     "( S str -- S str )");
-        push_op_typed(op_table, &mut index, ">uppercase",      to_uppercase,     "( S str -- S str )");
+        push_op_typed(op_table, &mut index, "<string>",        create_string,    "( -- str )");
+        push_op_typed(op_table, &mut index, ">string",         to_string,        "( a -- str )");
+        push_op_typed(op_table, &mut index, "utf8>string",     utf8_to_string,   "( vec -- str )");
+        push_op_typed(op_table, &mut index, "concat",          string_concat,    "( str str -- str )");
+        push_op_typed(op_table, &mut index, "nth",             nth,              "( str int -- char )");
+        push_op_typed(op_table, &mut index, ">utf8",           to_utf8,          "( str -- vec )");
+        push_op_typed(op_table, &mut index, "empty?",          is_empty,         "( str -- bool )");
+        push_op_typed(op_table, &mut index, "in?",             is_in,            "( str a -- bool )");
+        push_op_typed(op_table, &mut index, "starts-with?",    starts_with,      "( str str -- bool )");
+        push_op_typed(op_table, &mut index, "ends-with?",      ends_with,        "( str str -- bool )");
+        push_op_typed(op_table, &mut index, "index-of?",       index_of,         "( str str -- a )");
+        push_op_typed(op_table, &mut index, "length",          length,           "( str -- int )");
+        push_op_typed(op_table, &mut index, "replace-all",     replace_all,      "( str str str -- str )");
+        push_op_typed(op_table, &mut index, "split",           split,            "( str str -- str a )");
+        push_op_typed(op_table, &mut index, "split-all",       split_all,        "( str str -- vec )");
+        push_op_typed(op_table, &mut index, "split-at",        split_at,         "( str int -- str a )");
+        push_op_typed(op_table, &mut index, "split-whitespace",split_whitespace,  "( str -- vec )");
+        push_op_typed(op_table, &mut index, "lines",           lines,            "( str -- vec )");
+        push_op_typed(op_table, &mut index, "strip-start",     strip_start,      "( str str -- str )");
+        push_op_typed(op_table, &mut index, "strip-end",       strip_end,        "( str str -- str )");
+        push_op_typed(op_table, &mut index, "substring",       substring,        "( str int int -- str )");
+        push_op_typed(op_table, &mut index, ">lowercase",      to_lowercase,     "( str -- str )");
+        push_op_typed(op_table, &mut index, ">uppercase",      to_uppercase,     "( str -- str )");
 
         Module {
             imported: HashMap::new(),

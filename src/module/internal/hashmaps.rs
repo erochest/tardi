@@ -26,14 +26,14 @@ impl InternalBuilder for HashMapsBuilder {
     ) -> crate::module::Module {
         let mut index = HashMap::new();
 
-        push_op_typed(op_table, &mut index, "<hashmap>",  hashmap,     "( S -- S hashmap )");
-        push_op_typed(op_table, &mut index, ">hashmap",   to_hashmap,  "( S vec -- S hashmap )");
-        push_op_typed(op_table, &mut index, ">vector",    to_vector,   "( S hashmap -- S vec )");
-        push_op_typed(op_table, &mut index, "is-hashmap?",is_hashmap,  "( S a -- S bool )");
-        push_op_typed(op_table, &mut index, "length",     length,      "( S hashmap -- S int )");
-        push_op_typed(op_table, &mut index, "get",        get,         "( S hashmap a -- S b )");
-        push_op_typed(op_table, &mut index, "add!",       add,         "( S a b hashmap -- S hashmap )");
-        push_op_typed(op_table, &mut index, "set!",       set,         "( S a b hashmap -- S hashmap )");
+        push_op_typed(op_table, &mut index, "<hashmap>",  hashmap,     "( -- hashmap )");
+        push_op_typed(op_table, &mut index, ">hashmap",   to_hashmap,  "( vec -- hashmap )");
+        push_op_typed(op_table, &mut index, ">vector",    to_vector,   "( hashmap -- vec )");
+        push_op_typed(op_table, &mut index, "is-hashmap?",is_hashmap,  "( a -- bool )");
+        push_op_typed(op_table, &mut index, "length",     length,      "( hashmap -- int )");
+        push_op_typed(op_table, &mut index, "get",        get,         "( hashmap a -- b )");
+        push_op_typed(op_table, &mut index, "add!",       add,         "( a b hashmap -- hashmap )");
+        push_op_typed(op_table, &mut index, "set!",       set,         "( a b hashmap -- hashmap )");
 
         Module {
             imported: HashMap::new(),

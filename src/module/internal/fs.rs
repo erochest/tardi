@@ -20,13 +20,13 @@ impl InternalBuilder for FsModule {
     ) -> crate::module::Module {
         let mut index = HashMap::new();
 
-        push_op_typed(op_table, &mut index, "rm",         rm,              "( S str -- S bool | io )");
-        push_op_typed(op_table, &mut index, "truncate",   truncate,        "( S str -- S bool | io )");
-        push_op_typed(op_table, &mut index, "exists?",    does_file_exist, "( S str -- S bool | io )");
-        push_op_typed(op_table, &mut index, "rmdir",      rmdir,           "( S str -- S bool | io )");
-        push_op_typed(op_table, &mut index, "ensure-dir", ensure_dir,      "( S str -- S bool | io )");
-        push_op_typed(op_table, &mut index, "touch",      touch,           "( S str -- S bool | io )");
-        push_op_typed(op_table, &mut index, "ls",         ls,              "( S str -- S vec | io )");
+        push_op_typed(op_table, &mut index, "rm",         rm,              "( str -- bool | io )");
+        push_op_typed(op_table, &mut index, "truncate",   truncate,        "( str -- bool | io )");
+        push_op_typed(op_table, &mut index, "exists?",    does_file_exist, "( str -- bool | io )");
+        push_op_typed(op_table, &mut index, "rmdir",      rmdir,           "( str -- bool | io )");
+        push_op_typed(op_table, &mut index, "ensure-dir", ensure_dir,      "( str -- bool | io )");
+        push_op_typed(op_table, &mut index, "touch",      touch,           "( str -- bool | io )");
+        push_op_typed(op_table, &mut index, "ls",         ls,              "( str -- vec | io )");
 
         Module {
             imported: HashMap::new(),

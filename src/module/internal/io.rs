@@ -26,38 +26,38 @@ impl InternalBuilder for IoModule {
         let mut index = HashMap::new();
 
         // File I/O — all carry | io effect
-        push_op_typed(op_table, &mut index, "write-file",  write_file,     "( S str str -- S bool | io )");
-        push_op_typed(op_table, &mut index, "read-file",   read_file,      "( S str -- S str bool | io )");
-        push_op_typed(op_table, &mut index, "<writer>",    writer,         "( S str -- S writer | io )");
-        push_op_typed(op_table, &mut index, "<reader>",    reader,         "( S str -- S reader | io )");
-        push_op_typed(op_table, &mut index, "file-path>>", get_file_path,  "( S file-like -- S str )");
-        push_op_typed(op_table, &mut index, "close",       close,          "( S file-like -- S bool | io )");
-        push_op_typed(op_table, &mut index, "write",       write,          "( S str writer -- S bool | io )");
-        push_op_typed(op_table, &mut index, "write-line",  write_line,     "( S str writer -- S bool | io )");
-        push_op_typed(op_table, &mut index, "write-lines", write_lines,    "( S vec writer -- S bool | io )");
-        push_op_typed(op_table, &mut index, "flush",       flush,          "( S writer -- S bool | io )");
-        push_op_typed(op_table, &mut index, "read",        read,           "( S reader -- S str bool | io )");
-        push_op_typed(op_table, &mut index, "read-line",   read_line,      "( S reader -- S str bool | io )");
-        push_op_typed(op_table, &mut index, "read-lines",  read_lines,     "( S reader -- S vec bool | io )");
+        push_op_typed(op_table, &mut index, "write-file",  write_file,     "( str str -- bool | io )");
+        push_op_typed(op_table, &mut index, "read-file",   read_file,      "( str -- str bool | io )");
+        push_op_typed(op_table, &mut index, "<writer>",    writer,         "( str -- writer | io )");
+        push_op_typed(op_table, &mut index, "<reader>",    reader,         "( str -- reader | io )");
+        push_op_typed(op_table, &mut index, "file-path>>", get_file_path,  "( file-like -- str )");
+        push_op_typed(op_table, &mut index, "close",       close,          "( file-like -- bool | io )");
+        push_op_typed(op_table, &mut index, "write",       write,          "( str writer -- bool | io )");
+        push_op_typed(op_table, &mut index, "write-line",  write_line,     "( str writer -- bool | io )");
+        push_op_typed(op_table, &mut index, "write-lines", write_lines,    "( vec writer -- bool | io )");
+        push_op_typed(op_table, &mut index, "flush",       flush,          "( writer -- bool | io )");
+        push_op_typed(op_table, &mut index, "read",        read,           "( reader -- str bool | io )");
+        push_op_typed(op_table, &mut index, "read-line",   read_line,      "( reader -- str bool | io )");
+        push_op_typed(op_table, &mut index, "read-lines",  read_lines,     "( reader -- vec bool | io )");
 
         // Standard streams
-        push_op_typed(op_table, &mut index, "<stdin>",  stdin,  "( S -- S reader )");
-        push_op_typed(op_table, &mut index, "<stdout>", stdout, "( S -- S writer )");
-        push_op_typed(op_table, &mut index, "<stderr>", stderr, "( S -- S writer )");
+        push_op_typed(op_table, &mut index, "<stdin>",  stdin,  "( -- reader )");
+        push_op_typed(op_table, &mut index, "<stdout>", stdout, "( -- writer )");
+        push_op_typed(op_table, &mut index, "<stderr>", stderr, "( -- writer )");
         // TODO: push_op(op_table, &mut index, "<string-reader>", string_reader);
         // TODO: push_op(op_table, &mut index, "<string-writer>", string_writer);
 
         // Print words
-        push_op_typed(op_table, &mut index, "print",   print,   "( S a -- S | io )");
-        push_op_typed(op_table, &mut index, "println", println, "( S a -- S | io )");
-        push_op_typed(op_table, &mut index, "nl",      nl,      "( S -- S | io )");
+        push_op_typed(op_table, &mut index, "print",   print,   "( a -- | io )");
+        push_op_typed(op_table, &mut index, "println", println, "( a -- | io )");
+        push_op_typed(op_table, &mut index, "nl",      nl,      "( -- | io )");
 
-        push_op_typed(op_table, &mut index, "eprint",   eprint,   "( S a -- S | io )");
-        push_op_typed(op_table, &mut index, "eprintln", eprintln, "( S a -- S | io )");
-        push_op_typed(op_table, &mut index, "enl",      enl,      "( S -- S | io )");
+        push_op_typed(op_table, &mut index, "eprint",   eprint,   "( a -- | io )");
+        push_op_typed(op_table, &mut index, "eprintln", eprintln, "( a -- | io )");
+        push_op_typed(op_table, &mut index, "enl",      enl,      "( -- | io )");
 
-        push_op_typed(op_table, &mut index, ".",  dot,       "( S a -- S | io )");
-        push_op_typed(op_table, &mut index, ".s", dot_stack, "( S -- S | io )");
+        push_op_typed(op_table, &mut index, ".",  dot,       "( a -- | io )");
+        push_op_typed(op_table, &mut index, ".s", dot_stack, "( -- | io )");
 
         Module {
             imported: HashMap::new(),

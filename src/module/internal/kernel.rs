@@ -29,38 +29,38 @@ impl InternalBuilder for KernelModule {
         push_op(op_table, &mut index, "<nop>", nop);
         push_op(op_table, &mut index, "<lit>", lit);
         // Stack ops (6.2)
-        push_op_typed(op_table, &mut index, "dup",        dup,        "( S a -- S a a )");
-        push_op_typed(op_table, &mut index, "swap",       swap,       "( S a b -- S b a )");
-        push_op_typed(op_table, &mut index, "rot",        rot,        "( S a b c -- S b c a )");
-        push_op_typed(op_table, &mut index, "drop",       drop_op,    "( S a -- S )");
-        push_op_typed(op_table, &mut index, "clear",      clear,      "( S -- )");
-        push_op_typed(op_table, &mut index, "stack-size", stack_size, "( S -- S int )");
+        push_op_typed(op_table, &mut index, "dup",        dup,        "( a -- a a )");
+        push_op_typed(op_table, &mut index, "swap",       swap,       "( a b -- b a )");
+        push_op_typed(op_table, &mut index, "rot",        rot,        "( a b c -- b c a )");
+        push_op_typed(op_table, &mut index, "drop",       drop_op,    "( a -- )");
+        push_op_typed(op_table, &mut index, "clear",      clear,      "( -- )");
+        push_op_typed(op_table, &mut index, "stack-size", stack_size, "( -- int )");
         // Arithmetic ops (6.3)
-        push_op_typed(op_table, &mut index, "+", add,      "( S int int -- S int )");
-        push_op_typed(op_table, &mut index, "-", subtract, "( S int int -- S int )");
-        push_op_typed(op_table, &mut index, "*", multiply, "( S int int -- S int )");
-        push_op_typed(op_table, &mut index, "/", divide,   "( S int int -- S int )");
+        push_op_typed(op_table, &mut index, "+", add,      "( int int -- int )");
+        push_op_typed(op_table, &mut index, "-", subtract, "( int int -- int )");
+        push_op_typed(op_table, &mut index, "*", multiply, "( int int -- int )");
+        push_op_typed(op_table, &mut index, "/", divide,   "( int int -- int )");
         // Comparison ops (6.4)
-        push_op_typed(op_table, &mut index, "==", equal,   "( S a a -- S bool )");
-        push_op_typed(op_table, &mut index, "<",  less,    "( S int int -- S bool )");
-        push_op_typed(op_table, &mut index, ">",  greater, "( S int int -- S bool )");
-        push_op_typed(op_table, &mut index, "!",  not,     "( S bool -- S bool )");
-        push_op_typed(op_table, &mut index, "?",  question,"( S bool -- S bool )");
+        push_op_typed(op_table, &mut index, "==", equal,   "( a a -- bool )");
+        push_op_typed(op_table, &mut index, "<",  less,    "( int int -- bool )");
+        push_op_typed(op_table, &mut index, ">",  greater, "( int int -- bool )");
+        push_op_typed(op_table, &mut index, "!",  not,     "( bool -- bool )");
+        push_op_typed(op_table, &mut index, "?",  question,"( bool -- bool )");
         // Return stack ops (6.6)
-        push_op_typed(op_table, &mut index, ">r", to_r,    "( S a -- S )");
-        push_op_typed(op_table, &mut index, "r>", r_from,  "( S -- S a )");
-        push_op_typed(op_table, &mut index, "r@", r_fetch, "( S -- S a )");
+        push_op_typed(op_table, &mut index, ">r", to_r,    "( a -- )");
+        push_op_typed(op_table, &mut index, "r>", r_from,  "( -- a )");
+        push_op_typed(op_table, &mut index, "r@", r_fetch, "( -- a )");
         // Control flow ops (6.5)
         push_op_typed(op_table, &mut index, "apply",    apply,     "( S a -- S | effect )");
-        push_op_typed(op_table, &mut index, "return",   return_op, "( S -- S )");
+        push_op_typed(op_table, &mut index, "return",   return_op, "( -- )");
         push_op(op_table, &mut index, "stop", stop);
         push_op(op_table, &mut index, "bye",  bye);
         push_op(op_table, &mut index, "jump",       jump);
         push_op(op_table, &mut index, "jump-stack", jump_stack);
         push_op(op_table, &mut index, "lit",     lit_stack);
         push_op(op_table, &mut index, "compile", compile);
-        push_op_typed(op_table, &mut index, "break",    break_word,    "( S -- S )");
-        push_op_typed(op_table, &mut index, "continue", continue_word, "( S -- S )");
+        push_op_typed(op_table, &mut index, "break",    break_word,    "( -- )");
+        push_op_typed(op_table, &mut index, "continue", continue_word, "( -- )");
         // Macros (6.12 partial)
         push_macro(op_table, &mut index, "loop",     loop_word::loop_word);
         push_macro(op_table, &mut index, "uses:",    use_module);

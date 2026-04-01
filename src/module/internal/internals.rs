@@ -20,8 +20,8 @@ impl InternalBuilder for InternalsModule {
     ) -> Module {
         let mut index = HashMap::new();
 
-        push_op_typed(op_table, &mut index, "<function>",            function,            "( S a -- S )");
-        push_op_typed(op_table, &mut index, "<predeclare-function>", predeclare_function, "( S a -- S )");
+        push_op_typed(op_table, &mut index, "<function>",            function,            "( a -- )");
+        push_op_typed(op_table, &mut index, "<predeclare-function>", predeclare_function, "( a -- )");
 
         Module {
             imported: HashMap::new(),

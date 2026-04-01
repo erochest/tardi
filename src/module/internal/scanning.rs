@@ -23,14 +23,14 @@ impl InternalBuilder for ScanningBuilder {
         let mut index = HashMap::new();
         // These three have compiler-level effects and don't have a simple stack type.
         // We represent them with a polymorphic signature as a conservative approximation.
-        push_op_typed(op_table, &mut index, "scan-value",        scan_value,        "( S -- S a )");
-        push_op_typed(op_table, &mut index, "scan-value-list",   scan_value_list,   "( S a -- S vec )");
-        push_op_typed(op_table, &mut index, "scan-object-list",  scan_object_list,  "( S a -- S vec )");
+        push_op_typed(op_table, &mut index, "scan-value",        scan_value,        "( -- a )");
+        push_op_typed(op_table, &mut index, "scan-value-list",   scan_value_list,   "( a -- vec )");
+        push_op_typed(op_table, &mut index, "scan-object-list",  scan_object_list,  "( a -- vec )");
         // Optionally consume a `( ... )` type-signature block from the token stream.
         // If the next token is `(`, everything up to and including `)` is consumed
         // and discarded.  If not, the stream is left unchanged.
-        // Stack effect: ( S -- S )  (pure scanner-level side-effect, no stack change)
-        push_op_typed(op_table, &mut index, "<consume-type-sig>", consume_type_sig, "( S -- S )");
+        // Stack effect: ( -- )  (pure scanner-level side-effect, no stack change)
+        push_op_typed(op_table, &mut index, "<consume-type-sig>", consume_type_sig, "( -- )");
         Module {
             imported: HashMap::new(),
             path: None,

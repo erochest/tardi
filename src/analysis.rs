@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn parse_definition() {
-        let ast = parse_source(": double ( S int -- S int ) dup + ;", "test").unwrap();
+        let ast = parse_source(": double ( int -- int ) dup + ;", "test").unwrap();
         match &ast.kind {
             NodeKind::Program(items) => {
                 assert_eq!(items.len(), 1);
@@ -157,10 +157,10 @@ mod tests {
     #[test]
     fn check_well_typed_definition() {
         let mut env = HashMap::new();
-        env.insert("dup".to_string(), sig("( S a -- S a a )"));
-        env.insert("+".to_string(), sig("( S int int -- S int )"));
+        env.insert("dup".to_string(), sig("( a -- a a )"));
+        env.insert("+".to_string(), sig("( int int -- int )"));
 
-        let result = check_source(": double ( S int -- S int ) dup + ;", "test", env);
+        let result = check_source(": double ( int -- int ) dup + ;", "test", env);
         assert!(result.is_ok(), "{:?}", result);
 
         // Definition node should be annotated
@@ -181,37 +181,23 @@ mod tests {
 
     #[test]
     fn check_effect_error_undeclared() {
-        use crate::types::{EffectSet, PrimitiveType, Row, StackType, TypeSig};
         let mut env = HashMap::new();
-        env.insert(
-            "print".to_string(),
-            TypeSig::new(
-                Row {
-                    var: Some("S".to_string()),
-                    types: vec![StackType::Primitive(PrimitiveType::Str)],
-                },
-                Row {
-                    var: Some("S".to_string()),
-                    types: vec![],
-                },
-                EffectSet::single("io"),
-            ),
-        );
+        env.insert("print".to_string(), sig("( str -- | io )"));
 
         // Definition uses `print` (which has io effect) but doesn't declare it
-        let result = check_source(": silent-print ( S str -- S ) print ;", "test", env);
+        let result = check_source(": silent-print ( str -- ) print ;", "test", env);
         assert!(matches!(result, Err(AnalysisError::Type(_))));
     }
 
     #[test]
     fn check_forward_references() {
         let mut env = HashMap::new();
-        env.insert("+".to_string(), sig("( S int int -- S int )"));
+        env.insert("+".to_string(), sig("( int int -- int )"));
 
         // bar references foo; both defined in same snippet
         let result = check_source(
-            ": bar ( S -- S int ) foo ; \
-             : foo ( S -- S int ) 42 ;",
+            ": bar ( -- int ) foo ; \
+             : foo ( -- int ) 42 ;",
             "test",
             env,
         );
@@ -221,7 +207,7 @@ mod tests {
     #[test]
     fn parse_and_check_nested_quotation() {
         let mut env = HashMap::new();
-        env.insert("apply".to_string(), sig("( S [ S -- S ] -- S )"));
+        env.insert("apply".to_string(), sig("( S a -- S | effect )"));
 
         let result = check_source("[ 1 ] apply", "test", env);
         // Top-level expressions (not in a definition) may have unknown words;

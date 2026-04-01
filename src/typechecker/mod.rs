@@ -384,10 +384,10 @@ mod tests {
     #[test]
     fn known_word_returns_its_sig() {
         let mut tc = TypeChecker::new();
-        tc.define("dup", sig("( S a -- S a a )"));
+        tc.define("dup", sig("( a -- a a )"));
         let mut node = word_node("dup");
         let result = tc.check_item(&mut node).unwrap();
-        assert_eq!(result, sig("( S a -- S a a )"));
+        assert_eq!(result, sig("( a -- a a )"));
     }
 
     #[test]
@@ -402,7 +402,7 @@ mod tests {
     #[test]
     fn push_two_ints_and_add() {
         let mut tc = TypeChecker::new();
-        tc.define("+", sig("( S int int -- S int )"));
+        tc.define("+", sig("( int int -- int )"));
         let mut nodes = vec![
             literal_node(ValueData::Integer(1)),
             literal_node(ValueData::Integer(2)),
@@ -422,7 +422,7 @@ mod tests {
     #[test]
     fn quotation_wraps_inner_sig() {
         let mut tc = TypeChecker::new();
-        tc.define("dup", sig("( S a -- S a a )"));
+        tc.define("dup", sig("( a -- a a )"));
         let body = vec![word_node("dup")];
         let mut node = AstNode::new(NodeKind::Quotation(body), dummy_span());
         let result = tc.check_item(&mut node).unwrap();
@@ -437,14 +437,14 @@ mod tests {
     #[test]
     fn definition_body_matches_declaration() {
         let mut tc = TypeChecker::new();
-        tc.define("dup", sig("( S a -- S a a )"));
-        tc.define("+", sig("( S int int -- S int )"));
+        tc.define("dup", sig("( a -- a a )"));
+        tc.define("+", sig("( int int -- int )"));
 
         let body = vec![word_node("dup"), word_node("+")];
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "double".to_string(),
-                type_sig: sig("( S int -- S int )"),
+                type_sig: sig("( int -- int )"),
                 body,
             },
             dummy_span(),
@@ -455,14 +455,14 @@ mod tests {
     #[test]
     fn definition_output_mismatch_is_error() {
         let mut tc = TypeChecker::new();
-        tc.define("dup", sig("( S a -- S a a )"));
+        tc.define("dup", sig("( a -- a a )"));
 
         // Body: dup — infers ( S a -- S a a ); declared output is ( S int )
         let body = vec![word_node("dup")];
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "bad".to_string(),
-                type_sig: sig("( S int -- S int )"), // declared output: one int
+                type_sig: sig("( int -- int )"), // declared output: one int
                 body,
             },
             dummy_span(),
@@ -497,7 +497,7 @@ mod tests {
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "silent-print".to_string(),
-                type_sig: sig("( S str -- S )"), // no | io declared
+                type_sig: sig("( str -- )"), // no | io declared
                 body,
             },
             dummy_span(),
@@ -547,7 +547,7 @@ mod tests {
         let foo = AstNode::new(
             NodeKind::Definition {
                 name: "foo".to_string(),
-                type_sig: sig("( S -- S int )"),
+                type_sig: sig("( -- int )"),
                 body: foo_body,
             },
             dummy_span(),
@@ -557,7 +557,7 @@ mod tests {
         let bar = AstNode::new(
             NodeKind::Definition {
                 name: "bar".to_string(),
-                type_sig: sig("( S -- S int )"),
+                type_sig: sig("( -- int )"),
                 body: bar_body,
             },
             dummy_span(),
@@ -581,7 +581,7 @@ mod tests {
     #[test]
     fn type_info_is_set_on_definition_body_nodes() {
         let mut tc = TypeChecker::new();
-        tc.define("+", sig("( S int int -- S int )"));
+        tc.define("+", sig("( int int -- int )"));
         let body = vec![
             literal_node(ValueData::Integer(1)),
             literal_node(ValueData::Integer(2)),
@@ -590,7 +590,7 @@ mod tests {
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "two".to_string(),
-                type_sig: sig("( S -- S int )"),
+                type_sig: sig("( -- int )"),
                 body,
             },
             dummy_span(),
@@ -606,14 +606,14 @@ mod tests {
     #[test]
     fn type_mismatch_wrong_input_arity() {
         let mut tc = TypeChecker::new();
-        tc.define("dup", sig("( S a -- S a a )"));
+        tc.define("dup", sig("( a -- a a )"));
         // Body: dup infers ( S a -- S a a ) — two outputs.
         // Declared output only has one item → mismatch on output arity.
         let body = vec![word_node("dup")];
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "bad-arity".to_string(),
-                type_sig: sig("( S a -- S a )"), // declared: one output
+                type_sig: sig("( a -- a )"), // declared: one output
                 body,
             },
             dummy_span(),
@@ -626,7 +626,7 @@ mod tests {
     #[test]
     fn type_mismatch_wrong_concrete_output_type() {
         let mut tc = TypeChecker::new();
-        tc.define("+", sig("( S int int -- S int )"));
+        tc.define("+", sig("( int int -- int )"));
         // Push two ints and add them → produces int.
         // But declare output as bool → type mismatch.
         let body = vec![
@@ -637,7 +637,7 @@ mod tests {
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "wrong-type".to_string(),
-                type_sig: sig("( S -- S bool )"), // should be int, not bool
+                type_sig: sig("( -- bool )"), // should be int, not bool
                 body,
             },
             dummy_span(),
@@ -651,7 +651,7 @@ mod tests {
     #[test]
     fn missing_effect_declaration_is_error() {
         let mut tc = TypeChecker::new();
-        tc.define("print", sig("( S str -- S | io )"));
+        tc.define("print", sig("( str -- | io )"));
         let body = vec![
             literal_node(ValueData::String("hello".to_string())),
             word_node("print"),
@@ -659,7 +659,7 @@ mod tests {
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "greet".to_string(),
-                type_sig: sig("( S -- S )"), // missing | io
+                type_sig: sig("( -- )"), // missing | io
                 body,
             },
             dummy_span(),
@@ -671,8 +671,8 @@ mod tests {
     #[test]
     fn multiple_missing_effects_are_caught() {
         let mut tc = TypeChecker::new();
-        tc.define("read",  sig("( S reader -- S str | io )"));
-        tc.define("alloc-buf", sig("( S int -- S a | alloc )"));
+        tc.define("read",  sig("( reader -- str | io )"));
+        tc.define("alloc-buf", sig("( int -- a | alloc )"));
         let body = vec![
             literal_node(ValueData::Integer(64)),
             word_node("alloc-buf"),
@@ -681,7 +681,7 @@ mod tests {
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "buffered-read".to_string(),
-                type_sig: sig("( S reader -- S str )"), // missing | io alloc
+                type_sig: sig("( reader -- str )"), // missing | io alloc
                 body,
             },
             dummy_span(),
@@ -693,7 +693,7 @@ mod tests {
     #[test]
     fn superset_of_effects_is_ok() {
         let mut tc = TypeChecker::new();
-        tc.define("print", sig("( S str -- S | io )"));
+        tc.define("print", sig("( str -- | io )"));
         let body = vec![
             literal_node(ValueData::String("hi".to_string())),
             word_node("print"),
@@ -701,7 +701,7 @@ mod tests {
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "greet-io".to_string(),
-                type_sig: sig("( S -- S | io )"),
+                type_sig: sig("( -- | io )"),
                 body,
             },
             dummy_span(),
@@ -728,7 +728,7 @@ mod tests {
         let mut def = AstNode::new(
             NodeKind::Definition {
                 name: "caller".to_string(),
-                type_sig: sig("( S -- S )"),
+                type_sig: sig("( -- )"),
                 body,
             },
             dummy_span(),
@@ -740,7 +740,7 @@ mod tests {
     #[test]
     fn defined_word_passes_undefined_word_fails() {
         let mut tc = TypeChecker::new();
-        tc.define("real-word", sig("( S -- S int )"));
+        tc.define("real-word", sig("( -- int )"));
 
         let mut ok_node = word_node("real-word");
         assert!(tc.check_item(&mut ok_node).is_ok());
@@ -791,7 +791,7 @@ mod tests {
     #[test]
     fn quotation_inherits_effects_from_body() {
         let mut tc = TypeChecker::new();
-        tc.define("print", sig("( S str -- S | io )"));
+        tc.define("print", sig("( str -- | io )"));
         let body = vec![word_node("print")];
         let mut node = AstNode::new(NodeKind::Quotation(body), dummy_span());
         let result = tc.check_item(&mut node).unwrap();

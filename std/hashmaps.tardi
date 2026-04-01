@@ -10,14 +10,11 @@ exports:
 /// H{ { "key1" 4 } { "key2" 5 } }
 MACRO: H{ } scan-object-list >hashmap over vectors/push! ;
 
-/// ( hashmap -- vector )
-: keys   ( S hashmap -- S vec )  >vector [ first ] map ;
+: keys   ( hashmap -- vec )  >vector [ first ] map ;
 
-/// ( hashmap -- vector )
-: values   ( S hashmap -- S vec )  >vector [ second ] map ;
+: values   ( hashmap -- vec )  >vector [ second ] map ;
 
-/// ( key hashmap -- ? )
-: in?   ( S a hashmap -- S bool )  keys vectors/in? ;
+: in?   ( a hashmap -- bool )  keys vectors/in? ;
 
 // ( hashmap lambda:( k v -- ) -- )
 : each   ( S hashmap a -- S | effect )  swap >vector [ dup vectors/empty? ! ] [
@@ -40,11 +37,9 @@ MACRO: H{ } scan-object-list >hashmap over vectors/push! ;
     ] vectors/map
     >hashmap nip ;
 
-// ( hashmap -- ? )
-: empty?   ( S hashmap -- S bool )  _hashmaps/length 0 == ;
+: empty?   ( hashmap -- bool )  _hashmaps/length 0 == ;
 
-/// hm x --
-: inc   ( S hashmap a -- S hashmap )
+: inc   ( hashmap a -- hashmap )
     swap 2dup get
     [ 1+ ] [ drop 1 ] if
     swap set! ;

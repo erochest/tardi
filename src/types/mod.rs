@@ -225,20 +225,33 @@ impl TypeSig {
     ///
     /// Requires that `self.output` unifies with `next.input`.
     /// Returns an error describing the mismatch if they don't.
+    ///
+    /// Row variables are **optional**: a signature written without a row variable
+    /// (e.g. `( a -- a a )`) behaves identically to one with an implicit shared
+    /// row variable (e.g. `( S a -- S a a )`).  During composition the absent
+    /// variable is treated as a fresh implicit `"S"` so that stack-depth
+    /// differences can be absorbed correctly.
     pub fn compose(&self, next: &TypeSig) -> Result<TypeSig, UnificationError> {
+        // Normalise: inject an implicit row variable into any row that lacks one.
+        // This makes `( a -- a a )` compositionally equivalent to `( S a -- S a a )`.
+        const IMPLICIT: &str = "S";
+        let self_in  = implicit_row_var(&self.input,  IMPLICIT);
+        let self_out = implicit_row_var(&self.output, IMPLICIT);
+        let next_in  = implicit_row_var(&next.input,  IMPLICIT);
+        let next_out = implicit_row_var(&next.output, IMPLICIT);
+
         // Verify that the stacks are compatible at the join point.
-        unify_rows(&self.output, &next.input)?;
+        unify_rows(&self_out, &next_in)?;
 
         // Compute the "remaining base": the part of self.output that next.input
-        // does NOT consume.  next.input.types[..b_len] are consumed; any types in
-        // self.output that appear *below* them (i.e., the first a_len - b_len) are
-        // still on the stack when next finishes.
-        let a_len = self.output.types.len();
-        let b_len = next.input.types.len();
+        // does NOT consume.  Any types in self.output that appear *below* the
+        // consumed ones are still on the stack when next finishes.
+        let a_len = self_out.types.len();
+        let b_len = next_in.types.len();
         let remaining_base = Row {
-            var: self.output.var.clone(),
+            var: self_out.var.clone(),
             types: if a_len > b_len {
-                self.output.types[..a_len - b_len].to_vec()
+                self_out.types[..a_len - b_len].to_vec()
             } else {
                 vec![]
             },
@@ -246,15 +259,21 @@ impl TypeSig {
 
         // Substitute next.input's row variable in next.output with the remaining
         // base, giving the composed output row.
-        let composed_output = substitute_row(&next.output, &next.input.var, &remaining_base);
+        let composed_output = substitute_row(&next_out, &next_in.var, &remaining_base);
         let effects = self.effects.union(&next.effects);
-        Ok(TypeSig::new(self.input.clone(), composed_output, effects))
+        Ok(TypeSig::new(self_in, composed_output, effects))
     }
 }
 
 impl std::fmt::Display for TypeSig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "( {} -- {}", self.input, self.output)?;
+        write!(f, "( {} --", self.input)?;
+        // Only emit a space before the output if it is non-empty, avoiding a
+        // double-space when there are effects but no output types.
+        let output_str = self.output.to_string();
+        if !output_str.is_empty() {
+            write!(f, " {}", output_str)?;
+        }
         if !self.effects.is_empty() {
             write!(f, " | {}", self.effects)?;
         }
@@ -418,6 +437,17 @@ fn unify_row_vars(a: Option<&str>, b: Option<&str>) -> Result<Option<String>, Un
     }
 }
 
+/// Return `row` with an implicit row variable `var` inserted if the row
+/// currently has none.  Used by `TypeSig::compose` to normalise signatures
+/// written without an explicit row variable.
+fn implicit_row_var(row: &Row, var: &str) -> Row {
+    if row.var.is_some() {
+        row.clone()
+    } else {
+        Row { var: Some(var.to_string()), types: row.types.clone() }
+    }
+}
+
 /// Substitute a row variable in `row` with the row context from `context`.
 ///
 /// Used during composition: when composing A→B with B→C, substitute B's
@@ -489,6 +519,36 @@ mod tests {
         let sig = "( int -- int )".parse::<TypeSig>().unwrap();
         assert_eq!(sig.input.var, None);
         assert_eq!(sig.output.var, None);
+    }
+
+    #[test]
+    fn compose_no_row_vars_dup_then_drop() {
+        // ( a -- a a ) then ( a -- ) should yield ( a -- a )
+        let dup  = "( a -- a a )".parse::<TypeSig>().unwrap();
+        let drop_sig = "( a -- )".parse::<TypeSig>().unwrap();
+        let composed = dup.compose(&drop_sig).unwrap();
+        assert_eq!(composed.output.types.len(), 1);
+        assert!(matches!(&composed.output.types[0], StackType::TypeVar(_)));
+    }
+
+    #[test]
+    fn compose_no_row_var_with_row_var() {
+        // mixing notations: ( a -- a a ) then ( S a -- S ) should work
+        let dup  = "( a -- a a )".parse::<TypeSig>().unwrap();
+        let drop_sig = "( S a -- S )".parse::<TypeSig>().unwrap();
+        assert!(dup.compose(&drop_sig).is_ok());
+    }
+
+    #[test]
+    fn display_no_row_var_sig() {
+        let sig = "( int -- int )".parse::<TypeSig>().unwrap();
+        assert_eq!(sig.to_string(), "( int -- int )");
+    }
+
+    #[test]
+    fn display_no_row_var_with_effects() {
+        let sig = "( str -- | io )".parse::<TypeSig>().unwrap();
+        assert_eq!(sig.to_string(), "( str -- | io )");
     }
 
     #[test]

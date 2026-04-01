@@ -11,15 +11,15 @@ exports:
     pad0 ;
 
 /// utf8 -- int
-: utf8>digit   ( S int -- S int )
+: utf8>digit   ( int -- int )
     48 -
     0 9 check-bounds ;
 
 /// accum n -- accum'
-: accumulate-place   ( S int int -- S int )  swap 10 * + ;
+: accumulate-place   ( int int -- int )  swap 10 * + ;
 
 /// s -- i
-: parse-int   ( S str -- S int )
+: parse-int   ( str -- int )
     0
     swap >utf8
     [
@@ -28,14 +28,14 @@ exports:
     ] each ;
 
 /// str|#f -- ?
-: at-end?   ( S a -- S bool )
+: at-end?   ( a -- bool )
     [
         dup #f ==
         dup [ nip ] when
     ] [ empty? ] || ;
 
 /// str n -- vector/str
-: chunk-on   ( S str int -- S vec )
+: chunk-on   ( str int -- vec )
     { } -rot
     [ over at-end? ! ] [
         [
@@ -45,13 +45,13 @@ exports:
     ] while
     2drop ;
 
-: repeat-test    ( S int -- S int bool )  dup 0 > ;
-: repeat-iter    ( S int -- S int )       1 - ;
-: repeat-extend  ( S str str -- S str str str )  dupd concat ;
+: repeat-test    ( int -- int bool )  dup 0 > ;
+: repeat-iter    ( int -- int )       1 - ;
+: repeat-extend  ( str str -- str str str )  dupd concat ;
 
 /// times string -- string
 /// repeats a string times times
-: repeat-string   ( S int str -- S str )
+: repeat-string   ( int str -- str )
     "" rot
     [ repeat-test ] [
       [ repeat-extend ] dip
@@ -61,7 +61,7 @@ exports:
 
 /// string width -- string
 /// this pads a string with '0' to be width
-: pad0   ( S str int -- S str )
+: pad0   ( str int -- str )
     over length -
     dup 0 > [
         "0" repeat-string
