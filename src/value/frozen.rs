@@ -19,7 +19,7 @@ pub enum FrozenValueData {
 
 impl FrozenValueData {
     pub fn to_repr(&self) -> String {
-        if let FrozenValueData::String(ref s) = self {
+        if let FrozenValueData::String(s) = self {
             format!("\"{}\"", s.replace("\\", "\\\\").replace("\"", "\\\""))
         } else {
             self.to_string()

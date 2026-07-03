@@ -1,4 +1,4 @@
-//! Tardi environmentming language implementation
+//! Tardi language implementation
 
 pub mod compiler;
 pub mod config;
@@ -56,10 +56,10 @@ pub fn repl(config: &Config) -> Result<()> {
     let rl_config = config.clone().into();
     let history = FileHistory::new();
     let mut readline = DefaultEditor::with_history(rl_config, history)?;
-    if let Some(history_file) = config.repl.history_file.as_ref() {
-        if history_file.exists() {
-            readline.history_mut().load(history_file)?;
-        }
+    if let Some(history_file) = config.repl.history_file.as_ref()
+        && history_file.exists()
+    {
+        readline.history_mut().load(history_file)?;
     }
 
     tardi.bootstrap(None)?;

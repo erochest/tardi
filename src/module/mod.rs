@@ -325,18 +325,18 @@ impl ModuleManager {
                 source_module_path.display(),
                 path.display()
             );
-            if let Ok(suffix) = target.strip_prefix(path) {
-                if let Some(name) = suffix.file_stem() {
-                    let name = name.to_string_lossy();
-                    let name = name.replace("\\", "/");
-                    log::debug!(
-                        "found module {} from {} at {}",
-                        target_module,
-                        source_module_path.display(),
-                        target.display()
-                    );
-                    return Ok(Some((name, target)));
-                }
+            if let Ok(suffix) = target.strip_prefix(path)
+                && let Some(name) = suffix.file_stem()
+            {
+                let name = name.to_string_lossy();
+                let name = name.replace("\\", "/");
+                log::debug!(
+                    "found module {} from {} at {}",
+                    target_module,
+                    source_module_path.display(),
+                    target.display()
+                );
+                return Ok(Some((name, target)));
             }
         }
 

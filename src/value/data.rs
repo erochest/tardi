@@ -40,7 +40,7 @@ pub enum ValueData {
 
 impl ValueData {
     pub fn to_repr(&self) -> String {
-        if let ValueData::String(ref s) = self {
+        if let ValueData::String(s) = self {
             format!("\"{}\"", s.replace("\\", "\\\\").replace("\"", "\\\""))
         } else {
             self.to_string()
@@ -48,9 +48,9 @@ impl ValueData {
     }
 
     pub fn get_word(&self) -> Option<&str> {
-        if let ValueData::Word(ref w) = self {
+        if let ValueData::Word(w) = self {
             Some(w)
-        } else if let ValueData::Symbol { word: ref w, .. } = self {
+        } else if let ValueData::Symbol { word: w, .. } = self {
             Some(w)
         } else {
             None

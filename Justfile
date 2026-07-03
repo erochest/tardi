@@ -2,6 +2,9 @@
 
 install_dir := if os_family() == "windows" { clean(join(data_directory(), 'tardi', 'data', 'std')) } else { clean(join(data_directory(), 'tardi', 'std')) }
 
+_default:
+  @just test
+
 check:
     cargo check --tests
 

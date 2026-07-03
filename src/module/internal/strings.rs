@@ -3,12 +3,12 @@ use std::collections::{HashMap, HashSet};
 use crate::compiler::Compiler;
 use crate::error::{Result, VMError};
 use crate::module::{Module, ModuleManager};
-use crate::shared::{shared, Shared};
+use crate::shared::{Shared, shared};
 use crate::value::lambda::Lambda;
 use crate::value::{Value, ValueData};
 use crate::vm::VM;
 
-use super::{push_op, InternalBuilder};
+use super::{InternalBuilder, push_op};
 
 pub const STRINGS: &str = "std/_strings";
 
@@ -78,11 +78,11 @@ fn utf8_to_string(vm: &mut VM, _compiler: &mut Compiler) -> Result<()> {
     if let Some(items) = list {
         let mut bytes = Vec::new();
         for item in items {
-            if let Some(n) = item.borrow().as_integer() {
-                if (0..=255).contains(&n) {
-                    bytes.push(n as u8);
-                    continue;
-                }
+            if let Some(n) = item.borrow().as_integer()
+                && (0..=255).contains(&n)
+            {
+                bytes.push(n as u8);
+                continue;
             }
             return Err(VMError::TypeMismatch("UTF-8 byte value".to_string()).into());
         }

@@ -5,8 +5,8 @@ use std::mem;
 use std::path::Path;
 use std::result;
 
-use crate::module::internal::sandbox::SANDBOX;
 use crate::module::Module;
+use crate::module::internal::sandbox::SANDBOX;
 use log::Level;
 
 pub mod error;
@@ -15,9 +15,9 @@ use crate::compiler::error::{CompilerError, CompilerResult};
 use crate::core::Execute;
 use crate::env::Environment;
 use crate::error::{Error, Result};
-use crate::scanner::error::ScannerError;
 use crate::scanner::Source;
-use crate::shared::{shared, unshare_clone, Shared};
+use crate::scanner::error::ScannerError;
+use crate::shared::{Shared, shared, unshare_clone};
 use crate::value::data::ValueData;
 use crate::value::lambda::{Callable, Lambda};
 use crate::value::{Value, ValueVec};
@@ -151,10 +151,10 @@ impl Compiler {
     fn compile_value(&mut self, value: Value) -> CompilerResult<()> {
         log::trace!("Compiler::compile_value {:?}", value.lexeme);
         // If we're collecting words for a function/lambda, add to the current word list
-        if let Some(closure) = self.lambda_stack.last_mut() {
-            if let Some(ref lexeme) = value.lexeme {
-                closure.words.push(lexeme.clone());
-            }
+        if let Some(closure) = self.lambda_stack.last_mut()
+            && let Some(ref lexeme) = value.lexeme
+        {
+            closure.words.push(lexeme.clone());
         }
         match value.data {
             ValueData::Integer(_)

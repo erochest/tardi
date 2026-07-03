@@ -5,7 +5,7 @@ use std::path::Path;
 use std::{fmt, io};
 
 use crate::error::Result;
-use crate::shared::{shared, Shared};
+use crate::shared::{Shared, shared};
 
 #[derive(Debug, Clone, Default)]
 pub enum TardiWriter {
@@ -91,7 +91,7 @@ impl Write for TardiWriter {
                 let mut stderr = stderr.lock();
                 stderr.write(buf)
             }
-            TardiWriter::File { ref mut writer, .. } => writer.borrow_mut().write(buf),
+            TardiWriter::File { writer, .. } => writer.borrow_mut().write(buf),
         }
     }
 
@@ -107,7 +107,7 @@ impl Write for TardiWriter {
                 let mut stderr = stderr.lock();
                 stderr.flush()
             }
-            TardiWriter::File { ref mut writer, .. } => writer.borrow_mut().flush(),
+            TardiWriter::File { writer, .. } => writer.borrow_mut().flush(),
         }
     }
 }

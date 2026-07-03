@@ -58,17 +58,17 @@ use Error::*;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            IoError(ref err) => err.fmt(f),
-            VMError(ref err) => err.fmt(f),
-            ScannerError(ref err) => err.fmt(f),
-            CompilerError(ref err) => err.fmt(f),
+            IoError(err) => err.fmt(f),
+            VMError(err) => err.fmt(f),
+            ScannerError(err) => err.fmt(f),
+            CompilerError(err) => err.fmt(f),
             InvalidOpCode(code) => write!(f, "invalid op code: {}", code),
-            ReplError(ref err) => err.fmt(f),
-            TomlError(ref err) => err.fmt(f),
+            ReplError(err) => err.fmt(f),
+            TomlError(err) => err.fmt(f),
             MissingConfiguration => write!(f, "missing configuration"),
-            ConfigReadError(ref err) => err.fmt(f),
+            ConfigReadError(err) => err.fmt(f),
             InfallibleError => unimplemented!("Error::InfallibleError"),
-            TardiError(ref err) => err.fmt(f),
+            TardiError(err) => err.fmt(f),
         }
     }
 }
