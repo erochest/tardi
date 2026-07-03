@@ -3,7 +3,7 @@ use clap_verbosity_flag::Verbosity;
 use human_panic::setup_panic;
 use std::fs;
 use std::path::PathBuf;
-use tardi::config::{init_default_config, read_config_sources};
+// use tardi::config::{init_default_config, read_config_sources};
 
 use tardi::error::Result;
 
@@ -16,32 +16,34 @@ fn main() -> Result<()> {
         .init();
 
     // TODO: some way to edit config from the command line
-    let config = read_config_sources(&args.config.as_deref())?;
-    if let Some(history_dir) = config.repl.history_file.as_ref().and_then(|p| p.parent()) {
-        fs::create_dir_all(history_dir)?;
-    }
+    // let config = read_config_sources(&args.config.as_deref())?;
+    // if let Some(history_dir) = config.repl.history_file.as_ref().and_then(|p| p.parent()) {
+    //     fs::create_dir_all(history_dir)?;
+    // }
 
-    log::info!("config {:?}", config);
+    // log::info!("config {:?}", config);
 
     match args.command {
         Some(Commands::Evaluate { script_files }) => {
             for file in script_files {
-                tardi::run_file(&file, &config, args.print_stack)?;
+                // tardi::run_file(&file, &config, args.print_stack)?;
             }
             Ok(())
         }
-        Some(Commands::Repl) => tardi::repl(&config),
+        Some(Commands::Repl) => todo!(), // tardi::repl(&config),
         Some(Commands::ConfigInit) => {
-            let path = init_default_config()?;
+            // let path = init_default_config()?;
+            let path: PathBuf = todo!();
             println!("{}", path.display());
             Ok(())
         }
         None => {
             if let Some(file) = args.file {
-                tardi::run_file(&file, &config, args.print_stack)
+                // tardi::run_file(&file, &config, args.print_stack)
             } else {
-                tardi::repl(&config)
+                // tardi::repl(&config)
             }
+            Ok(())
         }
     }
 }
