@@ -1,7 +1,7 @@
 //! Tardi language implementation
 
 // pub mod compiler;
-// pub mod config;
+pub mod config;
 // pub mod core;
 // pub mod env;
 pub mod error;
